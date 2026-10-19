@@ -59,16 +59,9 @@ static int dirFromVec(float dx, float dy, int old) {
 }
 
 // ---------- entidades ----------
-struct EnemyType { int spr; float hp, speed, dmg, radius; int xp; float unlock; };
-static const EnemyType ETYPES[] = {
-    {SPR_EN_CATERPIE, 8,  26, 6, 8, 1, 0},
-    {SPR_EN_RATTATA,  10, 42, 8, 8, 1, 15},
-    {SPR_EN_PIDGEY,   16, 52, 9, 9, 2, 40},
-    {SPR_EN_ZUBAT,    13, 70, 8, 8, 2, 75},
-};
-static const int NTYPES = sizeof(ETYPES) / sizeof(ETYPES[0]);
+static const int NTYPES = NTIERS;
 
-struct Enemy { float x, y, hp; u8 type, dir; float flash; };
+struct Enemy { float x, y, hp; u8 type, dir; short spr; float flash; };
 struct Shot  { float x, y, vx, vy, life; int hitsLeft; };
 struct Gem   { float x, y; int xp; };
 
@@ -86,6 +79,7 @@ static Shot  gSh[48];  static int nSh;
 static Gem   gGem[160]; static int nGem;
 static Player P;
 static State gState = ST_TITLE;
+static int gChar = 1;
 static float gTime, gSpawnAcc;
 static int gKills;
 static u64 gAnimMs;
@@ -126,7 +120,7 @@ static void rollCards() {
 
 static void resetGame() {
     memset(&P, 0, sizeof(P));
-    P.hp = P.maxHp = 60; P.speed = 80; P.dmg = 7; P.cooldown = 0.8f; P.shots = 1;
+    P.hp = P.maxHp = PLAYER_HP[gChar]; P.speed = PLAYER_SPD[gChar]; P.dmg = 7; P.cooldown = 0.8f; P.shots = 1;
     P.magnet = 40; P.level = 1; P.xpNeed = 6;
     nEn = nSh = nGem = 0; gTime = gSpawnAcc = 0; gKills = 0;
 }
@@ -162,12 +156,13 @@ static void readInput(u32 down, u32 held) {
 static void spawnEnemy() {
     if (nEn >= MAX_ENEMIES) return;
     int avail = 0;
-    for (int i = 0; i < NTYPES; i++) if (gTime >= ETYPES[i].unlock) avail = i + 1;
+    for (int i = 0; i < NTYPES; i++) if (gTime >= TIER_DEFS[i].from) avail = i + 1;
     float a = frand() * 6.2831853f, r = 250 + frand() * 40;
     Enemy& e = gEn[nEn++];
-    e.type = rnd() % avail;
+    e.type = (avail > 1 && rnd() % 3) ? avail - 1 - rnd() % 2 % avail : rnd() % avail;
+    e.spr = TIER_DEFS[e.type].spr[rnd() % PER_TIER];
     e.x = P.x + cosf(a) * r; e.y = P.y + sinf(a) * r;
-    e.hp = ETYPES[e.type].hp * (1.0f + gTime / 90.0f);
+    e.hp = TIER_DEFS[e.type].hp * (1.0f + gTime / 120.0f);
     e.dir = 0; e.flash = 0;
 }
 
@@ -214,7 +209,7 @@ static void update(float dt) {
         bool dead = s.life <= 0;
         for (int j = 0; j < nEn && !dead; j++) {
             Enemy& e = gEn[j];
-            float r = ETYPES[e.type].radius + 5, dx = e.x - s.x, dy = e.y - s.y;
+            float r = TIER_DEFS[e.type].radius + 5, dx = e.x - s.x, dy = e.y - s.y;
             if (dx * dx + dy * dy < r * r) {
                 e.hp -= P.dmg; e.flash = 0.1f;
                 if (--s.hitsLeft <= 0) dead = true;
@@ -227,14 +222,14 @@ static void update(float dt) {
     // enemigos
     for (int i = 0; i < nEn;) {
         Enemy& e = gEn[i];
-        const EnemyType& t = ETYPES[e.type];
+        const TierDef& t = TIER_DEFS[e.type];
         if (e.hp <= 0) {
             dropGem(e.x, e.y, t.xp); gKills++;
             gEn[i] = gEn[--nEn]; continue;
         }
         float dx = P.x - e.x, dy = P.y - e.y, d = sqrtf(dx * dx + dy * dy);
         if (d > 420) { gEn[i] = gEn[--nEn]; continue; }
-        if (d > 0.1f) { e.x += dx / d * t.speed * dt; e.y += dy / d * t.speed * dt; }
+        if (d > 0.1f) { e.x += dx / d * t.spd * dt; e.y += dy / d * t.spd * dt; }
         e.dir = dirFromVec(dx, dy, e.dir);
         if (e.flash > 0) e.flash -= dt;
         if (d < t.radius + 7 && P.invuln <= 0) { P.hp -= t.dmg; P.invuln = 0.6f; }
@@ -297,14 +292,14 @@ static void drawWorld() {
             if ((e.y < P.y) != (pass == 0)) continue;
             float x = e.x - cx, y = e.y - cy;
             if (x < -40 || x > TOP_W + 40 || y < -40 || y > TOP_H + 60) continue;
-            const SprDef& sd = SPR_DEFS[ETYPES[e.type].spr];
-            drawSprite(ETYPES[e.type].spr, e.dir, (int)(gAnimMs / sd.ms), x, y, e.flash > 0 ? &white : tintNone);
+            const SprDef& sd = SPR_DEFS[e.spr];
+            drawSprite(e.spr, e.dir, (int)(gAnimMs / sd.ms), x, y, e.flash > 0 ? &white : tintNone);
         }
         if (pass == 0) {
             C2D_DrawEllipseSolid(P.x - cx - 9, P.y - cy - 4, 0.4f, 18, 8, COL(0, 0, 0, 70));
             if (P.invuln <= 0 || ((int)(gTime * 12) & 1)) {
-                const SprDef& sd = SPR_DEFS[SPR_PLAYER_CHARMANDER];
-                drawSprite(SPR_PLAYER_CHARMANDER, P.dir, P.moving ? (int)(gAnimMs / sd.ms) : 0, P.x - cx, P.y - cy);
+                const SprDef& sd = SPR_DEFS[gChar];
+                drawSprite(gChar, P.dir, P.moving ? (int)(gAnimMs / sd.ms) : 0, P.x - cx, P.y - cy);
             }
         }
     }
@@ -388,7 +383,14 @@ int main() {
 
         touchPosition tp; hidTouchRead(&tp);
         if (gState == ST_TITLE) {
-            if ((down & KEY_TOUCH) || (down & KEY_A)) { resetGame(); gState = ST_PLAY; }
+            if (down & KEY_TOUCH) {
+                int c = (int)(tp.px / (320.0f / NPLAYERS));
+                if (tp.py >= 60 && tp.py <= 180 && c >= 0 && c < NPLAYERS) gChar = c;
+                else if (tp.py > 190) { resetGame(); gState = ST_PLAY; }
+            }
+            if (down & KEY_LEFT && gChar > 0) gChar--;
+            if (down & KEY_RIGHT && gChar < NPLAYERS - 1) gChar++;
+            if (down & KEY_A) { resetGame(); gState = ST_PLAY; }
         } else if (gState == ST_PLAY) {
             readInput(down, held);
             update(dt);
@@ -420,7 +422,18 @@ int main() {
         C2D_SceneBegin(bot);
         char b[64];
         switch (gState) {
-            case ST_TITLE: drawCentered("Toca la pantalla para jugar", "START: salir", COL(255, 255, 255, 255)); break;
+            case ST_TITLE:
+                C2D_DrawRectSolid(0, 0, 0, 320, 240, COL(28, 36, 64, 255));
+                text("Elige tu Pokémon", 160, 10, 0.7f, COL(255, 230, 120, 255), true);
+                for (int i = 0; i < NPLAYERS; i++) {
+                    float cx = 320.0f / NPLAYERS * (i + 0.5f);
+                    C2D_DrawRectSolid(cx - 48, 60, 0.1f, 96, 120, i == gChar ? COL(70, 110, 200, 255) : COL(40, 50, 90, 255));
+                    drawSprite(i, 0, (int)(gAnimMs / SPR_DEFS[i].ms), cx, 130);
+                    text(PLAYER_NAMES[i], cx, 150, 0.5f, COL(255, 255, 255, 255), true);
+                }
+                C2D_DrawRectSolid(60, 196, 0.1f, 200, 32, COL(90, 190, 90, 255));
+                text("¡Jugar!", 160, 202, 0.7f, COL(255, 255, 255, 255), true);
+                break;
             case ST_PLAY: drawBottomHud(); break;
             case ST_LEVELUP: drawCards(); break;
             case ST_OVER:

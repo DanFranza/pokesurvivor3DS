@@ -14,18 +14,36 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parents[1]
-ATLAS = 512
+ATLAS = 1024
 ROWS = (0, 2, 4, 6)          # Down, Right, Up, Left
 MAXF = 12                    # fotogramas máximos por animación
 
-# (nombre C, dex)
-SPRITES = [
-    ("PLAYER_CHARMANDER", 4),
-    ("EN_RATTATA", 19),
-    ("EN_PIDGEY", 16),
-    ("EN_ZUBAT", 41),
-    ("EN_CATERPIE", 10),
-]
+STARTERS = [1, 4, 7]                       # Bulbasaur, Charmander, Squirtle
+# (BST mín, BST máx, vida, velocidad, daño, xp) como los tramos de enemies.js
+TIERS = [(180, 330, 17, 56, 6, 3), (300, 405, 32, 62, 9, 5),
+         (385, 465, 52, 60, 11, 8), (445, 515, 88, 70, 14, 13)]
+PER_TIER = 6
+SEED = 3
+
+
+def load_dex():
+    txt = (ROOT / "js/data/pokedex.js").read_text()
+    return {d["dex"]: d for d in map(json.loads, re.findall(r"^\s*(\{\"dex\".*\}),?\s*$", txt, re.M))}
+
+
+def pick_sprites(dex, meta):
+    import random
+    rng = random.Random(SEED)
+    names = [(f"PLAYER_{dex[d]['name'].upper()}", d) for d in STARTERS]
+    tiers = []
+    for lo, hi, *_ in TIERS:
+        pool = [d for d, v in dex.items()
+                if lo <= v["bst"] <= hi and v["rarity"] <= 3 and not v["starter"]
+                and "Walk" in meta[d]["a"] and meta[d]["a"]["Walk"]["w"] <= 48
+                and meta[d]["a"]["Walk"]["h"] <= 56 and d not in STARTERS]
+        ch = rng.sample(sorted(pool), PER_TIER)
+        tiers.append([(f"EN_{dex[d]['name'].upper().replace('-', '_').replace('.', '').replace(' ', '_')}", d) for d in ch])
+    return names, tiers
 
 
 def load_meta():
@@ -38,13 +56,16 @@ def load_meta():
 
 def main():
     meta = load_meta()
+    dex = load_dex()
+    pn, tiers = pick_sprites(dex, meta)
+    SPRITES = pn + [t for tt in tiers for t in tt]
     atlas = Image.new("RGBA", (ATLAS, ATLAS), (0, 0, 0, 0))
     x = y = shelf_h = 0
     entries = []
-    for name, dex in SPRITES:
-        w = meta[dex]["a"]["Walk"]
+    for name, dn in SPRITES:
+        w = meta[dn]["a"]["Walk"]
         fw, fh, n = w["w"], w["h"], min(w["n"], MAXF)
-        sheet = Image.open(ROOT / f"assets/pokemon/{dex}/Walk.png").convert("RGBA")
+        sheet = Image.open(ROOT / f"assets/pokemon/{dn}/Walk.png").convert("RGBA")
         frames = {}
         bx0, by0, bx1, by1 = fw, fh, 0, 0
         for r in range(4):
@@ -90,6 +111,18 @@ def main():
         xy = ",".join("{" + ",".join(f"{{{a},{b}}}" for a, b in row) + "}" for row in e["rects"])
         h.append(f"  {{{e['w']},{e['h']},{e['n']},{e['ax']}f,{e['ay']}f,{e['ms']},{{{xy}}}}},  // {e['name']}")
     h.append("};")
+    h.append("#define NPLAYERS %d" % len(pn))
+    h.append("static const char* PLAYER_NAMES[NPLAYERS] = {%s};" % ",".join('"%s"' % dex[d]["name"] for d in STARTERS))
+    h.append("static const float PLAYER_HP[NPLAYERS] = {%s};" % ",".join(str(round(dex[d]["hp"] * 0.6)) for d in STARTERS))
+    h.append("static const float PLAYER_SPD[NPLAYERS] = {%s};" % ",".join(str(round(dex[d]["spd"] * 0.8)) for d in STARTERS))
+    h.append("#define NTIERS %d\n#define PER_TIER %d" % (len(TIERS), PER_TIER))
+    h.append("struct TierDef { float from, hp, spd, dmg, radius; int xp; short spr[PER_TIER]; };")
+    froms = [0, 40, 100, 170]
+    rows = []
+    for i, (lo, hi, hp, sp, dm, xp) in enumerate(TIERS):
+        ids = ",".join(str(len(pn) + i * PER_TIER + k) for k in range(PER_TIER))
+        rows.append(f"  {{{froms[i]},{hp},{sp},{dm},9,{xp},{{{ids}}}}}")
+    h.append("static const TierDef TIER_DEFS[NTIERS] = {\n" + ",\n".join(rows) + "\n};")
     (OUT / "include/sprites.h").write_text("\n".join(h) + "\n")
     print(f"OK: {len(entries)} sprites, atlas {ATLAS}x{ATLAS}, usado hasta y={y + shelf_h}")
 
