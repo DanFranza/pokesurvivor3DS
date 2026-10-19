@@ -582,5 +582,22 @@
  "Hielo se potencia; el resto sufre": "Glace renforcée ; les autres souffrent",
  "Fantasma, Hada y Psíquico se potencian": "Spectre, Fée et Psy renforcés",
  "¡Vínculo! %d movimientos a la vez": "Lien ! %d capacités à la fois",
- "¡Grieta superada! ¡Vínculo!": "Brèche vaincue ! Lien !"
+ "¡Grieta superada! ¡Vínculo!": "Brèche vaincue ! Lien !",
+ "Objeto: %s": "Objet : %s",
+ "Legendarios de la Sentencia: %d": "Légendaires du Jugement : %d",
+ "¡Objeto nuevo!": "Nouvel objet !",
+ "Solo puedes llevar uno. ¿Cuál te quedas?": "Un seul objet à la fois. Lequel gardes-tu ?",
+ "Nuevo": "Nouveau",
+ "Equipado": "Équipé",
+ "Toca el que quieras llevar": "Touche celui que tu veux porter",
+ "Un golpe mortal te deja con 1 de vida (cada 60 s).": "Un coup fatal te laisse à 1 PV (toutes les 60 s).",
+ "+50% de Pokémonedas al acabar.": "+50 % de Pokémonnaies à la fin.",
+ "+30% de daño, pero cada ataque te quita vida.": "+30 % de dégâts, mais chaque attaque te coûte des PV.",
+ "Los que te tocan reciben daño.": "Ceux qui te touchent subissent des dégâts.",
+ "-20% de daño recibido.": "-20 % de dégâts reçus.",
+ "¡Banda Focus!": "Bandeau Focus !",
+ "Ya llevas %s": "Tu portes déjà %s",
+ "¡Llevas %s!": "Tu portes %s !",
+ "LA SENTENCIA DE ARCEUS": "LE JUGEMENT D'ARCEUS",
+ "Sentencia: %d legendarios": "Jugement : %d légendaires"
 }

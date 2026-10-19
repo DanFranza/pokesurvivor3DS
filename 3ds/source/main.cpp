@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -410,6 +410,7 @@ static void drawPlayBottom() {
         text(b, x + 66, y + 2, 0.34f, COL(255, 230, 120, 255), true);
         if (tapIn(x, y, 72, 50)) playFireButton(i);
     }
+    if (playItem() >= 0) { snprintf(b, sizeof b, "Objeto: %s", itemName(playItem())); text(b, 160, 50, 0.38f, COL(255, 150, 210, 255), true); }
     text("START: pausa / ordenar ataques", 160, 224, 0.4f, COL(150, 170, 220, 255), true);
     if (gTouching && gJoy) {
         C2D_DrawCircleSolid(gJx0, gJy0, 0.3f, 50, COL(255, 255, 255, 36));
@@ -457,8 +458,9 @@ static void drawOver() {
     text(gTmp, 160, 84, 0.5f, WHITE, true);
     snprintf(gTmp, sizeof gTmp, "+%d Pokémonedas  +%d tickets", gRun.coins, gRun.t1 + gRun.t10 * 10);
     text(gTmp, 160, 112, 0.55f, COL(255, 220, 90, 255), true);
-    if (gNewBest) text("¡Nuevo récord!", 160, 140, 0.6f, COL(120, 255, 140, 255), true);
-    if (gAchNew > 0) { snprintf(gTmp, sizeof gTmp, "¡Logros nuevos: %d!", gAchNew); text(gTmp, 160, 156, 0.5f, COL(255, 200, 80, 255), true); }
+    if (gRun.jdowns > 0) { snprintf(gTmp, sizeof gTmp, "Legendarios de la Sentencia: %d", gRun.jdowns); text(gTmp, 160, 138, 0.5f, COL(255, 230, 140, 255), true); }
+    if (gNewBest) text("¡Nuevo récord!", 160, 156 - 0, 0.6f, COL(120, 255, 140, 255), true);
+    if (gAchNew > 0) { snprintf(gTmp, sizeof gTmp, "¡Logros nuevos: %d!", gAchNew); text(gTmp, 160, 160, 0.5f, COL(255, 200, 80, 255), true); }
     if (button(60, 180, 200, 40, "Continuar", COL(60, 170, 80, 255), 0.7f)) { gState = ST_MENU; sprFreeAll(); tilesFree(); gTileBgOk = false; }
 }
 
@@ -625,6 +627,25 @@ static void drawBond() {
     }
 }
 
+// ---------------------------------------------------------------- objeto equipable
+static void drawItem() {
+    bgFill();
+    text("¡Objeto nuevo!", 160, 0, 0.7f, COL(255, 140, 220, 255), true);
+    text("Solo puedes llevar uno. ¿Cuál te quedas?", 160, 28, 0.4f, WHITE, true);
+    int cur = playItem(), nw = playItemNew();
+    if (cur < 0 || nw < 0) { playItemChoose(false); gState = ST_PLAY; return; }
+    const int ids[2] = {cur, nw};
+    for (int k = 0; k < 2; k++) {
+        float x = 8 + k * 154;
+        panel(x, 50, 150, 110, k ? GOLD : EDGE, COL(20, 32, 70, 255));
+        text(k ? "Nuevo" : "Equipado", x + 75, 54, 0.4f, k ? GOLD : COL(150, 170, 220, 255), true);
+        textWrap(itemName(ids[k]), x + 8, 74, 134, 0.5f, WHITE);
+        textWrap(itemDesc(ids[k]), x + 8, 100, 134, 0.36f, COL(170, 200, 255, 255));
+        if (tapIn(x, 50, 150, 110)) { playItemChoose(k == 1); sfxPlay(SFX_UI); gState = ST_PLAY; return; }
+    }
+    text("Toca el que quieras llevar", 160, 180, 0.4f, COL(150, 170, 220, 255), true);
+}
+
 // ---------------------------------------------------------------- logros
 static void drawAch() {
     bgFill();
@@ -752,6 +773,7 @@ int main() {
             playUpdate(dt, down, held, jx, jy);
             if (playState() == PS_LEVELUP) { playBuildCards(gCards); gState = ST_LEVELUP; gJoy = false; }
             else if (playState() == PS_BOND) { gState = ST_BOND; gJoy = false; for (int i = 0; i < 4; i++) gBondSel[i] = false; }
+            else if (playState() == PS_ITEM) { gState = ST_ITEM; gJoy = false; }
             else if (playState() == PS_OVER || playState() == PS_WIN) { finishRun(); gState = ST_OVER; }
         }
         audioUpdate();
@@ -773,7 +795,7 @@ int main() {
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
             case ST_LANG: topBg(); tileBg(); logo(200, 70, 1.3f); break;
             case ST_LOADING: topBg(); text("Cargando…", 200, 100, 0.8f, WHITE, true); break;
-            case ST_PLAY: case ST_LEVELUP: case ST_BOND: playDraw(now); break;
+            case ST_PLAY: case ST_LEVELUP: case ST_BOND: case ST_ITEM: playDraw(now); break;
             case ST_ACH: drawAchTop(); break;
             case ST_OVER: topBg(); text(gRun.won ? "¡Victoria!" : "Fin de la partida", 200, 100, 0.9f, WHITE, true); break;
         }
@@ -792,6 +814,7 @@ int main() {
             case ST_PLAY: drawPlayBottom(); break;
             case ST_LEVELUP: drawLevelUp(); break;
             case ST_BOND: drawBond(); break;
+            case ST_ITEM: drawItem(); break;
             case ST_ACH: drawAch(); break;
             case ST_OVER: drawOver(); break;
         }

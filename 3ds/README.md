@@ -29,5 +29,5 @@ Para oír la música en consola real hace falta `sdmc:/3ds/dspfirm.cdc` (DSP1); 
 - Logros con medallas (colección, supervivencia, combate, grietas, un logro por legendario) con premios automáticos.
 
 ## No incluido
-Cooperativo, nube, amigos, objetos equipables, juicio/Arceus, títulos/perfil, logros de grupo/objetos/arenas, nombres de Pokémon traducidos. Partida de 15 min (la web: 30).
+Cooperativo, nube, amigos, títulos/perfil, logros de grupo/objetos/arenas, nombres de Pokémon traducidos. Partida de 15 min (la web: 30); al llegar, empieza la Sentencia de Arceus (versión simplificada, sin cinemática saltable). Objetos equipables: los 11 de la web (cofres 8 %/50 %, jefes siempre; uno por partida).
 Guardado en `sdmc:/3ds/pokesurvivor3ds.sav`.

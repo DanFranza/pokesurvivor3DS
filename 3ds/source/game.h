@@ -74,8 +74,9 @@ struct Save {
     u8 ach[256];                                // logros ya conseguidos
     u8 legends[DEX_N];                          // legendarios vencidos en una grieta
     int stat[8];                                // SB_*: estadísticas para los logros
+    u8 items[16];                               // objetos equipables encontrados
 };
-enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS };
+enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
 void saveLoad();
 void saveWrite();
@@ -130,7 +131,7 @@ enum { MUS_MENU, MUS_BATTLE, MUS_BOSS, MUS_N };
 enum { SFX_HIT, SFX_KILL, SFX_PICK, SFX_LEVEL, SFX_HURT, SFX_SHOOT, SFX_BOOM, SFX_BOSS, SFX_UI, SFX_GACHA, SFX_RARE, SFX_OVER, SFX_BEAM, SFX_N };
 
 // ---------- mundo (play.cpp) ----------
-enum PlayState { PS_RUN, PS_LEVELUP, PS_OVER, PS_WIN, PS_BOND };
+enum PlayState { PS_RUN, PS_LEVELUP, PS_OVER, PS_WIN, PS_BOND, PS_ITEM };
 struct MoveInst {
     short id;                                    // índice en MOVES
     u8 lvl, grp;                                 // grp: grupo fusionado (los del mismo grupo se lanzan a la vez)
@@ -174,7 +175,14 @@ void playBondSkip();
 int playWeather(float* left);                    // 0 ninguno; 1 sol 2 lluvia 3 arena 4 nieve 5 niebla
 const char* weatherName(int k);
 u32 weatherColor(int k);
-struct RunStats { float time; int kills, level, bosses, coins, t1, t10; bool won; };
+struct RunStats { float time; int kills, level, bosses, coins, t1, t10, jdowns; bool won; };
+// objetos equipables (uno por partida)
+int itemCount();
+const char* itemName(int i);
+const char* itemDesc(int i);
+int playItem();                                   // equipado (-1 = ninguno)
+int playItemNew();                                // el que se acaba de encontrar (al elegir)
+void playItemChoose(bool takeNew);
 RunStats playStats();
 MissionRun playMissionStats();
 void playHud(u64 ms);                            // datos para la pantalla inferior
