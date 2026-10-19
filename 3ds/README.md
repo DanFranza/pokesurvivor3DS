@@ -21,8 +21,10 @@ Para oír la música en consola real hace falta `sdmc:/3ds/dspfirm.cdc` (DSP1); 
 - Mapas por bioma con suelo, líquidos que dañan o frenan, árboles, rocas y cofres.
 - Progresión permanente: mejoras, gacha de 9 generaciones con garantía, colección de Pokémon, vetos y movimiento inicial.
 - Música (aldea, bosque, jefe) y efectos sintetizados por software.
+- Idiomas: español, inglés y francés (selección al inicio). Pokédex por regiones, gacha con máquina tragaperras, probabilidades y brillantes (1 %), misiones diarias y semanales.
+- Eventos: ladrón de monedas (Meowth; Gholdengo con ticket ×10) y grieta con arena de legendario.
 - Pantalla táctil: joystick flotante, X/Y/B/A para lanzar y ordenar ataques (START = pausa/ordenar).
 
 ## No incluido
-Cooperativo, nube, amigos, brillantes, clima, grietas/arenas, objetos equipables. Partida de 15 min (la web: 30).
+Cooperativo, nube, amigos, clima, objetos equipables, logros/perfil, vínculo/fusión tras la grieta, nombres de Pokémon traducidos. Partida de 15 min (la web: 30).
 Guardado en `sdmc:/3ds/pokesurvivor3ds.sav`.
