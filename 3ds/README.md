@@ -23,8 +23,11 @@ Para oír la música en consola real hace falta `sdmc:/3ds/dspfirm.cdc` (DSP1); 
 - Música (aldea, bosque, jefe) y efectos sintetizados por software.
 - Idiomas: español, inglés y francés (selección al inicio). Pokédex por regiones, gacha con máquina tragaperras, probabilidades y brillantes (1 %), misiones diarias y semanales.
 - Eventos: ladrón de monedas (Meowth; Gholdengo con ticket ×10) y grieta con arena de legendario.
-- Pantalla táctil: joystick flotante, X/Y/B/A para lanzar y ordenar ataques (START = pausa/ordenar).
+- Pantalla táctil: joystick flotante; sólo dispara el ataque activo (o grupo fusionado) y X/Y/B/A lo cambian (START = pausa/ordenar).
+- Vínculo/fusión tras vencer a un legendario en la grieta (fusiona 2 ataques o añade uno a un grupo; se disparan a la vez).
+- Clima (sol, lluvia, tormenta de arena, nevada, niebla) con bonos/penalizaciones por tipo y por bioma.
+- Logros con medallas (colección, supervivencia, combate, grietas, un logro por legendario) con premios automáticos.
 
 ## No incluido
-Cooperativo, nube, amigos, clima, objetos equipables, logros/perfil, vínculo/fusión tras la grieta, nombres de Pokémon traducidos. Partida de 15 min (la web: 30).
+Cooperativo, nube, amigos, objetos equipables, juicio/Arceus, títulos/perfil, logros de grupo/objetos/arenas, nombres de Pokémon traducidos. Partida de 15 min (la web: 30).
 Guardado en `sdmc:/3ds/pokesurvivor3ds.sav`.

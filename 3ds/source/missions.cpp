@@ -112,6 +112,8 @@ bool missionClaim(MSlot& m, bool weekly) {
     missionReward(m, weekly, &t1, &t10, &coins);
     gSave.t1 += t1; gSave.t10 += t10; gSave.coins += coins;
     m.claimed = 1;
+    gSave.stat[SB_MIS]++;
+    achCheck();
     saveWrite();
     return true;
 }

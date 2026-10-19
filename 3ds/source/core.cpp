@@ -220,6 +220,8 @@ int gachaPull(int gen, int n, PullResult* out) {
         gSave.coins += r.refund;
     }
     (void)g;
+    gSave.stat[SB_PULLS] += n;
+    achCheck();
     saveWrite();
     return n;
 }

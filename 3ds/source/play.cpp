@@ -83,7 +83,6 @@ static Field gF[MAXF];
 static Fx gFx[MAXFX];
 static Player P;
 MoveInst gMoves[4];
-bool gAuto = true;
 
 static PlayState gPS = PS_RUN;
 static float gTime, gSpawnAcc, gSurgeT, gShake, gBannerT, gPreT;
@@ -101,6 +100,25 @@ static float gThiefT, gRiftChk, gRiftMiss, gPortalX, gPortalY, gPortalT;
 static int gThiefN;
 static Enemy sE[MAXE]; static Pick sP[MAXP]; static Field sF[MAXF];
 static int gTarget;
+// clima: 1 sol, 2 lluvia, 3 arena, 4 nieve, 5 niebla
+static int gWx; static float gWxT, gWxDur, gWxChk, gWxChip;
+static const char* WX_NAMES[6] = {"", "Sol abrasador", "Lluvia", "Tormenta de arena", "Nevada", "Niebla"};
+static const char* WX_HINT[6] = {"", "Fuego se potencia, Agua se debilita", "Agua se potencia, Fuego se debilita", "Roca, Tierra y Acero se potencian; el resto sufre", "Hielo se potencia; el resto sufre", "Fantasma, Hada y Psíquico se potencian"};
+static const u32 WX_COL[6] = {0, 0xffcb3d, 0x7fb8ff, 0xe0bf73, 0xd8f1ff, 0xc9cfdc};
+static float wxLevel() { return gWx ? fmaxf(0, fminf(1, fminf(gWxT / 3, (gWxDur - gWxT) / 3))) : 0; }
+static float wxMult(int type) {
+    static const float M[6][18] = {
+        {}, {0, 1.5f, 0.5f}, {0, 0.5f, 1.5f, 1.2f}, {0, 0, 0, 0, 0, 0, 0, 0, 1.3f, 0, 0, 0, 1.3f, 0, 0, 0, 1.3f}, {0, 0, 0, 0, 0, 1.5f},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.3f, 0, 0, 1.3f, 0, 0, 0, 1.3f}};
+    if (!gWx || type < 0 || type > 17 || M[gWx][type] == 0) return 1;
+    return 1 + (M[gWx][type] - 1) * wxLevel();
+}
+static bool wxHurts(int t1, int t2) {
+    if (gWx != 3 && gWx != 4) return false;
+    auto safe = [](int t) { return gWx == 3 ? (t == 12 || t == 8 || t == 16) : t == 5; };
+    return !(safe(t1) || (t2 < 18 && safe(t2)));
+}
+static float wxSpeed(int t1, int t2) { return gWx == 4 && !(t1 == 5 || t2 == 5) ? 1 - 0.1f * wxLevel() : 1; }
 static float gTargetD;
 static u32 gManualDown;
 static u8 gBroken[512][2]; static int gNBroken;
@@ -258,11 +276,19 @@ static float xpFor(int lv) { return floorf((8 + lv * 6 + powf((float)lv, 1.75f) 
 
 static void healPlayer(float v) { P.hp = fminf(P.maxHp, P.hp + v); }
 
+static int gActive = -1, gBonds, gBondAskN;
+static u8 gGrpN;
+static int grpSize(int g) { int n = 0; for (int b = 0; b < 4; b++) if (gMoves[b].id >= 0 && gMoves[b].grp == g) n++; return n; }
+static bool inActive(int b) { return gActive >= 0 && gMoves[b].id >= 0 && gMoves[gActive].id >= 0 && gMoves[b].grp == gMoves[gActive].grp; }
 static void slotPlace(int mid) {
     static const int order[4] = {3, 2, 1, 0};
     for (int k = 0; k < 4; k++) {
         int b = order[k];
-        if (gMoves[b].id < 0) { gMoves[b].id = mid; gMoves[b].lvl = 1; gMoves[b].cd = 0.3f; gMoves[b].dealt = 0; moveRecompute(gMoves[b]); return; }
+        if (gMoves[b].id < 0) {
+            gMoves[b].id = mid; gMoves[b].lvl = 1; gMoves[b].grp = ++gGrpN; gMoves[b].cd = 0.3f; gMoves[b].dealt = 0; moveRecompute(gMoves[b]);
+            if (gActive < 0 || gMoves[gActive].id < 0) gActive = b;
+            return;
+        }
     }
 }
 static bool ownsMove(int mid) { for (int b = 0; b < 4; b++) if (gMoves[b].id == mid) return true; return false; }
@@ -428,7 +454,7 @@ static void hitEnemy(Enemy& e, float dmg, int type, int cat, float burn, float p
     float tm = typeMult(type, p.t1, p.t2);
     float g = cat == 2 ? 1 : guardMul(cat == 1 ? p.sd : p.df);
     bool crit = frand() < P.crit;
-    float d = dmg * tm * g * (crit ? 1.5f : 1);
+    float d = dmg * tm * g * (crit ? 1.5f : 1) * wxMult(type);
     for (int b = 0; b < 4; b++) if (gMoves[b].id == mid) gMoves[b].dealt += d;
     knock *= e.boss ? 0.25f : 1;
     float L = sqrtf(dx * dx + dy * dy);
@@ -877,7 +903,7 @@ static void spawnMinions(Enemy& e) {
 static void enemyAI(Enemy& e, float dt) {
     float dx = P.x - e.x, dy = P.y - e.y, dist = sqrtf(dx * dx + dy * dy);
     float ux = dist > 0.01f ? dx / dist : 0, uy = dist > 0.01f ? dy / dist : 0;
-    float spd = e.spd;
+    float spd = e.spd * wxSpeed(DEX[e.di].t1, DEX[e.di].t2);
     e.t += dt;
     if (e.stun > 0) { e.moving = false; return; }
     if (e.beh == B_THIEF) {
@@ -1201,7 +1227,7 @@ static void updateShots(float dt) {
 static void orbitsUpdate(float dt) {
     for (int b = 0; b < 4; b++) {
         MoveInst& m = gMoves[b];
-        if (m.id < 0 || MOVES[m.id].kind != MK_ORBIT) continue;
+        if (m.id < 0 || MOVES[m.id].kind != MK_ORBIT || !inActive(b)) continue;
         const MoveDef& d = MOVES[m.id];
         P.orbA[b] += m.v[K_SPEED] * dt;
         int n = (int)fmaxf(1, m.v[K_COUNT]);
@@ -1248,7 +1274,7 @@ static void updateEnemies(float dt) {
         e.hitCd -= dt;
         if (e.hitCd <= 0 && distf(e.x, e.y, P.x, P.y) < e.r + 9 && e.beh != B_BOMBER && e.beh != B_THIEF) {
             e.hitCd = 0.8f;
-            hurtPlayer(e.dmg, enemyCat(e), e.di);
+            hurtPlayer(e.dmg * wxMult(DEX[e.di].t1), enemyCat(e), e.di);
         }
         // lejos de todo: reaparece por delante
         if (distf(e.x, e.y, P.x, P.y) > 520 && !e.boss && e.beh != B_THIEF) {
@@ -1307,7 +1333,7 @@ static void updatePickups(float dt) {
 }
 
 static void updatePlayer(float dt, float jx, float jy) {
-    float spd = P.spd * P.spdMul * (P.buffSpdT > 0 ? 1 + P.buffSpd : 1);
+    float spd = P.spd * P.spdMul * (P.buffSpdT > 0 ? 1 + P.buffSpd : 1) * wxSpeed(pdex().t1, pdex().t2);
     if (P.buffSpdT > 0) P.buffSpdT -= dt;
     if (P.buffAtkT > 0) P.buffAtkT -= dt;
     if (P.buffDefT > 0) P.buffDefT -= dt;
@@ -1342,6 +1368,35 @@ static void updatePlayer(float dt, float jx, float jy) {
 }
 
 void playFireButton(int b) { gManualDown |= 1u << b; }
+bool playIsActive(int b) { return inActive(b); }
+int playGrp(int b) { return gMoves[b].grp; }
+int playGroupSize(int b) { return gMoves[b].id < 0 ? 0 : grpSize(gMoves[b].grp); }
+int playBonds() { return gBonds; }
+static int bondGrowGrp() { for (int b = 0; b < 4; b++) if (gMoves[b].id >= 0) { int n = grpSize(gMoves[b].grp); if (n > 1 && n < 4) return gMoves[b].grp; } return -1; }
+int playBondNeed() {
+    int loose = 0; for (int b = 0; b < 4; b++) if (gMoves[b].id >= 0 && grpSize(gMoves[b].grp) == 1) loose++;
+    if (bondGrowGrp() >= 0) return loose ? 1 : 0;
+    return loose >= 2 ? 2 : 0;
+}
+bool playBondLoose(int b) { return gMoves[b].id >= 0 && grpSize(gMoves[b].grp) == 1; }
+void playBondApply(const int* btns, int n) {
+    int need = playBondNeed();
+    if (!need || n < need) return;
+    int tg = need == 1 ? bondGrowGrp() : gMoves[btns[0]].grp;
+    for (int i = 0; i < n; i++) if (playBondLoose(btns[i])) gMoves[btns[i]].grp = (u8)tg;
+    gBonds--; gActive = btns[0];
+    for (int b = 0; b < 4; b++) if (inActive(b)) gMoves[b].cd = 0.2f;
+    fxRing(P.x, P.y - 8, 8, 130, 0xff8ad8, 0.8f, 6);
+    fxBurst(P.x, P.y - 10, 0xffb3e6, 30, 220);
+    sfxPlay(SFX_RARE);
+    char b[48]; snprintf(b, sizeof b, "¡Vínculo! %d movimientos a la vez", grpSize(tg)); banner(b, 2.6f);
+    gPS = PS_RUN;
+}
+void playBondSkip() { gBondAskN = nMoves(); gPS = PS_RUN; }
+int playWeather(float* left) { if (left) *left = gWx ? gWxDur - gWxT : 0; return wxLevel() > 0 ? gWx : 0; }
+const char* weatherName(int k) { return WX_NAMES[k]; }
+const char* weatherHint(int k) { return WX_HINT[k]; }
+u32 weatherColor(int k) { return WX_COL[k]; }
 float playCdFrac(int b) {
     if (gMoves[b].id < 0) return 0;
     float cd = fmaxf(0.05f, gMoves[b].v[K_CD] * P.cdMul);
@@ -1355,13 +1410,24 @@ static void updateMoves(float dt, u32 down) {
         P.aim = atan2f(dy, dx);
     } else P.aim = atan2f(gAimY, gAimX);
     static const u32 keys[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
+    // pulsar un botón elige ese ataque (o grupo fusionado); sólo el activo se lanza
+    for (int b = 0; b < 4; b++) {
+        if (!((down & keys[b]) || (gManualDown & (1u << b))) || gMoves[b].id < 0) continue;
+        if (!inActive(b)) {
+            gActive = b;
+            for (int k = 0; k < 4; k++) if (inActive(k)) gMoves[k].cd = fminf(gMoves[k].cd, fmaxf(0.05f, gMoves[k].v[K_CD] * P.cdMul) * 0.35f);
+            fxRing(P.x, P.y - 8, 6, 34, TYPE_RGB[MOVES[gMoves[b].id].type], 0.3f, 3);
+            sfxPlay(SFX_UI);
+        } else gActive = b;
+    }
+    if (gActive < 0 || gMoves[gActive].id < 0) { gActive = -1; for (int b = 0; b < 4; b++) if (gMoves[b].id >= 0) { gActive = b; break; } }
     for (int b = 0; b < 4; b++) {
         MoveInst& m = gMoves[b]; if (m.id < 0) continue;
         if (MOVES[m.id].kind == MK_ORBIT) continue;
         m.cd -= dt;
+        if (!inActive(b)) { if (m.cd < 0) m.cd = 0; continue; }
         if (m.cd > 0) continue;
-        bool pressed = (down & keys[b]) || (gManualDown & (1u << b));
-        if (!gAuto && !pressed) continue;
+        bool pressed = false;
         if (needsTarget(MOVES[m.id].kind) && !pressed) {
             if (gTarget < 0 || distf(P.x, P.y, gE[gTarget].x, gE[gTarget].y) > reachOf(m)) { m.cd = 0.05f; continue; }
         } else if (!needsTarget(MOVES[m.id].kind) && !pressed) {
@@ -1432,6 +1498,7 @@ static void riftEnter() {
     memset(gE, 0, sizeof gE); memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
     memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF);
     gSavedX = P.x; gSavedY = P.y;
+    gWx = 0;
     gArena = true; gArenaDead = false; gArenaT = 0; gArenaEnd = 0; gPortal = false;
     gArenaX = gPortalX; gArenaY = gPortalY; gTarget = -1;
     P.x = gArenaX; P.y = gArenaY + 160; P.vx = P.vy = 0; P.invuln = 1.5f;
@@ -1452,12 +1519,17 @@ static void riftExit(bool won, bool dead) {
     memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
     gArena = false; gTarget = -1;
     P.x = gSavedX; P.y = gSavedY; P.vx = P.vy = 0; P.invuln = 2.5f;
-    if (won) { gRifts++; healPlayer(P.maxHp * 0.3f); banner("¡Grieta superada!", 2.8f); }
+    if (won) {
+        gRifts++; healPlayer(P.maxHp * 0.3f); gBonds++; gBondAskN = -1;
+        banner("¡Grieta superada! ¡Vínculo!", 2.8f);
+        fxRing(P.x, P.y - 8, 8, 90, 0xff8ad8, 0.7f, 5);
+    }
     else { if (dead) P.hp = P.maxHp * 0.35f; banner("La grieta se cierra…", 2.8f); }
     gRiftChk = 30;
     musicPlay(MUS_BATTLE);
 }
 static void riftWin(Enemy& e) {
+    gSave.legends[e.di] = 1;
     for (int i = 0; i < MAXE; i++) gE[i].on = false;
     fxBurst(e.x, e.y - 10, 0xe0a0ff, 30, 190);
     fxRing(e.x, e.y - 10, 8, 130, 0xe0a0ff, 0.7f, 5);
@@ -1483,6 +1555,42 @@ static void eventsUpdate(float dt) {
         return;
     }
     bool boss = anyBoss();
+    // clima
+    if (gWx) {
+        gWxT += dt;
+        if (gWxT >= gWxDur) gWx = 0;
+    } else if (gTime > 120) {
+        gWxChk -= dt;
+        if (gWxChk <= 0) {
+            gWxChk = 60;
+            if (frand() < 0.18f) {
+                static const float W[3][6] = {{0, 1.5f, 3, 0.5f, 0.5f, 2}, {0, 1, 1, 1, 2.5f, 3}, {0, 3, 0, 3, 0, 1}};
+                const float* w = W[gSet % 3]; float tot = 0; for (int k = 1; k < 6; k++) tot += w[k];
+                float r = frand() * tot; int k = 1;
+                for (; k < 5; k++) { r -= w[k]; if (r <= 0) break; }
+                gWx = k; gWxT = 0; gWxDur = frange(55, 75);
+                char b[48]; snprintf(b, sizeof b, "%s", WX_NAMES[k]); banner(b, 3.0f);
+                sfxPlay(SFX_UI);
+            }
+        }
+    }
+    gWxChip -= dt;
+    if (gWxChip <= 0) {
+        gWxChip = 2;
+        if (wxLevel() > 0.5f) {
+            if (wxHurts(pdex().t1, pdex().t2)) {
+                float d = fmaxf(1, P.maxHp * 0.012f);
+                if (P.hp > d + 1) { P.hp -= d; char b[12]; snprintf(b, sizeof b, "-%d", (int)d); fxText(P.x, P.y - 28, b, WX_COL[gWx], 0.5f); }
+            }
+            for (int i = 0; i < MAXE; i++) {
+                Enemy& e = gE[i]; if (!e.on || e.boss || e.beh == B_THIEF || !wxHurts(DEX[e.di].t1, DEX[e.di].t2)) continue;
+                e.hp -= e.maxHp * 0.02f + 1; e.flash = 0.05f;
+                if (e.hp <= 0) killEnemy(e);
+            }
+        }
+    }
+    // vínculo pendiente tras vencer a un legendario
+    if (gBonds > 0 && gArenaEnd <= 0 && gPS == PS_RUN && nMoves() > gBondAskN && playBondNeed()) gPS = PS_BOND;
     gThiefT -= dt;
     if (gThiefT <= 0) {
         if (boss) gThiefT = 8;
@@ -1549,6 +1657,7 @@ void playReset(int charIdx, const int* startMoves, int nStart) {
     memset(gKillsType, 0, sizeof gKillsType); gChests = gEvolves = gRifts = 0;
     gNextBoss = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gManualDown = 0;
     gArena = gArenaDead = gPortal = false; gThiefN = 0; gThiefT = frange(120, 240); gRiftChk = 30; gRiftMiss = 0;
+    gWx = 0; gWxChk = 60; gWxChip = 2; gActive = -1; gBonds = 0; gBondAskN = -1; gGrpN = 0;
     gChar = charIdx; gSet = charIdx % 3;
     memset(&P, 0, sizeof P);
     P.di = charIdx;
@@ -1560,7 +1669,7 @@ void playReset(int charIdx, const int* startMoves, int nStart) {
     P.xpMul = 1 + lv[PU_XP] * 0.05f; P.coinMul = 1 + lv[PU_COINS] * 0.08f; P.crit = lv[PU_CRIT] * 0.03f;
     P.level = 1; P.xpNeed = xpFor(1); P.rerolls = 0; P.dir = 0;
     gRerollsLeft = 1 + lv[PU_REROLL];
-    for (int b = 0; b < 4; b++) { gMoves[b].id = -1; gMoves[b].cd = 0; }
+    for (int b = 0; b < 4; b++) { gMoves[b].id = -1; gMoves[b].cd = 0; gMoves[b].grp = 0; }
     for (int i = 0; i < nStart && i < 4; i++) slotPlace(startMoves[i]);
     rollRun();
     tilesLoad(gSet);
@@ -1874,7 +1983,25 @@ static void edgeArrow(float wx, float wy, float cx, float cy, u32 col) {
     float ux = dx / l, uy = dy / l, ax = TOP_W / 2 + dx * t, ay = TOP_H / 2 + dy * t;
     C2D_DrawTriangle(ax + ux * 9, ay + uy * 9, col, ax - uy * 6 - ux * 5, ay + ux * 6 - uy * 5, col, ax + uy * 6 - ux * 5, ay - ux * 6 - uy * 5, col, 0.78f);
 }
+static void drawWeather() {
+    float lv = wxLevel();
+    if (!gWx || lv <= 0) return;
+    static const u8 TINT[6][4] = {{0}, {255, 190, 90, 18}, {50, 90, 170, 24}, {200, 160, 90, 24}, {210, 230, 255, 20}, {190, 195, 210, 32}};
+    C2D_DrawRectSolid(0, 0, 0.7f, TOP_W, TOP_H, COL(TINT[gWx][0], TINT[gWx][1], TINT[gWx][2], (int)(TINT[gWx][3] * lv)));
+    int n = (int)((gWx == 2 ? 46 : gWx == 4 ? 34 : gWx == 3 ? 30 : gWx == 1 ? 10 : 0) * lv);
+    float T0 = gMs * 0.001f;
+    for (int i = 0; i < n; i++) {
+        u32 h = hash2(i, 7, 99);
+        float sx = (h & 1023) / 1023.0f * TOP_W, sy = ((h >> 10) & 1023) / 1023.0f * TOP_H, ph = ((h >> 20) & 255) / 255.0f;
+        float x, y;
+        if (gWx == 2) { x = fmodf(sx - 120 * T0 + 4000, TOP_W); y = fmodf(sy + 520 * T0, TOP_H); C2D_DrawLine(x, y, COL(200, 220, 255, 150), x - 3, y - 9, COL(200, 220, 255, 0), 1, 0.71f); }
+        else if (gWx == 4) { x = fmodf(sx + sinf(T0 + ph * 6) * 14 + 4000, TOP_W); y = fmodf(sy + 55 * T0, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 2, 2, COL(255, 255, 255, 190)); }
+        else if (gWx == 3) { x = fmodf(sx - 420 * T0 + 8000, TOP_W); y = fmodf(sy + 30 * T0, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 8, 1, COL(232, 207, 143, 120)); }
+        else { x = sx; y = fmodf(sy - 20 * T0 + 4000, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 2, 2, COL(255, 241, 176, (int)(60 + 60 * sinf(T0 * 2 + ph * 6)))); }
+    }
+}
 static void drawEvents(float cx, float cy) {
+    drawWeather();
     if (gPortal) {
         float x = gPortalX - cx, y = gPortalY - cy, p = 0.5f + 0.5f * sinf(gMs * 0.006f);
         circle(x, y, 20 + 3 * p, COL(40, 0, 70, 200), 0.42f);
@@ -1971,7 +2098,7 @@ void playDraw(u64 ms) {
     }
     // órbitas
     for (int b = 0; b < 4; b++) {
-        MoveInst& m = gMoves[b]; if (m.id < 0 || MOVES[m.id].kind != MK_ORBIT) continue;
+        MoveInst& m = gMoves[b]; if (m.id < 0 || MOVES[m.id].kind != MK_ORBIT || !inActive(b)) continue;
         int cnt = (int)fmaxf(1, m.v[K_COUNT]); float rad = m.v[K_RADIUS], sz = m.v[K_SIZE] > 0 ? m.v[K_SIZE] : 8; u32 rgb = TYPE_RGB[MOVES[m.id].type];
         for (int i = 0; i < cnt; i++) {
             float a = P.orbA[b] + (float)i / cnt * 6.283f;
@@ -2009,4 +2136,5 @@ void playDraw(u64 ms) {
     int sec = (int)gTime; snprintf(b, sizeof b, "%02d:%02d", sec / 60, sec % 60); text(b, bx, -2, 0.45f, COL(255, 255, 255, 255), true);
     snprintf(b, sizeof b, "KO %d", gKills); text(b, TOP_W - 52, -2, 0.45f, COL(255, 230, 120, 255));
     if (gBannerT > 0) text(gBanner, bx, 30, 0.7f, COL(255, 240, 160, 255), true);
+    if (int wk = playWeather(nullptr)) { snprintf(b, sizeof b, "%s", weatherName(wk)); text(b, TOP_W - 4, 14, 0.4f, rgbA(weatherColor(wk), 255)); }
 }

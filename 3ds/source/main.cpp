@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -23,6 +23,8 @@ static int gNPulls;
 static RunStats gRun;
 static bool gNewBest, gAfterPause;
 static char gTmp[96];
+static int gAchNew, gAchCat, gAchPage;
+static bool gBondSel[4];
 
 static void msg(const char* s) { snprintf(gMsg, sizeof gMsg, "%s", s); gMsgT = 2.2f; }
 static bool tapIn(float x, float y, float w, float h) { return gTap && inRect(gTp.px, gTp.py, x, y, w, h); }
@@ -163,8 +165,9 @@ static void drawMenu() {
     if (button(164, 150, 136, 40, "Misiones", COL(60, 150, 90, 255), 0.6f)) { missionsRefresh(); gState = ST_MISSIONS; sfxPlay(SFX_UI); }
     if (missionClaimable()) { C2D_DrawCircleSolid(294, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(294, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 294, 145, 0.45f, WHITE, true); }
     bool ban = permLv(PU_BAN) > 0;
-    if (ban && button(20, 198, 190, 24, "Vetar movimientos", COL(160, 80, 80, 255), 0.45f)) { gState = ST_BAN; gBanPage = 0; }
-    if (button(ban ? 218 : 20, 198, ban ? 82 : 280, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.42f)) { gState = ST_LANG; sfxPlay(SFX_UI); }
+    if (ban && button(20, 198, 88, 24, "Vetar", COL(160, 80, 80, 255), 0.45f)) { gState = ST_BAN; gBanPage = 0; }
+    if (button(ban ? 114 : 20, 198, ban ? 98 : 190, 24, "Logros", COL(200, 140, 40, 255), 0.45f)) { achCheck(); gState = ST_ACH; gAchCat = 0; gAchPage = 0; sfxPlay(SFX_UI); }
+    if (button(218, 198, 82, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.42f)) { gState = ST_LANG; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "START: salir · Volumen %d%% (L/R)", (int)(gSave.vol * 100 + 0.5f));
     text(gTmp, 160, 224, 0.34f, COL(140, 165, 220, 255), true);
 }
@@ -327,7 +330,7 @@ static void drawLoadoutBottom() {
         snprintf(gTmp, sizeof gTmp, "Recarga %.1f s · %s", gMoves[gSelBtn].v[K_CD], T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
         text(gTmp, 160, 160, 0.4f, COL(170, 200, 255, 255), true);
     }
-    if (button(8, 196, 98, 36, gAuto ? "Auto: SÍ" : "Auto: NO", EDGE, 0.5f)) gAuto = !gAuto;
+    textWrap("En partida, toca X/Y/B/A para elegir el ataque activo.", 8, 176, 98, 0.3f, COL(150, 170, 220, 255));
     if (button(114, 196, 100, 36, gAfterPause ? "Seguir" : "¡Jugar!", COL(60, 170, 80, 255), 0.6f)) {
         if (gAfterPause) { gState = ST_PLAY; gAfterPause = false; }
         else beginRun();
@@ -394,8 +397,10 @@ static void drawPlayBottom() {
     for (int i = 0; i < 4; i++) {
         float x = 8 + i * 78, y = 172;
         bool has = gMoves[i].id >= 0;
-        panel(x, y, 72, 50, has ? typeColorDark(MOVES[gMoves[i].id].type) : EDGE);
+        bool act = has && playIsActive(i);
+        panel(x, y, 72, 50, act ? WHITE : (has ? typeColorDark(MOVES[gMoves[i].id].type) : EDGE), has ? typeColorDark(MOVES[gMoves[i].id].type) : PANEL);
         if (!has) continue;
+        if (playGroupSize(i) > 1) text("+", x + 36, y + 1, 0.45f, COL(255, 140, 220, 255), true);
         u32 c = typeColor(MOVES[gMoves[i].id].type);
         float rdy = 1 - playCdFrac(i);
         C2D_DrawRectSolid(x + 3, y + 43, 0.3f, 66 * clampf(rdy, 0, 1), 4, rdy >= 1 ? COL(255, 255, 255, 255) : c);
@@ -405,8 +410,7 @@ static void drawPlayBottom() {
         text(b, x + 66, y + 2, 0.34f, COL(255, 230, 120, 255), true);
         if (tapIn(x, y, 72, 50)) playFireButton(i);
     }
-    text(gAuto ? "Auto" : "Manual", 40, 224, 0.4f, COL(150, 170, 220, 255), true);
-    text("START: pausa / ordenar ataques", 210, 224, 0.4f, COL(150, 170, 220, 255), true);
+    text("START: pausa / ordenar ataques", 160, 224, 0.4f, COL(150, 170, 220, 255), true);
     if (gTouching && gJoy) {
         C2D_DrawCircleSolid(gJx0, gJy0, 0.3f, 50, COL(255, 255, 255, 36));
         C2D_DrawCircleSolid(clampf(gTp.px, 0, 320), clampf(gTp.py, 0, 168), 0.4f, 18, COL(255, 255, 255, 140));
@@ -437,7 +441,10 @@ static void finishRun() {
     if (gRun.level > gSave.bestLevel) gSave.bestLevel = gRun.level;
     gSave.runs++;
     gSave.kills += gRun.kills;
-    missionsReport(playMissionStats());
+    MissionRun mr = playMissionStats();
+    gSave.stat[SB_BOSS] += mr.bosses; gSave.stat[SB_EVO] += mr.evolves; gSave.stat[SB_RIFT] += mr.rifts;
+    missionsReport(mr);
+    gAchNew = achCheck();
     saveWrite();
     musicPlay(MUS_MENU);
 }
@@ -451,6 +458,7 @@ static void drawOver() {
     snprintf(gTmp, sizeof gTmp, "+%d Pokémonedas  +%d tickets", gRun.coins, gRun.t1 + gRun.t10 * 10);
     text(gTmp, 160, 112, 0.55f, COL(255, 220, 90, 255), true);
     if (gNewBest) text("¡Nuevo récord!", 160, 140, 0.6f, COL(120, 255, 140, 255), true);
+    if (gAchNew > 0) { snprintf(gTmp, sizeof gTmp, "¡Logros nuevos: %d!", gAchNew); text(gTmp, 160, 156, 0.5f, COL(255, 200, 80, 255), true); }
     if (button(60, 180, 200, 40, "Continuar", COL(60, 170, 80, 255), 0.7f)) { gState = ST_MENU; sprFreeAll(); tilesFree(); gTileBgOk = false; }
 }
 
@@ -577,6 +585,93 @@ static void drawMissionsTop() {
     snprintf(gTmp, sizeof gTmp, "Diarias cobradas hoy: %d/3", done);
     text(gTmp, 200, 160, 0.5f, COL(120, 255, 160, 255), true);
 }
+// ---------------------------------------------------------------- vínculo / fusión
+static void drawBond() {
+    bgFill();
+    int need = playBondNeed();
+    text("¡Vínculo!", 160, 0, 0.7f, COL(255, 140, 220, 255), true);
+    snprintf(gTmp, sizeof gTmp, need == 1 ? "Elige 1 movimiento para unirlo al grupo" : "Elige 2 movimientos para fusionarlos");
+    text(gTmp, 160, 28, 0.4f, WHITE, true);
+    int sel = 0;
+    for (int i = 0; i < 4; i++) {
+        float x = 8 + (i % 2) * 154, y = 50 + (i / 2) * 56;
+        bool has = gMoves[i].id >= 0, loose = playBondLoose(i);
+        if (!has) { panel(x, y, 150, 52, EDGE, COL(20, 32, 70, 255)); continue; }
+        if (!loose) gBondSel[i] = false;
+        if (loose && tapIn(x, y, 150, 52)) {
+            if (gBondSel[i]) gBondSel[i] = false;
+            else { int c = 0; for (int k = 0; k < 4; k++) c += gBondSel[k]; if (c < need) gBondSel[i] = true; }
+            sfxPlay(SFX_UI);
+        }
+        if (gBondSel[i]) sel++;
+        u32 edge = gBondSel[i] ? GOLD : (loose ? WHITE : COL(255, 120, 200, 255));
+        panel(x, y, 150, 52, edge, loose ? typeColorDark(MOVES[gMoves[i].id].type) : COL(40, 40, 70, 255));
+        text(BTN_NAMES[i], x + 6, y + 2, 0.6f, typeColor(MOVES[gMoves[i].id].type));
+        textWrap(MOVES[gMoves[i].id].name, x + 34, y + 6, 112, 0.42f, loose ? WHITE : COL(150, 150, 180, 255));
+        if (!loose) text("+", x + 134, y + 30, 0.5f, COL(255, 140, 220, 255));
+    }
+    bool ok = sel == need;
+    if (button(8, 170, 150, 36, "Fusionar", ok ? COL(60, 170, 80, 255) : COL(60, 60, 80, 255), 0.55f) && ok) {
+        int b[2], n = 0;
+        for (int i = 0; i < 4; i++) if (gBondSel[i] && n < 2) b[n++] = i;
+        playBondApply(b, n);
+        for (int i = 0; i < 4; i++) gBondSel[i] = false;
+        gState = ST_PLAY;
+    }
+    if (button(162, 170, 150, 36, "Más tarde", COL(180, 80, 80, 255), 0.5f)) {
+        playBondSkip();
+        for (int i = 0; i < 4; i++) gBondSel[i] = false;
+        gState = ST_PLAY;
+    }
+}
+
+// ---------------------------------------------------------------- logros
+static void drawAch() {
+    bgFill();
+    static const char* ab[6] = {"Col", "Sup", "Com", "Grie", "Leg", "Otr"};
+    for (int c = 0; c < 6; c++)
+        if (button(4 + c * 52, 2, 50, 20, ab[c], c == gAchCat ? GOLD_BTN : EDGE, 0.36f) && c != gAchCat) { gAchCat = c; gAchPage = 0; sfxPlay(SFX_UI); }
+    static int list[256];
+    int n = achInCat(gAchCat, list, 256);
+    int pages = (n + 3) / 4;
+    if (gAchPage >= pages) gAchPage = pages - 1;
+    if (gAchPage < 0) gAchPage = 0;
+    static const u32 MED[4] = {0, COL(205, 127, 50, 255), COL(200, 205, 215, 255), COL(255, 210, 63, 255)};
+    for (int k = 0; k < 4; k++) {
+        int idx = gAchPage * 4 + k;
+        if (idx >= n) break;
+        int i = list[idx], tier; long val, goal; bool done;
+        char nm[48], ds[96];
+        achInfo(i, nm, ds, sizeof nm, &tier, &val, &goal, &done);
+        float y = 26 + k * 38;
+        panel(6, y, 308, 35, done ? COL(90, 200, 120, 255) : EDGE);
+        C2D_DrawCircleSolid(22, y + 17, 0.5f, 9, MED[tier]);
+        text(nm, 38, y, 0.42f, WHITE);
+        textWrap(ds, 38, y + 14, 220, 0.3f, COL(170, 200, 255, 255));
+        if (done) text("✓", 296, y + 4, 0.7f, COL(120, 255, 160, 255), true);
+        else {
+            C2D_DrawRectSolid(38, y + 29, 0.6f, 200, 4, COL(0, 0, 0, 160));
+            C2D_DrawRectSolid(38, y + 29, 0.65f, 200 * clampf(goal > 0 ? (float)val / goal : 0, 0, 1), 4, MED[tier]);
+            snprintf(gTmp, sizeof gTmp, "%ld/%ld", val, goal);
+            text(gTmp, 306, y + 20, 0.32f, WHITE, true);
+        }
+    }
+    if (pages > 1) {
+        if (button(6, 182, 60, 22, "◀", EDGE, 0.5f)) { gAchPage = (gAchPage + pages - 1) % pages; sfxPlay(SFX_UI); }
+        if (button(254, 182, 60, 22, "▶", EDGE, 0.5f)) { gAchPage = (gAchPage + 1) % pages; sfxPlay(SFX_UI); }
+        snprintf(gTmp, sizeof gTmp, "%d/%d", gAchPage + 1, pages);
+        text(gTmp, 160, 184, 0.45f, WHITE, true);
+    }
+    if (button(100, 212, 120, 24, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
+}
+static void drawAchTop() {
+    topBg();
+    tileBg();
+    text("Logros", 200, 6, 0.9f, GOLD, true);
+    snprintf(gTmp, sizeof gTmp, "Conseguidos: %d/%d", achDoneCount(), achCount());
+    text(gTmp, 200, 90, 0.6f, COL(120, 255, 160, 255), true);
+    text("Los premios se cobran solos al cumplirlos.", 200, 130, 0.42f, WHITE, true);
+}
 static void drawGachaTop(u64 ms) {
     slotDraw(ms);
 }
@@ -656,6 +751,7 @@ int main() {
             readJoy(jx, jy, held);
             playUpdate(dt, down, held, jx, jy);
             if (playState() == PS_LEVELUP) { playBuildCards(gCards); gState = ST_LEVELUP; gJoy = false; }
+            else if (playState() == PS_BOND) { gState = ST_BOND; gJoy = false; for (int i = 0; i < 4; i++) gBondSel[i] = false; }
             else if (playState() == PS_OVER || playState() == PS_WIN) { finishRun(); gState = ST_OVER; }
         }
         audioUpdate();
@@ -677,7 +773,8 @@ int main() {
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
             case ST_LANG: topBg(); tileBg(); logo(200, 70, 1.3f); break;
             case ST_LOADING: topBg(); text("Cargando…", 200, 100, 0.8f, WHITE, true); break;
-            case ST_PLAY: case ST_LEVELUP: playDraw(now); break;
+            case ST_PLAY: case ST_LEVELUP: case ST_BOND: playDraw(now); break;
+            case ST_ACH: drawAchTop(); break;
             case ST_OVER: topBg(); text(gRun.won ? "¡Victoria!" : "Fin de la partida", 200, 100, 0.9f, WHITE, true); break;
         }
         C2D_SceneBegin(bot);
@@ -694,6 +791,8 @@ int main() {
             case ST_LOADING: bgFill(); text("Cargando…", 160, 100, 0.8f, WHITE, true); break;
             case ST_PLAY: drawPlayBottom(); break;
             case ST_LEVELUP: drawLevelUp(); break;
+            case ST_BOND: drawBond(); break;
+            case ST_ACH: drawAch(); break;
             case ST_OVER: drawOver(); break;
         }
         C3D_FrameEnd(0);

@@ -71,7 +71,11 @@ struct Save {
     u8 shinyOn[DEX_N];                          // 1 = usa su versión shiny
     int dayKey, weekKey;                        // misiones: día / semana de la última renovación
     MSlot md[3], mw[2];                         // misiones diarias y semanales
+    u8 ach[256];                                // logros ya conseguidos
+    u8 legends[DEX_N];                          // legendarios vencidos en una grieta
+    int stat[8];                                // SB_*: estadísticas para los logros
 };
+enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS };
 extern Save gSave;
 void saveLoad();
 void saveWrite();
@@ -96,6 +100,17 @@ void missionReward(const MSlot& m, bool weekly, int* t1, int* t10, int* coins);
 bool missionDone(const MSlot& m, bool weekly);
 bool missionClaim(MSlot& m, bool weekly);         // cobra el premio si está completada
 
+// ---------- logros (achv.cpp) ----------
+int achCount();                                   // total de logros
+int achCats();
+const char* achCatName(int c);
+int achInCat(int c, int* out, int max);           // índices de los logros de la categoría
+void achInfo(int i, char* name, char* desc, int n, int* tier, long* val, long* goal, bool* done);
+void achReward(int i, int* t1, int* t10, int* coins);
+int achCheck();                                   // concede los que toquen; devuelve cuántos nuevos (el último en achLast)
+extern int achLast;
+int achDoneCount();
+
 // ---------- máquina tragaperras del gacha (slots.cpp) ----------
 void slotStart(const PullResult* r, int n);
 bool slotBusy();
@@ -115,10 +130,10 @@ enum { MUS_MENU, MUS_BATTLE, MUS_BOSS, MUS_N };
 enum { SFX_HIT, SFX_KILL, SFX_PICK, SFX_LEVEL, SFX_HURT, SFX_SHOOT, SFX_BOOM, SFX_BOSS, SFX_UI, SFX_GACHA, SFX_RARE, SFX_OVER, SFX_BEAM, SFX_N };
 
 // ---------- mundo (play.cpp) ----------
-enum PlayState { PS_RUN, PS_LEVELUP, PS_OVER, PS_WIN };
+enum PlayState { PS_RUN, PS_LEVELUP, PS_OVER, PS_WIN, PS_BOND };
 struct MoveInst {
     short id;                                    // índice en MOVES
-    u8 lvl;
+    u8 lvl, grp;                                 // grp: grupo fusionado (los del mismo grupo se lanzan a la vez)
     float cd;                                    // cuenta atrás
     float v[NK_];                                // valores con mejoras aplicadas
     float dealt;
@@ -148,7 +163,17 @@ int playRerolls();
 extern int gSlotMove[4];                         // MoveInst del jugador en cada botón (-1 = vacío)
 extern MoveInst gMoves[4];
 extern int gNMoves;
-extern bool gAuto;
+bool playIsActive(int b);                        // ¿se lanza este botón? (el grupo activo)
+int playGrp(int b);
+int playGroupSize(int b);
+int playBonds();
+int playBondNeed();                              // 0 nada · 1 añadir a un grupo · 2 unir dos sueltos
+bool playBondLoose(int b);
+void playBondApply(const int* btns, int n);
+void playBondSkip();
+int playWeather(float* left);                    // 0 ninguno; 1 sol 2 lluvia 3 arena 4 nieve 5 niebla
+const char* weatherName(int k);
+u32 weatherColor(int k);
 struct RunStats { float time; int kills, level, bosses, coins, t1, t10; bool won; };
 RunStats playStats();
 MissionRun playMissionStats();
