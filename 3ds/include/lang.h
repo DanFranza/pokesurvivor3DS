@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[2]; };   // tr[0] = inglés, tr[1] = francés
-#define LANG_N_STR 622
+#define LANG_N_STR 627
 static const LangStr LANG_STR[LANG_N_STR] = {
   {"+%d Pokémonedas  +%d tickets", {"+%d Pokécoins  +%d tickets", "+%d Pokémonnaies  +%d tickets"}},
   {"+%d tickets · %d", {"+%d tickets · %d", "+%d tickets · %d"}},
@@ -599,12 +599,17 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"vacío", {"empty", "vide"}},
   {"¡%s con monedas! ¡Atrápalo!", {"%s with coins! Catch it!", "%s avec des pièces ! Attrape-le !"}},
   {"¡%s salvaje apareció!", {"A wild %s appeared!", "Un %s sauvage apparaît !"}},
+  {"¡%s se ha asustado y ha huido…!", {"%s got scared and ran away…!", "%s a eu peur et s’est enfui…!"}},
   {"¡%s se ha escapado!", {"%s ran away!", "%s s'est enfui !"}},
+  {"¡%s se ha perdido! Llévalo a la marca verde", {"%s is lost! Take it to the green marker", "%s s’est perdu ! Ramène-le à la marque verte"}},
+  {"¡%s se une a tu colección!", {"%s joins your collection!", "%s rejoint ta collection !"}},
   {"¡%s te desafía!", {"%s challenges you!", "%s te défie !"}},
+  {"¡%s te sigue! Llévalo a la marca verde", {"%s is following you! Take it to the green marker", "%s te suit ! Ramène-le à la marque verte"}},
   {"¡Banda Focus!", {"Focus Sash!", "Bandeau Focus !"}},
   {"¡Eficaz!", {"Effective!", "Efficace !"}},
   {"¡Grieta superada! ¡Vínculo!", {"Rift cleared! Bond!", "Brèche vaincue ! Lien !"}},
   {"¡Has caído!", {"You fainted!", "Tu es K.O. !"}},
+  {"¡Has llevado a %s a casa! Te lo agradece", {"You took %s home! It thanks you", "Tu as ramené %s chez lui ! Il te remercie"}},
   {"¡Imán!", {"Magnet!", "Aimant !"}},
   {"¡Jugar!", {"Play!", "Jouer !"}},
   {"¡Legendario derrotado!", {"Legendary defeated!", "Légendaire vaincu !"}},

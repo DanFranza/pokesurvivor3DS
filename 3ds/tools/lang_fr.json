@@ -636,5 +636,11 @@
  "Sin tickets ×10": "Pas de ticket ×10",
  "1 ticket": "1 ticket",
  "10 tickets": "10 tickets",
- "1 ticket ×10": "1 ticket ×10"
+ "1 ticket ×10": "1 ticket ×10",
+ "¡%s se ha perdido! Llévalo a la marca verde": "%s s’est perdu ! Ramène-le à la marque verte",
+ "¡%s te sigue! Llévalo a la marca verde": "%s te suit ! Ramène-le à la marque verte",
+ "¡%s se ha asustado y ha huido…!": "%s a eu peur et s’est enfui…!",
+ "%s se ha cansado de esperar y se ha ido…": "%s en a eu assez d’attendre et est parti…",
+ "¡%s se une a tu colección!": "%s rejoint ta collection !",
+ "¡Has llevado a %s a casa! Te lo agradece": "Tu as ramené %s chez lui ! Il te remercie"
 }

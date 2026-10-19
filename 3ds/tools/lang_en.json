@@ -254,5 +254,11 @@
  "Sin tickets ×10": "No ×10 tickets",
  "1 ticket": "1 ticket",
  "10 tickets": "10 tickets",
- "1 ticket ×10": "1 ×10 ticket"
+ "1 ticket ×10": "1 ×10 ticket",
+ "¡%s se ha perdido! Llévalo a la marca verde": "%s is lost! Take it to the green marker",
+ "¡%s te sigue! Llévalo a la marca verde": "%s is following you! Take it to the green marker",
+ "¡%s se ha asustado y ha huido…!": "%s got scared and ran away…!",
+ "%s se ha cansado de esperar y se ha ido…": "%s got tired of waiting and left…",
+ "¡%s se une a tu colección!": "%s joins your collection!",
+ "¡Has llevado a %s a casa! Te lo agradece": "You took %s home! It thanks you"
 }
