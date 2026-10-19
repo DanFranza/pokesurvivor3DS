@@ -22,11 +22,11 @@ struct Enemy {
     float shotDmg, shotCd, range;
     short minion; u8 fanN, zones;
     float burn, burnT, burnTick, poison, poiT, poiTick, slow, slowT, stun;
-    float orbCd[4];
+    float orbCd[8];
     int id;
 };
 struct Shot {
-    bool on, boom, back;
+    bool on, boom, back; u8 own;
     float x, y, vx, vy, life, dmg, r, burn, poison, slow, knock, homing, boomT, bsp, px, py;
     u8 type, pierce, bounce, cat, nh; short mid;
     int hits[8];
@@ -35,7 +35,7 @@ struct EShot { bool on; float x, y, vx, vy, life, dmg, r; u32 col; };
 struct Haz { bool on, line, fired, tru; float x, y, ang, len, w, r, t, delay, dmg, post; u32 col; };
 struct Pick { bool on; u8 kind; float x, y, val, t; };       // 0 xp 1 moneda 2 curar 3 ticket 4 imán
 struct Field {
-    bool on; u8 kind, type; short mid;
+    bool on; u8 kind, type, own; short mid;
     float x, y, t, life, r, dmg, ca, sa, next, a;
     int n, i;
     float v[NK_];
@@ -81,13 +81,59 @@ static Haz gH[MAXH];
 static Pick gP[MAXP];
 static Field gF[MAXF];
 static Fx gFx[MAXFX];
-static Player P;
-MoveInst gMoves[4];
+// Estado propio de cada jugador (en cooperativo hay dos; el resto del mundo es compartido).
+struct Ctx {
+    Player p;
+    MoveInst moves[4];
+    int active, bonds, bondAskN;
+    u8 grpN;
+    int item, itemNew;
+    float itemRegen, sashT, bell, bellT;
+    int rerollsLeft, target;
+    float aimX, aimY;
+    u32 manualDown;
+    int statTaken[9];
+    int pend;                       // niveles por elegir (cooperativo: la partida no se pausa)
+    bool dead, shiny;
+};
+static int gTickN;
+static Ctx gC[2];
+static Ctx* gCur = &gC[0];
+static int gCi, gNP = 1, gLoc;      // contexto activo, nº de jugadores, jugador de esta consola
+MoveInst* gMovesL = gC[0].moves;
+#undef gMoves
+#define gMoves (gCur->moves)
+#define P (gCur->p)
+#define gActive (gCur->active)
+#define gBonds (gCur->bonds)
+#define gBondAskN (gCur->bondAskN)
+#define gGrpN (gCur->grpN)
+#define gItem (gCur->item)
+#define gItemNew (gCur->itemNew)
+#define gItemRegen (gCur->itemRegen)
+#define gSashT (gCur->sashT)
+#define gBell (gCur->bell)
+#define gBellT (gCur->bellT)
+#define gRerollsLeft (gCur->rerollsLeft)
+#define gTarget (gCur->target)
+#define gAimX (gCur->aimX)
+#define gAimY (gCur->aimY)
+#define gManualDown (gCur->manualDown)
+#define gStatTaken (gCur->statTaken)
+// ejecuta código en el contexto de otro jugador
+struct Sc {
+    Ctx* o; int oi;
+    explicit Sc(int i) { o = gCur; oi = gCi; gCur = &gC[i]; gCi = i; }
+    ~Sc() { gCur = o; gCi = oi; }
+};
+static u32 gVrs = 2463534242u;      // RNG sólo visual: no puede alterar la simulación
+static float vfrand() { gVrs ^= gVrs << 13; gVrs ^= gVrs >> 17; gVrs ^= gVrs << 5; return (gVrs & 0xFFFFFF) / 16777216.0f; }
+static float vfrange(float a, float b) { return a + (b - a) * vfrand(); }
 
 static PlayState gPS = PS_RUN;
 static float gTime, gSpawnAcc, gSurgeT, gShake, gBannerT, gPreT;
 static char gBanner[48];
-static int gKills, gBossesDown, gCoins, gT1, gT10, gNextId, gChar, gSet, gNextBoss, gRerollsLeft;
+static int gKills, gBossesDown, gCoins, gT1, gT10, gNextId, gChar, gSet, gNextBoss;
 static int gKillsType[18], gChests, gEvolves, gRifts;
 static float gCamX, gCamY;
 static Def gCast[6][8]; static int gNCast[6];
@@ -99,7 +145,6 @@ static float gArenaX, gArenaY, gArenaT, gArenaEnd, gSavedX, gSavedY;
 static float gThiefT, gRiftChk, gRiftMiss, gPortalX, gPortalY, gPortalT;
 static int gThiefN;
 static Enemy sE[MAXE]; static Pick sP[MAXP]; static Field sF[MAXF];
-static int gTarget;
 // objetos equipables
 struct ItemDef { const char* name; const char* desc; };
 static const ItemDef ITEMS[11] = {
@@ -114,8 +159,6 @@ static const ItemDef ITEMS[11] = {
     {"Pañuelo Elección", "+35% de velocidad."},
     {"Casco Dentado", "Los que te tocan reciben daño."},
     {"Chaleco Asalto", "-20% de daño recibido."}};
-static int gItem = -1, gItemNew = -1;
-static float gItemRegen, gSashT, gBell, gBellT;
 // la Sentencia de Arceus (al llegar a WIN_TIME): arena enorme, Arceus invencible y legendarios cada vez más fuertes
 static int gJ, gJN, gJDowns, gJArDi, gJNs; static u8 gJDir; static bool gJMoving;
 static float gJT, gJBossT, gJCast, gJTouch, gJLift, gJX, gJY, gJBase, gJSecT, gJSamp[30];
@@ -140,10 +183,8 @@ static bool wxHurts(int t1, int t2) {
 }
 static float wxSpeed(int t1, int t2) { return gWx == 4 && !(t1 == 5 || t2 == 5) ? 1 - 0.1f * wxLevel() : 1; }
 static float gTargetD;
-static u32 gManualDown;
 static u8 gBroken[512][2]; static int gNBroken;
 static bool gLiqGrid[14][18];
-static float gAimX = 1, gAimY = 0;
 static int gTierNow;
 static u64 gMs;
 
@@ -211,9 +252,9 @@ static void fxFlash(float x, float y, float r, u32 rgb, float life) {
 }
 static void fxBurst(float x, float y, u32 rgb, int n, float spd) {
     for (int i = 0; i < n; i++) {
-        Fx* f = newFx(FX_PART, frange(0.25f, 0.5f)); if (!f) return;
-        float a = frand() * 6.283f, s = frange(0.4f, 1.0f) * spd;
-        f->x = x; f->y = y; f->vx = cosf(a) * s; f->vy = sinf(a) * s; f->rgb = rgb; f->w = frange(2.5f, 4.5f);
+        Fx* f = newFx(FX_PART, vfrange(0.25f, 0.5f)); if (!f) return;
+        float a = vfrand() * 6.283f, s = vfrange(0.4f, 1.0f) * spd;
+        f->x = x; f->y = y; f->vx = cosf(a) * s; f->vy = sinf(a) * s; f->rgb = rgb; f->w = vfrange(2.5f, 4.5f);
     }
 }
 static void fxText(float x, float y, const char* s, u32 rgb, float scale) {
@@ -296,8 +337,6 @@ static float xpFor(int lv) { return floorf((8 + lv * 6 + powf((float)lv, 1.75f) 
 
 static void healPlayer(float v) { P.hp = fminf(P.maxHp, P.hp + v); }
 
-static int gActive = -1, gBonds, gBondAskN;
-static u8 gGrpN;
 static int grpSize(int g) { int n = 0; for (int b = 0; b < 4; b++) if (gMoves[b].id >= 0 && gMoves[b].grp == g) n++; return n; }
 static bool inActive(int b) { return gActive >= 0 && gMoves[b].id >= 0 && gMoves[gActive].id >= 0 && gMoves[b].grp == gMoves[gActive].grp; }
 static void slotPlace(int mid) {
@@ -505,7 +544,7 @@ static void hitEnemy(Enemy& e, float dmg, int type, int cat, float burn, float p
 
 // ---------------------------------------------------------------- disparos del jugador
 static Shot* newShot() {
-    for (int i = 0; i < MAXS; i++) if (!gS[i].on) { memset(&gS[i], 0, sizeof gS[i]); gS[i].on = true; return &gS[i]; }
+    for (int i = 0; i < MAXS; i++) if (!gS[i].on) { memset(&gS[i], 0, sizeof gS[i]); gS[i].on = true; gS[i].own = (u8)gCi; return &gS[i]; }
     return nullptr;
 }
 static void fillShot(Shot* s, const MoveInst& m, float x, float y, float a, float sp, float dmg, float life) {
@@ -540,7 +579,7 @@ static bool needsTarget(int kind) {
 static Field* newField(int kind, const MoveInst& m, float x, float y) {
     for (int i = 0; i < MAXF; i++) if (!gF[i].on) {
         Field& f = gF[i]; memset(&f, 0, sizeof f);
-        f.on = true; f.kind = kind; f.mid = m.id; f.type = MOVES[m.id].type; f.x = x; f.y = y; memcpy(f.v, m.v, sizeof f.v);
+        f.on = true; f.own = (u8)gCi; f.kind = kind; f.mid = m.id; f.type = MOVES[m.id].type; f.x = x; f.y = y; memcpy(f.v, m.v, sizeof f.v);
         return &f;
     }
     return nullptr;
@@ -886,10 +925,27 @@ static void hurtPlayer(float dmg, int cat, int srcDi, bool tru = false) {
     }
     if (P.hp <= 0) {
         if (gArena && !gJ) { P.hp = 1; P.invuln = 99; gArenaDead = true; return; }
-        P.hp = 0; gPS = PS_OVER; sfxPlay(SFX_OVER);
+        P.hp = 0;
+        if (gNP > 1) {
+            gCur->dead = true;
+            fxRing(P.x, P.y - 8, 8, 50, 0xff6060, 0.5f, 4);
+            if (gC[0].dead && gC[1].dead) { gPS = PS_OVER; sfxPlay(SFX_OVER); }
+            return;
+        }
+        gPS = PS_OVER; sfxPlay(SFX_OVER);
     }
 }
 static int enemyCat(const Enemy& e) { return DEX[e.di].sa > DEX[e.di].pa ? 1 : 0; }
+
+static int nearPlayer(float x, float y) {
+    int b = -1; float bd = 1e18f;
+    for (int i = 0; i < gNP; i++) {
+        if (gC[i].dead) continue;
+        float dx = gC[i].p.x - x, dy = gC[i].p.y - y, d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; b = i; }
+    }
+    return b < 0 ? 0 : b;
+}
 
 static void updateHazards(float dt) {
     for (int i = 0; i < MAXH; i++) {
@@ -899,11 +955,19 @@ static void updateHazards(float dt) {
             h.fired = true;
             if (h.line) {
                 float ca = cosf(h.ang), sa = sinf(h.ang);
-                float px = P.x - h.x, py = P.y - 8 - h.y, along = px * ca + py * sa;
-                if (along > 0 && along < h.len && fabsf(-px * sa + py * ca) < h.w / 2 + 6) hurtPlayer(h.dmg, 1, 0, h.tru);
+                for (int pi = 0; pi < gNP; pi++) {
+                    if (gC[pi].dead) continue;
+                    Sc sc(pi);
+                    float px = P.x - h.x, py = P.y - 8 - h.y, along = px * ca + py * sa;
+                    if (along > 0 && along < h.len && fabsf(-px * sa + py * ca) < h.w / 2 + 6) hurtPlayer(h.dmg, 1, 0, h.tru);
+                }
                 fxBeam(h.x, h.y, h.x + ca * h.len, h.y + sa * h.len, h.w, h.col, 0.3f);
             } else {
-                if (distf(P.x, P.y, h.x, h.y) < h.r + 6) hurtPlayer(h.dmg, enemyCat(gE[0]), 0, h.tru);
+                for (int pi = 0; pi < gNP; pi++) {
+                    if (gC[pi].dead) continue;
+                    Sc sc(pi);
+                    if (distf(P.x, P.y, h.x, h.y) < h.r + 6) hurtPlayer(h.dmg, enemyCat(gE[0]), 0, h.tru);
+                }
                 fxRing(h.x, h.y, 4, h.r, h.col, 0.3f, 4);
                 fxFlash(h.x, h.y, h.r, h.col, 0.2f);
                 fxBurst(h.x, h.y - 4, h.col, 6, 100);
@@ -916,7 +980,13 @@ static void updateHazards(float dt) {
         EShot& s = gES[i]; if (!s.on) continue;
         s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
         if (s.life <= 0) { s.on = false; continue; }
-        if (distf(s.x, s.y, P.x, P.y - 8) < s.r + 7) { hurtPlayer(s.dmg, 1, 0); s.on = false; fxBurst(s.x, s.y, s.col, 4, 60); }
+        bool hit = false;
+        for (int pi = 0; pi < gNP && !hit; pi++) {
+            if (gC[pi].dead) continue;
+            Sc sc(pi);
+            if (distf(s.x, s.y, P.x, P.y - 8) < s.r + 7) { hurtPlayer(s.dmg, 1, 0); hit = true; }
+        }
+        if (hit) { s.on = false; fxBurst(s.x, s.y, s.col, 4, 60); }
     }
 }
 
@@ -1103,6 +1173,7 @@ static void spawnWave(float dt) {
 static void updateFields(float dt) {
     for (int i = 0; i < MAXF; i++) {
         Field& f = gF[i]; if (!f.on) continue;
+        Sc sc(f.own);
         f.t += dt;
         u32 rgb = TYPE_RGB[f.type];
         const MoveDef& d = MOVES[f.mid];
@@ -1210,6 +1281,7 @@ static void updateFields(float dt) {
 static void updateShots(float dt) {
     for (int i = 0; i < MAXS; i++) {
         Shot& s = gS[i]; if (!s.on) continue;
+        Sc sc(s.own);
         s.life -= dt;
         if (s.life <= 0) { s.on = false; continue; }
         s.px = s.x; s.py = s.y;
@@ -1274,22 +1346,24 @@ static void orbitsUpdate(float dt) {
             float ox = P.x + cosf(a) * rad, oy = P.y - 8 + sinf(a) * rad * 0.85f;
             for (int k = 0; k < MAXE; k++) {
                 Enemy& e = gE[k]; if (!e.on) continue;
-                e.orbCd[b] -= 0;
-                if (e.orbCd[b] > 0) continue;
+                if (e.orbCd[b + 4 * gCi] > 0) continue;
                 if (distf(ox, oy, e.x, e.y - 6) <= sz + e.r) {
-                    e.orbCd[b] = rehit;
+                    e.orbCd[b + 4 * gCi] = rehit;
                     hitMove(e, dmg, d.type, d.cat, m.v, e.x - P.x, e.y - P.y, m.id);
                     fxRing(ox, oy, 3, 16, TYPE_RGB[d.type], 0.2f, 2);
                 }
             }
         }
     }
-    for (int k = 0; k < MAXE; k++) if (gE[k].on) for (int b = 0; b < 4; b++) if (gE[k].orbCd[b] > 0) gE[k].orbCd[b] -= dt;
+}
+static void orbitsCool(float dt) {
+    for (int k = 0; k < MAXE; k++) if (gE[k].on) for (int b = 0; b < 8; b++) if (gE[k].orbCd[b] > 0) gE[k].orbCd[b] -= dt;
 }
 
 static void updateEnemies(float dt) {
     for (int i = 0; i < MAXE; i++) {
         Enemy& e = gE[i]; if (!e.on) continue;
+        Sc sc(nearPlayer(e.x, e.y));
         if (e.flash > 0) e.flash -= dt;
         if (e.stun > 0) e.stun -= dt;
         if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slow = 0; }
@@ -1338,6 +1412,18 @@ static void updateEnemies(float dt) {
 }
 
 static void levelUpCheck() {
+    if (gNP > 1) {
+        if (gCur->dead) return;
+        while (P.xp >= P.xpNeed) {
+            P.xp -= P.xpNeed; P.level++; P.xpNeed = xpFor(P.level); gCur->pend++;
+            sfxPlay(SFX_LEVEL); fxRing(P.x, P.y - 8, 10, 60, 0xffee80, 0.5f, 4);
+            for (int j = 0; j < gNP; j++) if (gC[j].dead) {
+                gC[j].dead = false; gC[j].p.hp = gC[j].p.maxHp * 0.5f; gC[j].p.invuln = 2.5f;
+                fxRing(gC[j].p.x, gC[j].p.y - 8, 10, 70, 0x80ff80, 0.6f, 4); fxText(gC[j].p.x, gC[j].p.y - 30, "¡Revivido!", 0x80ff80, 0.7f);
+            }
+        }
+        return;
+    }
     if (P.xp >= P.xpNeed && gPS == PS_RUN) {
         P.xp -= P.xpNeed; P.level++; P.xpNeed = xpFor(P.level);
         gPS = PS_LEVELUP; sfxPlay(SFX_LEVEL);
@@ -1370,7 +1456,7 @@ static void itemOffer(int id) {
         snprintf(b, sizeof b, "¡Llevas %s!", T(ITEMS[id].name)); banner(b, 2.6f);
         return;
     }
-    gItemNew = id; gPS = PS_ITEM;
+    gItemNew = id; if (gNP == 1) gPS = PS_ITEM;
 }
 int itemCount() { return 11; }
 const char* itemName(int i) { return ITEMS[i].name; }
@@ -1382,13 +1468,14 @@ void playItemChoose(bool takeNew) {
         itemApply(gItem, false); gItem = gItemNew; itemApply(gItem, true);
         char b[64]; snprintf(b, sizeof b, "¡Llevas %s!", T(ITEMS[gItem].name)); banner(b, 2.6f);
     }
-    gItemNew = -1; gPS = PS_RUN;
+    gItemNew = -1; if (gNP == 1) gPS = PS_RUN;
 }
 
 static void updatePickups(float dt) {
     for (int i = 0; i < MAXP; i++) {
         Pick& p = gP[i]; if (!p.on) continue;
         p.t += dt;
+        Sc sc(nearPlayer(p.x, p.y));
         float dx = P.x - p.x, dy = P.y - p.y, d = sqrtf(dx * dx + dy * dy);
         bool vac = p.kind == 4;
         if (d < P.magnet * (vac ? 0.5f : 1) || p.t > 25) {
@@ -1755,7 +1842,10 @@ static void eventsUpdate(float dt) {
     if (gWxChip <= 0) {
         gWxChip = 2;
         if (wxLevel() > 0.5f) {
-            if (wxHurts(pdex().t1, pdex().t2)) {
+            for (int pi = 0; pi < gNP; pi++) {
+                if (gC[pi].dead) continue;
+                Sc sc(pi);
+                if (!wxHurts(pdex().t1, pdex().t2)) continue;
                 float d = fmaxf(1, P.maxHp * 0.012f);
                 if (P.hp > d + 1) { P.hp -= d; char b[12]; snprintf(b, sizeof b, "-%d", (int)d); fxText(P.x, P.y - 28, b, WX_COL[gWx], 0.5f); }
             }
@@ -1777,7 +1867,7 @@ static void eventsUpdate(float dt) {
         gPortalT -= dt;
         if (gPortalT <= 0) { gPortal = false; banner("La grieta se cerró…", 2.5f); }
         else if (distf(P.x, P.y, gPortalX, gPortalY) < 30) riftEnter();
-    } else if (gTime >= 75 && gTime <= WIN_TIME - 120 && !boss) {
+    } else if (gNP == 1 && gTime >= 75 && gTime <= WIN_TIME - 120 && !boss) {
         gRiftChk -= dt;
         if (gRiftChk <= 0) {
             gRiftChk = 30;
@@ -1786,10 +1876,8 @@ static void eventsUpdate(float dt) {
     }
 }
 
-void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
-    (void)held;
+static void fxStep(float dt) {
     gMs = osGetTime();
-    // efectos siempre
     for (int i = 0; i < MAXFX; i++) {
         Fx& f = gFx[i]; if (!f.on) continue;
         f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt;
@@ -1798,6 +1886,24 @@ void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
     }
     if (gBannerT > 0) gBannerT -= dt;
     if (gShake > 0) gShake -= dt * 2;
+}
+static void biomeStep() {
+    int setNow = ((int)(gTime / 300)) % 3;
+    static int lastBiome = -1;
+    if (setNow != lastBiome) {
+        if (lastBiome >= 0) { gSet = (gChar % 3 + setNow) % 3; tilesLoad(gSet); banner(TILESET_NAMES[gSet], 3.0f); }
+        lastBiome = setNow;
+    }
+    if (gTime < 0.05f) lastBiome = -1;
+}
+static void bossMusicStep() {
+    bool boss = false; for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].boss) boss = true;
+    static bool wasBoss; if (wasBoss && !boss) musicPlay(MUS_BATTLE); wasBoss = boss;
+}
+
+void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
+    (void)held;
+    fxStep(dt);
     if (gPS != PS_RUN) return;
     gTime += dt;
     if (gTime >= WIN_TIME && !gJ && !gArena && gArenaEnd <= 0) {
@@ -1813,17 +1919,12 @@ void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
         }
     }
 
-    int setNow = ((int)(gTime / 300)) % 3;
-    static int lastBiome = -1;
-    if (setNow != lastBiome) {
-        if (lastBiome >= 0) { gSet = (gChar % 3 + setNow) % 3; tilesLoad(gSet); banner(TILESET_NAMES[gSet], 3.0f); }
-        lastBiome = setNow;
-    }
-    if (gTime < 0.05f) lastBiome = -1;
+    biomeStep();
 
     updatePlayer(dt, jx / 100.0f, jy / 100.0f);
     updateMoves(dt, down);
     orbitsUpdate(dt);
+    orbitsCool(dt);
     if (!gArena) spawnWave(dt);
     updateEnemies(dt);
     updateShots(dt);
@@ -1832,26 +1933,86 @@ void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
     updatePickups(dt);
     levelUpCheck();
     eventsUpdate(dt);
-    // música de jefe: vuelve a la normal al caer
-    bool boss = false; for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].boss) boss = true;
-    static bool wasBoss; if (wasBoss && !boss) musicPlay(MUS_BATTLE); wasBoss = boss;
+    bossMusicStep();
 }
 
+// un paso fijo del cooperativo: las dos consolas lo ejecutan con las mismas entradas
+void playCoopTick(float dt, const CoopIn* in) {
+    if (gPS != PS_RUN) return;
+    gTickN++;
+    gTime += dt;
+    if (gTime >= WIN_TIME) { gPS = PS_WIN; sfxPlay(SFX_LEVEL); return; }
+    biomeStep();
+    for (int i = 0; i < 2; i++) {
+        Sc sc(i);
+        if (in[i].cmd & 0x8000) {
+            Card c; memset(&c, 0, sizeof c); c.kind = (in[i].cmd >> 8) & 3; c.arg = in[i].cmd & 0xff;
+            if (gCur->pend > 0) playApplyCard(c);
+        } else if (in[i].cmd & 0x4000) {
+            if (gItemNew >= 0) playItemChoose(in[i].cmd & 1);
+        }
+        if (gCur->dead) continue;
+        if (gCur->pend > 0 || gItemNew >= 0) P.invuln = fmaxf(P.invuln, 0.3f);
+        gManualDown |= in[i].btn & 15;
+        updatePlayer(dt, in[i].jx / 100.0f, in[i].jy / 100.0f);
+        updateMoves(dt, 0);
+        orbitsUpdate(dt);
+    }
+    orbitsCool(dt);
+    int lead = (gTickN & 1);
+    if (gC[lead].dead) lead ^= 1;
+    { Sc sc(lead); spawnWave(dt); }
+    updateEnemies(dt);
+    updateShots(dt);
+    updateFields(dt);
+    updateHazards(dt);
+    updatePickups(dt);
+    for (int i = 0; i < 2; i++) { Sc sc(i); levelUpCheck(); }
+    lead = gC[0].dead ? 1 : 0;
+    { Sc sc(lead); eventsUpdate(dt); }
+    bossMusicStep();
+}
+void playCoopFrame(float dt) { fxStep(dt); }
+u8 playCoopTakeBtn() { u8 b = (u8)(gC[gLoc].manualDown & 15); gC[gLoc].manualDown = 0; return b; }
+u32 playCoopChecksum() {
+    u32 h = 2166136261u;
+    auto mix = [&](u32 v) { h = (h ^ v) * 16777619u; };
+    mix(gTickN); mix(rngGet()); mix((u32)(gTime * 1000));
+    for (int i = 0; i < 2; i++) { mix((u32)(int)(gC[i].p.x * 8)); mix((u32)(int)(gC[i].p.y * 8)); mix((u32)(int)(gC[i].p.hp * 8)); mix(gC[i].p.level); }
+    int n = 0; for (int i = 0; i < MAXE; i++) if (gE[i].on) n++;
+    mix(n); mix(gKills);
+    return h;
+}
+int playCoopPending() { return gC[gLoc].pend; }
+bool playCoopDead() { return gC[gLoc].dead; }
+void playCoopPartner(float* x, float* y, float* hpFrac, bool* dead) {
+    const Ctx& o = gC[gLoc ^ 1];
+    *x = o.p.x; *y = o.p.y; *hpFrac = clampf(o.p.hp / o.p.maxHp, 0, 1); *dead = o.dead;
+}
+int playCoopPartnerDi() { return gC[gLoc ^ 1].p.di; }
+bool playCoopActive() { return gNP > 1; }
+
 // ---------------------------------------------------------------- reinicio
-void playReset(int charIdx, const int* startMoves, int nStart) {
+static void resetWorld(int charIdx) {
     memset(gE, 0, sizeof gE); memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
     memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF); memset(gFx, 0, sizeof gFx);
     gNBroken = 0; gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
     memset(gKillsType, 0, sizeof gKillsType); gChests = gEvolves = gRifts = 0;
-    gNextBoss = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gManualDown = 0;
+    gNextBoss = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gTickN = 0;
     gArena = gArenaDead = gPortal = false; gThiefN = 0; gThiefT = frange(120, 240); gRiftChk = 30; gRiftMiss = 0;
-    gJ = 0; ARENA_H = 320; gItem = gItemNew = -1; gSashT = -999; gBell = gBellT = 0; gItemRegen = 0; gJNs = 0; gJSecT = 0; gHazTru = false;
-    gWx = 0; gWxChk = 60; gWxChip = 2; gActive = -1; gBonds = 0; gBondAskN = -1; gGrpN = 0;
+    gJ = 0; ARENA_H = 320; gJNs = 0; gJSecT = 0; gHazTru = false;
+    gWx = 0; gWxChk = 60; gWxChip = 2;
     gChar = charIdx; gSet = charIdx % 3;
-    memset(&P, 0, sizeof P);
-    P.di = charIdx;
-    const DexE& p = DEX[charIdx];
-    int lv[NPERM]; for (int i = 0; i < NPERM; i++) lv[i] = gSave.perm[i];
+}
+// jugador nuevo: estadísticas de su Pokémon + sus mejoras permanentes
+static void ctxInit(int ci, int di, const u8* perm, const int* startMoves, int nStart, bool shiny) {
+    Sc sc(ci);
+    memset(gCur, 0, sizeof(Ctx));
+    gActive = -1; gBondAskN = -1; gItem = gItemNew = -1; gSashT = -999;
+    gCur->shiny = shiny;
+    P.di = di;
+    const DexE& p = DEX[di];
+    int lv[NPERM]; for (int i = 0; i < NPERM; i++) lv[i] = perm[i];
     P.maxHp = p.hp + lv[PU_HP] * 8; P.hp = P.maxHp; P.spd = p.spd * 0.9f;
     P.atkMul = 1 + lv[PU_ATK] * 0.04f; P.spdMul = 1 + lv[PU_SPD] * 0.03f; P.cdMul = 1 - lv[PU_CD] * 0.03f;
     P.dmgReduce = lv[PU_DEF] * 0.02f; P.regen = lv[PU_REGEN] * 0.2f; P.magnet = 78 * (1 + lv[PU_MAGNET] * 0.12f);
@@ -1860,11 +2021,34 @@ void playReset(int charIdx, const int* startMoves, int nStart) {
     gRerollsLeft = 1 + lv[PU_REROLL];
     for (int b = 0; b < 4; b++) { gMoves[b].id = -1; gMoves[b].cd = 0; gMoves[b].grp = 0; }
     for (int i = 0; i < nStart && i < 4; i++) slotPlace(startMoves[i]);
+    gAimX = 0; gAimY = 1; gTarget = -1;
+}
+static void finishReset() {
     rollRun();
     tilesLoad(gSet);
-    gAimX = 0; gAimY = 1; gTarget = -1;
     gTierNow = 0;
     banner(TILESET_NAMES[gSet], 3.0f);
+}
+void playReset(int charIdx, const int* startMoves, int nStart) {
+    gNP = 1; gLoc = 0; gCur = &gC[0]; gCi = 0; gMovesL = gC[0].moves;
+    memset(gC, 0, sizeof gC);
+    resetWorld(charIdx);
+    ctxInit(0, charIdx, gSave.perm, startMoves, nStart, gSave.shinyOn[charIdx] && gSave.shiny[charIdx]);
+    finishReset();
+}
+// cooperativo: el anfitrión (0) define personaje/mundo; todo se genera con la misma semilla en las dos consolas
+void playResetCoop(int me, const CoopHello* h, u32 seed) {
+    gNP = 2; gLoc = me; gCur = &gC[me]; gCi = me; gMovesL = gC[me].moves;
+    memset(gC, 0, sizeof gC);
+    rngSet(seed);
+    resetWorld(h[0].di);
+    for (int i = 0; i < 2; i++) {
+        int sm[2] = {h[i].start[0], h[i].start[1]};
+        ctxInit(i, h[i].di, h[i].perm, sm, h[i].nStart, h[i].shiny != 0);
+    }
+    { Sc sc(0); finishReset(); }
+    gC[1].p.x = gC[0].p.x + 26; gC[1].p.y = gC[0].p.y;
+    gCur = &gC[me]; gCi = me;
 }
 
 PlayState playState() { return gPS; }
@@ -1882,7 +2066,7 @@ MissionRun playMissionStats() {
     memset(&r, 0, sizeof r);
     r.kills = gKills; r.bosses = gBossesDown; r.chests = gChests; r.evolves = gEvolves; r.rifts = gRifts;
     r.coins = gCoins; r.level = P.level; r.minutes = gTime / 60;
-    r.ct1 = DEX[gChar].t1; r.ct2 = DEX[gChar].t2;
+    r.ct1 = DEX[P.di].t1; r.ct2 = DEX[P.di].t2;
     memcpy(r.killsByType, gKillsType, sizeof r.killsByType);
     return r;
 }
@@ -1899,8 +2083,10 @@ static const char* STAT_NAME[9] = {"Vigor", "Potencia", "Carrera", "Reflejos", "
 static const char* STAT_DESC[9] = {"+20 de vida máxima (y la recupera).", "+10% de daño con todos los movimientos.", "+7% de velocidad.",
                                    "-8% de recarga en todos los movimientos.", "+6% de reducción de daño recibido.", "+0.9 de vida por segundo.",
                                    "+30% de radio de recogida.", "+12% de experiencia ganada.", "Recupera el 45% de tu vida ahora."};
-static int gStatTaken[9];
+static u32 gUiRng = 88172645u;      // las cartas se sortean con su propio RNG para no desincronizar el cooperativo
 void playBuildCards(CardSet& cs) {
+    u32 svR = rngGet();
+    if (gNP > 1) rngSet(gUiRng);
     struct Cand { int kind, arg, w; };
     Cand c[160]; int n = 0;
     if (nMoves() < 4) {
@@ -1936,6 +2122,7 @@ void playBuildCards(CardSet& cs) {
         }
         c[idx] = c[--n];
     }
+    if (gNP > 1) { gUiRng = rngGet(); rngSet(svR); }
 }
 bool playReroll(CardSet& cs) {
     if (gRerollsLeft <= 0) return false;
@@ -1958,7 +2145,8 @@ void playApplyCard(const Card& c) {
             case 8: healPlayer(P.maxHp * 0.45f); break;
         }
     }
-    gPS = PS_RUN;
+    if (gNP == 1) gPS = PS_RUN;
+    else if (gCur->pend > 0) gCur->pend--;
     P.invuln = fmaxf(P.invuln, 0.8f);
     levelUpCheck();
 }
@@ -2022,7 +2210,7 @@ static void drawFx(float cx, float cy, bool top) {
                 break;
             }
             case FX_BOLT: {
-                float x2 = f.x2 - cx, y2 = f.y2 - cy, mx = (x + x2) / 2 + frange(-8, 8), my = (y + y2) / 2 + frange(-8, 8);
+                float x2 = f.x2 - cx, y2 = f.y2 - cy, mx = (x + x2) / 2 + vfrange(-8, 8), my = (y + y2) / 2 + vfrange(-8, 8);
                 quadLine(x, y, mx, my, 5, rgbA(f.rgb, al), 0.62f); quadLine(mx, my, x2, y2, 5, rgbA(f.rgb, al), 0.62f);
                 quadLine(x, y, mx, my, 2, rgbA(0xffffff, al), 0.64f); quadLine(mx, my, x2, y2, 2, rgbA(0xffffff, al), 0.64f);
                 break;
@@ -2234,8 +2422,10 @@ static void drawEvents(float cx, float cy) {
 
 void playDraw(u64 ms) {
     gMs = ms;
-    float shx = gShake > 0 ? frange(-1, 1) * gShake * 6 : 0, shy = gShake > 0 ? frange(-1, 1) * gShake * 6 : 0;
-    float cx = floorf(P.x - TOP_W / 2 + shx), cy = floorf(P.y - 10 - TOP_H / 2 + shy);
+    float shx = gShake > 0 ? vfrange(-1, 1) * gShake * 6 : 0, shy = gShake > 0 ? vfrange(-1, 1) * gShake * 6 : 0;
+    int camI = gNP > 1 && gC[gLoc].dead ? (gLoc ^ 1) : gLoc;
+    const Player& CP = gC[camI].p;
+    float cx = floorf(CP.x - TOP_W / 2 + shx), cy = floorf(CP.y - 10 - TOP_H / 2 + shy);
     gCamX = cx; gCamY = cy;
     C2D_DrawRectSolid(0, 0, 0, TOP_W, TOP_H, rgbA(TILESET_FLOOR_RGBA[gSet] >> 8, 255));
     drawWorldTiles(cx, cy);
@@ -2260,8 +2450,8 @@ void playDraw(u64 ms) {
             ptx[np] = (short)tx; pty[np] = (short)ty;
             gDI[n++] = {py, (u8)(10 + k), (short)np}; np++;
         }
-    for (int i = 0; i < MAXE && n < 296; i++) if (gE[i].on && fabsf(gE[i].x - P.x) < 280 && fabsf(gE[i].y - P.y) < 200) gDI[n++] = {gE[i].y, 1, (short)i};
-    gDI[n++] = {P.y, 2, 0};
+    for (int i = 0; i < MAXE && n < 296; i++) if (gE[i].on && fabsf(gE[i].x - CP.x) < 280 && fabsf(gE[i].y - CP.y) < 200) gDI[n++] = {gE[i].y, 1, (short)i};
+    for (int i = 0; i < gNP; i++) if (!gC[i].dead) gDI[n++] = {gC[i].p.y, 2, (short)i};
     qsort(gDI, n, sizeof(DrawItem), diCmp);
     for (int i = 0; i < n; i++) {
         DrawItem& di = gDI[i];
@@ -2292,16 +2482,21 @@ void playDraw(u64 ms) {
                 C2D_DrawRectSolid(x - 9, yy + 0.5f, 0.85f, 18 * clampf(e.hp / e.maxHp, 0, 1), 2, COL(230, 80, 80, 255));
             }
         } else {
-            float x = P.x - cx, y = P.y - cy;
+            const Ctx& pc = gC[di.idx]; const Player& PP = pc.p;
+            float x = PP.x - cx, y = PP.y - cy;
             C2D_DrawEllipseSolid(x - 10, y - 4, 0.4f, 20, 8, COL(0, 0, 0, 90));
-            if (P.invuln <= 0 || ((int)(gTime * 14) & 1)) {
+            if (PP.invuln <= 0 || ((int)(gTime * 14) & 1)) {
                 C2D_ImageTint tint; bool t = false;
-                if (P.flash > 0) { C2D_PlainImageTint(&tint, COL(255, 80, 80, 255), 0.7f); t = true; }
-                sprDraw(DEX_NUM[P.di], P.dir, gMs, P.moving, x, y, t ? &tint : nullptr, 1.0f, gSave.shinyOn[P.di] && gSave.shiny[P.di]);
+                if (PP.flash > 0) { C2D_PlainImageTint(&tint, COL(255, 80, 80, 255), 0.7f); t = true; }
+                sprDraw(DEX_NUM[PP.di], PP.dir, gMs, PP.moving, x, y, t ? &tint : nullptr, 1.0f, pc.shiny);
             }
+            C2D_DrawRectSolid(x - 15, y - 4, 0.8f, 30, 4, COL(0, 0, 0, 200));
+            C2D_DrawRectSolid(x - 14, y - 3, 0.85f, 28 * clampf(PP.hp / PP.maxHp, 0, 1), 2, di.idx == gLoc ? COL(90, 230, 90, 255) : COL(90, 170, 255, 255));
         }
     }
-    // órbitas
+    for (int pi = 0; pi < gNP; pi++) {
+    if (gC[pi].dead) continue;
+    Sc sc(pi);
     for (int b = 0; b < 4; b++) {
         MoveInst& m = gMoves[b]; if (m.id < 0 || MOVES[m.id].kind != MK_ORBIT || !inActive(b)) continue;
         int cnt = (int)fmaxf(1, m.v[K_COUNT]); float rad = m.v[K_RADIUS], sz = m.v[K_SIZE] > 0 ? m.v[K_SIZE] : 8; u32 rgb = TYPE_RGB[MOVES[m.id].type];
@@ -2310,6 +2505,7 @@ void playDraw(u64 ms) {
             float ox = P.x - cx + cosf(a) * rad, oy = P.y - cy - 8 + sinf(a) * rad * 0.85f;
             circle(ox, oy, sz + 3, rgbA(darken(rgb, 0.35f), 255), 0.6f); circle(ox, oy, sz, rgbA(lighten(rgb, 0.15f), 255), 0.61f); circle(ox, oy, sz * 0.5f, rgbA(0xffffff, 255), 0.62f);
         }
+    }
     }
     for (int i = 0; i < MAXS; i++) if (gS[i].on) drawShot(gS[i], cx, cy);
     for (int i = 0; i < MAXES; i++) if (gES[i].on) {
@@ -2334,8 +2530,6 @@ void playDraw(u64 ms) {
 
     // HUD superior mínimo
     float bx = TOP_W / 2;
-    C2D_DrawRectSolid(bx - 15, TOP_H / 2 + 6, 0.8f, 30, 4, COL(0, 0, 0, 200));
-    C2D_DrawRectSolid(bx - 14, TOP_H / 2 + 7, 0.85f, 28 * playHpFrac(), 2, COL(90, 230, 90, 255));
     char b[48];
     C2D_DrawRectSolid(0, 0, 0.8f, TOP_W, 14, COL(0, 0, 0, 120));
     snprintf(b, sizeof b, "Nv %d", P.level); text(b, 4, -2, 0.45f, COL(255, 255, 255, 255));

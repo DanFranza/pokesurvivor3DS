@@ -152,6 +152,35 @@ struct Card {
 struct CardSet { Card c[3]; int n; };
 
 void playReset(int charIdx, const int* startMoves, int nStart);
+
+// ---------- cooperativo local (play.cpp + coop.cpp) ----------
+struct CoopIn { s8 jx, jy; u8 btn; u16 cmd; };    // entrada de un jugador en un paso; cmd: 0x8000|kind<<8|arg (carta) · 0x4000|toma (objeto)
+struct CoopHello { s16 di; u8 shiny, nStart; s16 start[2]; u8 perm[NPERM]; };
+void playResetCoop(int me, const CoopHello* h, u32 seed);
+void playCoopTick(float dt, const CoopIn* in);   // paso fijo (1/30 s), idéntico en las dos consolas
+void playCoopFrame(float dt);                    // efectos visuales (por fotograma)
+u8 playCoopTakeBtn();                            // toques en X/Y/B/A pendientes
+u32 playCoopChecksum();
+int playCoopPending();                           // niveles por elegir del jugador local
+bool playCoopDead();
+void playCoopPartner(float* x, float* y, float* hpFrac, bool* dead);
+int playCoopPartnerDi();
+bool playCoopActive();
+u32 rngGet();
+void rngSet(u32 s);
+enum { CN_OFF = 0, CN_HOST, CN_SCAN };
+bool coopOpen(); void coopStop(); void coopClose();
+bool coopHost(); void coopScanStep(); int coopMode(); bool coopIsHost(); bool coopLinked();
+void coopHelloSet(const CoopHello& h);
+int coopHandshake(int* me, CoopHello* h2, u32* seed);   // 0 espera · 1 listo · -1 versión distinta
+bool coopPeerLeft();
+void coopRunBegin(int me);
+void coopQueueCmd(u16 c); int coopInFlight(); int coopExec();
+void coopPushLocal(s8 jx, s8 jy, u8 btn);
+int coopSched(); int coopDelay(); bool coopReady(int t);
+void coopInputs(int t, CoopIn* out); void coopDone(int t, u32 chk);
+int coopPump();                                  // 0 bien · 1 salió · 2 desincronizado · 3 sin conexión
+void coopLeave();
 void playUpdate(float dt, u32 down, u32 held, int jx, int jy);
 void playDraw(u64 ms);                          // pantalla superior
 void playPreloadSprites();
@@ -162,7 +191,8 @@ void playApplyCard(const Card& c);
 bool playReroll(CardSet& cs);                    // true si quedaban cambios
 int playRerolls();
 extern int gSlotMove[4];                         // MoveInst del jugador en cada botón (-1 = vacío)
-extern MoveInst gMoves[4];
+extern MoveInst* gMovesL;                        // movimientos del jugador de esta consola
+#define gMoves gMovesL
 extern int gNMoves;
 bool playIsActive(int b);                        // ¿se lanza este botón? (el grupo activo)
 int playGrp(int b);

@@ -6,6 +6,8 @@
 // ---------------------------------------------------------------- util
 static u32 rngState = 2463534242u;
 u32 rnd() { rngState ^= rngState << 13; rngState ^= rngState >> 17; rngState ^= rngState << 5; return rngState; }
+u32 rngGet() { return rngState; }
+void rngSet(u32 s) { rngState = s ? s : 1; }
 float frand() { return (rnd() & 0xFFFFFF) / 16777216.0f; }
 float frange(float a, float b) { return a + (b - a) * frand(); }
 u32 hash2(int x, int y, int s) {

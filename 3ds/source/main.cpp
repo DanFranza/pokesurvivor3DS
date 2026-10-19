@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -25,6 +25,13 @@ static bool gNewBest, gAfterPause;
 static char gTmp[96];
 static int gAchNew, gAchCat, gAchPage;
 static bool gBondSel[4];
+// cooperativo local
+static bool gCoop, gJoining, gCoopCards;
+static int gCoopMe, gCoopErr, gCoopEnd;          // gCoopErr: 1 versiones distintas · 2 conexión perdida; gCoopEnd: 1 compañero salió · 2 desincronizado · 3 sin conexión
+static CoopHello gCH[2];
+static u32 gCoopSeed;
+static float gAcc, gStall;
+static u8 gCoopBtn;
 
 static void msg(const char* s) { snprintf(gMsg, sizeof gMsg, "%s", s); gMsgT = 2.2f; }
 static bool tapIn(float x, float y, float w, float h) { return gTap && inRect(gTp.px, gTp.py, x, y, w, h); }
@@ -105,11 +112,26 @@ static void beginRun() {
         }
     }
     gNStart = n;
+    if (gCoop) {
+        CoopHello h; memset(&h, 0, sizeof h);
+        h.di = gSel; h.shiny = gSave.shinyOn[gSel] && gSave.shiny[gSel]; h.nStart = gNStart;
+        h.start[0] = gStartChoice[0]; h.start[1] = gStartChoice[1];
+        memcpy(h.perm, gSave.perm, sizeof h.perm);
+        coopHelloSet(h);
+        gCoopErr = 0;
+        gState = ST_COOPWAIT;
+        return;
+    }
     gState = ST_LOADING;
 }
 static void doLoadRun() {
     sprFreeAll();
     gTileBgOk = false;
+    if (gCoop) {
+        playResetCoop(gCoopMe, gCH, gCoopSeed);
+        coopRunBegin(gCoopMe);
+        gAcc = gStall = 0; gCoopBtn = 0; gCoopCards = false; gCoopEnd = 0;
+    } else
     playReset(gSel, gStartChoice, gNStart);
     playPreloadSprites();
     gSave.lastChar = gSel;
@@ -158,7 +180,8 @@ static void drawMenu() {
     panel(8, 4, 304, 24, WHITE, COL(26, 49, 112, 255));
     snprintf(gTmp, sizeof gTmp, "%d Pokémonedas · %d tickets · %d ×10", gSave.coins, gSave.t1, gSave.t10);
     text(gTmp, 160, 6, 0.42f, GOLD, true);
-    if (button(20, 36, 280, 56, "¡Jugar!", GOLD_BTN, 0.95f)) startRun();
+    if (button(20, 36, 184, 56, "¡Jugar!", GOLD_BTN, 0.95f)) { gCoop = false; gCoopEnd = 0; startRun(); }
+    if (button(210, 36, 90, 56, "Coop", COL(40, 160, 170, 255), 0.7f)) { if (coopOpen()) { gState = ST_COOP; gJoining = false; sfxPlay(SFX_UI); } else msg("No se pudo iniciar la red local"); }
     if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.6f)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.6f)) { gState = ST_SHOP; gShopPage = 0; sfxPlay(SFX_UI); }
     if (button(20, 150, 136, 40, "Gacha", COL(150, 80, 200, 255), 0.6f)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
@@ -459,9 +482,10 @@ static void drawOver() {
     snprintf(gTmp, sizeof gTmp, "+%d Pokémonedas  +%d tickets", gRun.coins, gRun.t1 + gRun.t10 * 10);
     text(gTmp, 160, 112, 0.55f, COL(255, 220, 90, 255), true);
     if (gRun.jdowns > 0) { snprintf(gTmp, sizeof gTmp, "Legendarios de la Sentencia: %d", gRun.jdowns); text(gTmp, 160, 138, 0.5f, COL(255, 230, 140, 255), true); }
+    if (gCoopEnd) text(gCoopEnd == 1 ? "Compañero desconectado" : gCoopEnd == 2 ? "Partida desincronizada" : "Conexión perdida", 160, 138, 0.5f, COL(255, 140, 140, 255), true);
     if (gNewBest) text("¡Nuevo récord!", 160, 156 - 0, 0.6f, COL(120, 255, 140, 255), true);
     if (gAchNew > 0) { snprintf(gTmp, sizeof gTmp, "¡Logros nuevos: %d!", gAchNew); text(gTmp, 160, 160, 0.5f, COL(255, 200, 80, 255), true); }
-    if (button(60, 180, 200, 40, "Continuar", COL(60, 170, 80, 255), 0.7f)) { gState = ST_MENU; sprFreeAll(); tilesFree(); gTileBgOk = false; }
+    if (button(60, 180, 200, 40, "Continuar", COL(60, 170, 80, 255), 0.7f)) { if (gCoop) { coopClose(); gCoop = false; } gState = ST_MENU; sprFreeAll(); tilesFree(); gTileBgOk = false; }
 }
 
 // ---------------------------------------------------------------- mejoras permanentes
@@ -646,6 +670,79 @@ static void drawItem() {
     text("Toca el que quieras llevar", 160, 180, 0.4f, COL(150, 170, 220, 255), true);
 }
 
+// ---------------------------------------------------------------- cooperativo local
+static void coopCancel() {
+    coopLeave(); coopClose();
+    gCoop = false; gJoining = false;
+    gState = ST_MENU; sprFreeAll(); tilesFree(); gTileBgOk = false;
+    musicPlay(MUS_MENU);
+}
+static void drawCoopLobby() {
+    bgFill();
+    text("Cooperativo local · 2 jugadores", 160, 6, 0.5f, GOLD, true);
+    int mode = coopMode();
+    if (mode == CN_OFF && !gJoining) {
+        if (button(40, 40, 240, 48, "Crear sala", COL(60, 170, 80, 255), 0.7f)) { if (coopHost()) sfxPlay(SFX_UI); else msg("No se pudo crear la sala"); }
+        if (button(40, 98, 240, 48, "Unirse a una sala", EDGE, 0.7f)) { gJoining = true; sfxPlay(SFX_UI); }
+        text("Las dos consolas, con la misma versión del juego,", 160, 156, 0.36f, COL(170, 195, 245, 255), true);
+        text("cerca una de otra. Sin internet ni servidores.", 160, 172, 0.36f, COL(170, 195, 245, 255), true);
+    } else if (mode == CN_HOST) {
+        text("Sala creada", 160, 60, 0.7f, WHITE, true);
+        text("Esperando a tu amigo… (que pulse «Unirse»)", 160, 100, 0.42f, COL(170, 195, 245, 255), true);
+    } else {
+        text("Buscando sala…", 160, 70, 0.7f, WHITE, true);
+        text("El anfitrión debe pulsar «Crear sala»", 160, 110, 0.42f, COL(170, 195, 245, 255), true);
+    }
+    if (button(80, 198, 160, 30, "Atrás", COL(160, 80, 80, 255), 0.55f)) { coopClose(); gJoining = false; gState = ST_MENU; sfxPlay(SFX_UI); }
+}
+static void drawCoopWait() {
+    bgFill();
+    if (gCoopErr == 1) text("Versiones del juego distintas", 160, 80, 0.55f, COL(255, 120, 120, 255), true);
+    else if (gCoopErr == 2) text("Conexión perdida", 160, 80, 0.6f, COL(255, 120, 120, 255), true);
+    else {
+        text("Conectado", 160, 60, 0.7f, COL(120, 255, 140, 255), true);
+        text("Esperando al compañero…", 160, 100, 0.5f, WHITE, true);
+    }
+    if (button(80, 180, 160, 36, "Cancelar", COL(160, 80, 80, 255), 0.6f)) coopCancel();
+}
+static void coopSend(u16 cmd) { coopQueueCmd(cmd); sfxPlay(SFX_LEVEL); gCoopCards = false; }
+static void drawCoopCards() {
+    bgFill();
+    snprintf(gTmp, sizeof gTmp, "¡Nivel! Elige una mejora");
+    text(gTmp, 160, 0, 0.6f, COL(255, 230, 120, 255), true);
+    for (int i = 0; i < gCards.n; i++) {
+        float y = 24 + i * 62;
+        panel(8, y, 304, 58, gCards.c[i].col | 0xFF000000u);
+        text(gCards.c[i].title, 18, y + 3, 0.5f, WHITE);
+        textWrap(gCards.c[i].desc, 18, y + 26, 286, 0.38f, COL(170, 200, 255, 255));
+        if (tapIn(8, y, 304, 58)) { coopSend(0x8000 | (gCards.c[i].kind & 3) << 8 | (gCards.c[i].arg & 0xff)); return; }
+    }
+    snprintf(gTmp, sizeof gTmp, "Cambiar cartas (%d)", playRerolls());
+    if (button(60, 212, 200, 24, gTmp, playRerolls() > 0 ? EDGE : COL(60, 60, 80, 255), 0.45f) && playRerolls() > 0) { playReroll(gCards); sfxPlay(SFX_UI); }
+}
+static void drawCoopItem() {
+    bgFill();
+    text("¡Objeto nuevo!", 160, 0, 0.7f, COL(255, 140, 220, 255), true);
+    text("Solo puedes llevar uno. ¿Cuál te quedas?", 160, 28, 0.4f, WHITE, true);
+    const int ids[2] = {playItem(), playItemNew()};
+    for (int k = 0; k < 2; k++) {
+        float x = 8 + k * 154;
+        panel(x, 50, 150, 110, k ? GOLD : EDGE, COL(20, 32, 70, 255));
+        text(k ? "Nuevo" : "Equipado", x + 75, 54, 0.4f, k ? GOLD : COL(150, 170, 220, 255), true);
+        textWrap(itemName(ids[k]), x + 8, 74, 134, 0.5f, WHITE);
+        textWrap(itemDesc(ids[k]), x + 8, 100, 134, 0.36f, COL(170, 200, 255, 255));
+        if (tapIn(x, 50, 150, 110)) { coopSend(0x4000 | k); return; }
+    }
+    text("Toca el que quieras llevar", 160, 180, 0.4f, COL(150, 170, 220, 255), true);
+}
+// ¿qué debe mostrarse en la pantalla inferior? 0 nada · 1 cartas · 2 objeto
+static int coopOverlay() {
+    if (coopInFlight() > 0) return 0;
+    if (playItemNew() >= 0) return 2;
+    if (playCoopPending() > 0 && !playCoopDead()) return 1;
+    return 0;
+}
+
 // ---------------------------------------------------------------- logros
 static void drawAch() {
     bgFill();
@@ -758,7 +855,7 @@ int main() {
             if (down & KEY_L) gSave.vol = clampf(gSave.vol - 0.1f, 0, 1);
             if (down & KEY_R) gSave.vol = clampf(gSave.vol + 0.1f, 0, 1);
         }
-        if (gState == ST_PLAY && (down & KEY_START)) { gState = ST_PAUSE; gAfterPause = true; gSelBtn = 3; gSelMove = -1; gJoy = false; }
+        if (gState == ST_PLAY && !gCoop && (down & KEY_START)) { gState = ST_PAUSE; gAfterPause = true; gSelBtn = 3; gSelMove = -1; gJoy = false; }
         else if (gState == ST_PAUSE && (down & KEY_START)) { gState = ST_PLAY; gAfterPause = false; }
         if (gState == ST_LOADOUT || gState == ST_PAUSE)
             for (int i = 0; i < 4; i++) if (down & BTN_KEYS[i]) {
@@ -767,7 +864,44 @@ int main() {
                 gSelBtn = i;
             }
 
-        if (gState == ST_PLAY) {
+        if (gState == ST_COOP && coopMode() != CN_OFF && coopLinked()) { gCoop = true; gJoining = false; startRun(); }
+        if (gState == ST_COOPWAIT && !gCoopErr) {
+            int r = coopHandshake(&gCoopMe, gCH, &gCoopSeed);
+            if (r == 1) gState = ST_LOADING;
+            else if (r < 0) gCoopErr = 1;
+            else if (!coopLinked()) gCoopErr = 2;
+        }
+
+        if (gState == ST_PLAY && gCoop) {
+            int ov = coopOverlay();
+            if (ov == 1 && !gCoopCards) { playBuildCards(gCards); gCoopCards = true; }
+            if (ov != 1) gCoopCards = false;
+            int jx = 0, jy = 0;
+            bool ts = gTouching;
+            if (ov) { gTouching = false; gJoy = false; }
+            readJoy(jx, jy, held);
+            gTouching = ts;
+            gCoopBtn |= playCoopTakeBtn();
+            for (int i = 0; i < 4; i++) if (down & BTN_KEYS[i]) gCoopBtn |= 1 << i;
+            gAcc = fminf(gAcc + dt, 0.1f);
+            const float TICK = 1.0f / 30;
+            bool stalled = false;
+            for (int steps = 0; gAcc >= TICK && steps < 2 && playState() == PS_RUN; steps++) {
+                int t = coopExec();
+                while (coopSched() <= t + coopDelay()) { coopPushLocal((s8)jx, (s8)jy, gCoopBtn); gCoopBtn = 0; }
+                if (!coopReady(t)) { stalled = true; break; }
+                CoopIn in[2];
+                coopInputs(t, in);
+                playCoopTick(TICK, in);
+                coopDone(t, t % 60 == 0 ? playCoopChecksum() : 0);
+                gAcc -= TICK;
+            }
+            gStall = stalled ? gStall + dt : 0;
+            playCoopFrame(dt);
+            int st = coopPump();
+            if (st) { gCoopEnd = st; finishRun(); coopLeave(); gState = ST_OVER; }
+            else if (playState() == PS_OVER || playState() == PS_WIN) { finishRun(); coopLeave(); gState = ST_OVER; }
+        } else if (gState == ST_PLAY) {
             int jx = 0, jy = 0;
             readJoy(jx, jy, held);
             playUpdate(dt, down, held, jx, jy);
@@ -795,7 +929,10 @@ int main() {
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
             case ST_LANG: topBg(); tileBg(); logo(200, 70, 1.3f); break;
             case ST_LOADING: topBg(); text("Cargando…", 200, 100, 0.8f, WHITE, true); break;
-            case ST_PLAY: case ST_LEVELUP: case ST_BOND: case ST_ITEM: playDraw(now); break;
+            case ST_PLAY: case ST_LEVELUP: case ST_BOND: case ST_ITEM: playDraw(now);
+                if (gCoop && gState == ST_PLAY && gStall > 0.4f) text("Esperando al compañero…", 200, 10, 0.5f, COL(255, 220, 90, 255), true);
+                break;
+            case ST_COOP: case ST_COOPWAIT: topBg(); tileBg(); logo(200, 70, 1.3f); break;
             case ST_ACH: drawAchTop(); break;
             case ST_OVER: topBg(); text(gRun.won ? "¡Victoria!" : "Fin de la partida", 200, 100, 0.9f, WHITE, true); break;
         }
@@ -811,7 +948,9 @@ int main() {
             case ST_BAN: drawBan(); break;
             case ST_LANG: drawLang(); break;
             case ST_LOADING: bgFill(); text("Cargando…", 160, 100, 0.8f, WHITE, true); break;
-            case ST_PLAY: drawPlayBottom(); break;
+            case ST_PLAY: { int ov = gCoop ? coopOverlay() : 0; if (ov == 1) drawCoopCards(); else if (ov == 2) drawCoopItem(); else drawPlayBottom(); break; }
+            case ST_COOP: drawCoopLobby(); break;
+            case ST_COOPWAIT: drawCoopWait(); break;
             case ST_LEVELUP: drawLevelUp(); break;
             case ST_BOND: drawBond(); break;
             case ST_ITEM: drawItem(); break;
@@ -821,7 +960,9 @@ int main() {
         C3D_FrameEnd(0);
 
         if (gState == ST_LOADING) { doLoadRun(); last = osGetTime(); }
+        if (gState == ST_COOP && gJoining && coopMode() == CN_OFF) { coopScanStep(); last = osGetTime(); }
     }
+    coopClose();
     saveWrite();
     audioExit();
     sprFreeAll();
