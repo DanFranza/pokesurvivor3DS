@@ -1028,7 +1028,7 @@ static void enemyAI(Enemy& e, float dt) {
         if (e.t > 15) {
             e.on = false;
             fxBurst(e.x, e.y - 8, 0xffd23f, 10, 110);
-            char b[48]; snprintf(b, sizeof b, "¡%s se ha escapado!", DEX[e.di].name); banner(b);
+            char b[48]; snprintf(b, sizeof b, "¡%s se ha escapado!", pname(e.di)); banner(b);
         }
         return;
     }
@@ -1136,7 +1136,7 @@ static void spawnWave(float dt) {
     if (gNextBoss < 5 && gTime >= BOSS_SLOTS[gNextBoss].at) {
         float a = frand() * 6.283f;
         int s = spawnEnemy(gBossDef[gNextBoss], P.x + cosf(a) * 230, P.y + sinf(a) * 200, true, false, gTime);
-        if (s >= 0) { char b[48]; snprintf(b, sizeof b, "¡%s salvaje apareció!", DEX[gBossDef[gNextBoss].di].name); banner(b, 3.4f); shake(0.8f); sfxPlay(SFX_BOSS); }
+        if (s >= 0) { char b[48]; snprintf(b, sizeof b, "¡%s salvaje apareció!", pname(gBossDef[gNextBoss].di)); banner(b, 3.4f); shake(0.8f); sfxPlay(SFX_BOSS); }
         gNextBoss++;
         musicPlay(MUS_BOSS);
     }
@@ -1647,7 +1647,7 @@ static void thiefSpawn() {
     Enemy& e = gE[s];
     e.hp = e.maxHp = 60 * (1 + gTime / 95) * (gold ? 1.5f : 1);
     e.spd = 92; e.dmg = 0; e.xp = 0; e.st = gold ? 1 : 0; e.t = 0; e.t2 = 0;
-    char b[48]; snprintf(b, sizeof b, "¡%s con monedas! ¡Atrápalo!", DEX[di].name); banner(b, 3.4f);
+    char b[48]; snprintf(b, sizeof b, "¡%s con monedas! ¡Atrápalo!", pname(di)); banner(b, 3.4f);
     sfxPlay(SFX_RARE);
     fxRing(x, y - 8, 6, 50, 0xffd23f, 0.5f, 3);
 }
@@ -1695,7 +1695,7 @@ static void riftEnter() {
         e.legend = true; e.hp = e.maxHp = (5000 + 6 * gTime) * (gNP > 1 ? 1.8f : 1.0f);
         e.spd = 58; e.dmg = 45 + gTime * 0.05f; e.shotDmg = e.dmg * 0.55f; e.xp = 0; e.shotCd = 1.1f; e.range = 260;
     }
-    char b[48]; snprintf(b, sizeof b, "¡%s te desafía!", DEX[di].name); banner(b, 3.4f);
+    char b[48]; snprintf(b, sizeof b, "¡%s te desafía!", pname(di)); banner(b, 3.4f);
     musicPlay(MUS_BOSS); sfxPlay(SFX_BOSS); gShake = fmaxf(gShake, 0.6f);
 }
 static void riftExit(bool won, bool dead) {

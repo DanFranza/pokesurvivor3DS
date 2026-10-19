@@ -71,7 +71,7 @@ static void drawCard(float x, float y, float w, float h, const PullResult& r, u6
     text(b, x + 4, y + 1, 0.4f, rarityColor(r.rarity));
     if (r.shiny) text("★", x + w - 14, y + 1, 0.4f, COL(255, 90, 90, 255));
     bool small = h < 80;
-    if (!small) text(DEX[r.dex].name, x + w / 2, y + h - 30, 0.32f, COL(255, 255, 255, 255), true);
+    if (!small) text(pname(r.dex), x + w / 2, y + h - 30, 0.32f, COL(255, 255, 255, 255), true);
     float ty = small ? y + h - 13 : y + h - 16;
     float ts = small ? 0.3f : 0.36f;
     if (r.isNew) text("¡NUEVO!", x + w / 2, ty, ts, COL(120, 255, 140, 255), true);

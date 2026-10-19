@@ -97,8 +97,8 @@ void achInfo(int i, char* name, char* desc, int n, int* tier, long* val, long* g
         char f[64]; snprintf(f, sizeof f, "%s", BASE[i].desc);
         snprintf(desc, n, f, (int)g);
     } else {
-        snprintf(name, n, "Vence a %s", DEX[di].name);
-        snprintf(desc, n, "Derrota a %s en una grieta.", DEX[di].name);
+        snprintf(name, n, "Vence a %s", pname(di));
+        snprintf(desc, n, "Derrota a %s en una grieta.", pname(di));
     }
     long v = srcVal(s, di);
     *tier = t; *goal = g; *val = v > g ? g : v; *done = gSave.ach[i] != 0;

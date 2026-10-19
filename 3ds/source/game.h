@@ -35,6 +35,7 @@ void textWrap(const char* s, float x, float y, float w, float sc, u32 col);
 
 // ---------- idioma (core.cpp + include/lang.h generado) ----------
 enum { LANG_ES, LANG_EN, LANG_FR, LANG_N };
+const char* pname(int di);                      // nombre del Pokémon (fila de DEX) en el idioma activo
 const char* T(const char* es);                  // traduce un texto en español al idioma activo (si no lo conoce, lo devuelve igual)
 const char* typeName(int t);
 const char* const LANG_NAMES[LANG_N] = {"Español", "English", "Français"};

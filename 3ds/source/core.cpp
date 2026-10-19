@@ -28,7 +28,13 @@ u32 typeColorLight(int t, int a) { return shade(TYPE_RGB[t], 1.55f, a); }
 // ---------------------------------------------------------------- idioma
 #include "lang.h"
 extern Save gSave;
+#include "pkname.h"
 #undef snprintf
+const char* pname(int di) {
+    if (di < 0 || di >= DEX_N || gSave.lang == LANG_ES) return di >= 0 && di < DEX_N ? DEX[di].name : "";
+    const char* r = PK_NAMES[di][gSave.lang - 1];
+    return *r ? r : DEX[di].name;
+}
 const char* T(const char* es) {
     if (!es || gSave.lang == LANG_ES || !*es) return es;
     int lo = 0, hi = LANG_N_STR - 1;

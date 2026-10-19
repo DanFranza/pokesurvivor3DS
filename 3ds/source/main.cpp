@@ -203,7 +203,7 @@ static void drawMenuTop(u64 ms) {
     C2D_DrawEllipseSolid(150, 178, 0.3f, 100, 24, COL(0, 0, 0, 90));
     C2D_DrawEllipseSolid(156, 180, 0.31f, 88, 18, COL(255, 255, 255, 40));
     sprDraw(DEX_NUM[di], 0, ms, true, 200, 182, nullptr, 2.0f, gSave.shinyOn[di] && gSave.shiny[di]);
-    text(DEX[di].name, 200, 190, 0.5f, WHITE, true);
+    text(pname(di), 200, 190, 0.5f, WHITE, true);
     int own = 0;
     for (int i = 0; i < DEX_N; i++) own += gSave.owned[i];
     snprintf(gTmp, sizeof gTmp, "Mejor tiempo %02d:%02d · Partidas %d · Colección %d/%d", gSave.best / 60, gSave.best % 60, gSave.runs, own, DEX_N);
@@ -271,7 +271,7 @@ static void drawDexTop(u64 ms) {
     if (own) {
         bool sh = gSave.shinyOn[gDexSel] && gSave.shiny[gDexSel];
         sprDraw(DEX_NUM[gDexSel], 0, ms, true, 94, 160, nullptr, 2.0f, sh);
-        text(p.name, 94, 176, 0.55f, WHITE, true);
+        text(pname(gDexSel), 94, 176, 0.55f, WHITE, true);
         snprintf(gTmp, sizeof gTmp, "N.º %d", DEX_NUM[gDexSel]);
         text(gTmp, 94, 196, 0.38f, COL(170, 200, 255, 255), true);
     } else {
@@ -379,7 +379,7 @@ static void drawLoadoutTop(u64 ms) {
         text(gTmp, 184, y + 20, 0.36f, COL(170, 200, 255, 255));
     }
     if (gAfterPause) {
-        snprintf(gTmp, sizeof gTmp, "%s · Nv %d · %02d:%02d", DEX[gSel].name, playLevel(), (int)playTime() / 60, (int)playTime() % 60);
+        snprintf(gTmp, sizeof gTmp, "%s · Nv %d · %02d:%02d", pname(gSel), playLevel(), (int)playTime() / 60, (int)playTime() % 60);
         text(gTmp, 75, 200, 0.4f, WHITE, true);
     }
 }
