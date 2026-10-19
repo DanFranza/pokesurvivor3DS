@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[2]; };   // tr[0] = inglés, tr[1] = francés
-#define LANG_N_STR 627
+#define LANG_N_STR 626
 static const LangStr LANG_STR[LANG_N_STR] = {
   {"+%d Pokémonedas  +%d tickets", {"+%d Pokécoins  +%d tickets", "+%d Pokémonnaies  +%d tickets"}},
   {"+%d tickets · %d", {"+%d tickets · %d", "+%d tickets · %d"}},
@@ -284,7 +284,6 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Galar", {"Galar", "Galar"}},
   {"Gana %d peleas en grietas", {"Win %d fights in rifts", "Gagne %d combats dans des failles"}},
   {"Gana una pelea en una grieta", {"Win a rift battle", "Gagne un combat dans une faille"}},
-  {"Garantía", {"Pity", "Garantie"}},
   {"Garra Dragón", {"Dragon Claw", "Draco-Griffe"}},
   {"Garra Metal", {"Metal Claw", "Griffe Acier"}},
   {"Garra Rápida", {"Quick Claw", "Griffe Rapide"}},
@@ -363,7 +362,6 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Los premios se cobran solos al cumplirlos.", {"Rewards are granted automatically.", "Les récompenses sont versées automatiquement."}},
   {"Los que te golpean cuerpo a cuerpo reciben daño.", {"Foes that hit you in melee take damage.", "Ceux qui te frappent au corps à corps subissent des dégâts."}},
   {"Los que te tocan reciben daño.", {"Anything that touches you takes damage.", "Ceux qui te touchent subissent des dégâts."}},
-  {"Los repetidos dan Pokémonedas", {"Duplicates give PokéCoins", "Les doublons donnent des Pokémonnaies"}},
   {"Lucha", {"Fighting", "Combat"}},
   {"Luchador", {"Fighter", "Combattant"}},
   {"Látigo Cepa", {"Vine Whip", "Fouet Lianes"}},
@@ -390,6 +388,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Niebla", {"Fog", "Brouillard"}},
   {"Nieve Polvo", {"Powder Snow", "Poudreuse"}},
   {"Nitrocarga", {"Flame Charge", "Nitrocharge"}},
+  {"Niveles: %d", {"Levels: %d", "Niveau : %d"}},
   {"No hace daño: acumula ATAQUE (físico) mientras esté activo.", {"Deals no damage: builds (physical) ATTACK while active.", "Aucun dégât : cumule de l'ATTAQUE (physique) tant qu'actif."}},
   {"No hace daño: acumula ATAQUE (físico) más rápido que Danza Espada.", {"Deals no damage: builds (physical) ATTACK faster than Swords Dance.", "Aucun dégât : cumule de l'ATTAQUE (physique) plus vite que Danse-Lames."}},
   {"No hace daño: acumula ATAQUE ESPECIAL mientras esté activo.", {"Deals no damage: builds SPECIAL ATTACK while active.", "Aucun dégât : cumule de l'ATTAQUE SPÉCIALE tant qu'actif."}},
@@ -439,6 +438,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"PokéSurvivor", {"PokéSurvivor", "PokéSurvivor"}},
   {"Pokédex — %s", {"Pokédex — %s", "Pokédex — %s"}},
   {"Pokémon", {"Pokémon", "Pokémon"}},
+  {"Poseídos", {"Owned", "Possédés"}},
   {"Potencia", {"Power", "Puissance"}},
   {"Pradera Eterna", {"Eternal Meadow", "Prairie Éternelle"}},
   {"Primer legendario", {"First legendary", "Premier légendaire"}},
@@ -628,6 +628,5 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"¡Vínculo!", {"Bond!", "Lien !"}},
   {"¡Vínculo! %d movimientos a la vez", {"Bond! %d moves at once", "Lien ! %d capacités à la fois"}},
   {"Épico", {"Epic", "Épique"}},
-  {"×10: al menos 1 Épico", {"×10: at least 1 Epic", "×10 : au moins 1 Épique"}},
   {"★ Shiny conseguido", {"★ Shiny obtained", "★ Shiny obtenu"}},
 };

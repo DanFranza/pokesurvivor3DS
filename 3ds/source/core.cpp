@@ -66,6 +66,9 @@ void text(const char* s, float x, float y, float sc, u32 col, bool center) {
     if (center) { float w, h; C2D_TextGetDimensions(&t, sc, sc, &w, &h); x -= w / 2; }
     C2D_DrawText(&t, C2D_WithColor, floorf(x), floorf(y), 0.9f, sc, sc, col);
 }
+float textH(const char* s, float sc) {
+    C2D_Text t; C2D_TextFontParse(&t, gFont, gTxt, T(s)); float w, h; C2D_TextGetDimensions(&t, sc, sc, &w, &h); return h;
+}
 void textWrap(const char* s, float x, float y, float w, float sc, u32 col) {
     C2D_Text t;
     C2D_TextFontParse(&t, gFont, gTxt, T(s));

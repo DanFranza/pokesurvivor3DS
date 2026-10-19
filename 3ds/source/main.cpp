@@ -60,7 +60,7 @@ static bool button(float x, float y, float w, float h, const char* label, u32 bg
     C2D_DrawRectSolid(x + 1, y + 1 + dy, 0.1f, w - 2, h - 2 - dy, shade(bg, 0.55f));
     gradRect(x + 2, y + 2 + dy, w - 4, h - 7 - dy, 0.12f, shade(bg, 1.3f), shade(bg, 1.0f));
     C2D_DrawRectSolid(x + 2, y + 2 + dy, 0.15f, w - 4, 1, COL(255, 255, 255, 90));
-    float tx = x + w / 2, ty = y + h / 2 - 9 * sc / 0.5f + dy - 1;
+    float tx = x + w / 2, ty = y + (h - 4 - textH(label, sc)) / 2 + dy;
     if (ic >= 0) {
         float isc = h >= 50 ? 1.0f : h >= 34 ? 0.75f : 0.5f, isz = 32 * isc;
         icon(ic, x + 6, y + (h - isz) / 2 + dy - 2, isc);
@@ -578,35 +578,34 @@ static void drawShop() {
     panel(46, 29, 228, 22, WHITE, COL(26, 49, 112, 255));
     snprintf(gTmp, sizeof gTmp, "%s%s", pname(di), di == partner() ? " ♥" : "");
     text(gTmp, 56, 28, 0.42f, WHITE);
-    snprintf(gTmp, sizeof gTmp, "%d niveles", pokeLevels(di));
-    text(gTmp, 266, 31, 0.32f, COL(170, 200, 255, 255), false);
-    for (int k = 0; k < 4; k++) {
-        int i = gShopPage * 4 + k;
+    snprintf(gTmp, sizeof gTmp, "Niveles: %d", pokeLevels(di));
+    text(gTmp, 266, 33, 0.36f, COL(170, 200, 255, 255), false);
+    for (int k = 0; k < 3; k++) {
+        int i = gShopPage * 3 + k;
         if (i >= NPERM) break;
-        float y = 55 + k * 35;
+        float y = 55 + k * 49;
         int lv = gSave.pupg[di][i];
         bool maxed = lv >= PERM[i].max;
         int cost = maxed ? 0 : permCost(i, lv);
         bool can = !maxed && gSave.coins >= cost;
-        panel(6, y, 308, 33, maxed ? COL(90, 200, 120, 255) : EDGE, COL(26, 49, 112, 255));
-        icon(PERM_ICON[i], 8, y + 3, 0.75f);
-        text(PERM[i].name, 38, y - 1, 0.42f, WHITE);
-        textWrap(PERM[i].unit, 38, y + 13, 150, 0.27f, COL(170, 200, 255, 255));
-        int pw = PERM[i].max > 5 ? 7 : 12;
-        for (int q = 0; q < PERM[i].max; q++) {
-            float px = 38 + q * (pw + 2);
-            C2D_DrawRectSolid(px, y + 25, 0.3f, pw, 5, INK);
-            C2D_DrawRectSolid(px + 1, y + 26, 0.35f, pw - 2, 3, q < lv ? COL(255, 210, 63, 255) : COL(46, 60, 110, 255));
-        }
+        panel(6, y, 308, 47, maxed ? COL(90, 200, 120, 255) : EDGE, COL(26, 49, 112, 255));
+        icon(PERM_ICON[i], 9, y + 7, 1.0f);
+        text(PERM[i].name, 46, y + 2, 0.5f, WHITE);
+        textWrap(PERM[i].unit, 46, y + 20, 170, 0.36f, COL(190, 215, 255, 255));
         char b[16];
         if (maxed) snprintf(b, sizeof b, "Máx.");
         else snprintf(b, sizeof b, "%d", cost);
-        if (button(226, y + 3, 82, 27, b, maxed ? COL(70, 130, 90, 255) : can ? GOLD_BTN : COL(80, 84, 110, 255), 0.42f, maxed ? -1 : IC_COIN) && !maxed) {
+        if (button(226, y + 5, 82, 26, b, maxed ? COL(70, 130, 90, 255) : can ? GOLD_BTN : COL(80, 84, 110, 255), 0.46f, maxed ? -1 : IC_COIN) && !maxed) {
             if (can) { gSave.coins -= cost; gSave.pupg[di][i]++; saveWrite(); sfxPlay(SFX_LEVEL); }
             else { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); }
         }
+        int mx = PERM[i].max, pw = mx > 8 ? 6 : mx > 5 ? 8 : 12, tw = mx * (pw + 2) - 2;
+        for (int q = 0; q < mx; q++) {
+            float px = 267 - tw / 2.0f + q * (pw + 2);
+            C2D_DrawRectSolid(px, y + 35, 0.3f, pw, 6, INK);
+            C2D_DrawRectSolid(px + 1, y + 36, 0.35f, pw - 2, 4, q < lv ? COL(255, 210, 63, 255) : COL(46, 60, 110, 255));
+        }
     }
-    int pages = (NPERM + 3) / 4;
     if (arrowBtn(6, 204, 60, 30, false, gShopPage > 0)) { gShopPage--; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "%d/%d", gShopPage + 1, pages);
     text(gTmp, 100, 210, 0.42f, WHITE, true);
@@ -621,7 +620,7 @@ static void drawShopTop(u64 ms) {
     panel(14, 28, 150, 196, WHITE, COL(26, 49, 112, 255));
     sprDraw(DEX_NUM[di], 0, ms, true, 89, 150, nullptr, 2.0f, gSave.shinyOn[di] && gSave.shiny[di]);
     text(pname(di), 89, 170, 0.5f, WHITE, true);
-    snprintf(gTmp, sizeof gTmp, "%d niveles", pokeLevels(di));
+    snprintf(gTmp, sizeof gTmp, "Niveles: %d", pokeLevels(di));
     text(gTmp, 89, 192, 0.38f, COL(170, 200, 255, 255), true);
     text("Mejoras", 280, 4, 0.7f, GOLD, true);
     textWrap("Cada Pokémon tiene sus propias mejoras: sólo cuentan cuando juegas con él. Consigue Pokémonedas jugando y con los duplicados del gacha.", 182, 40, 206, 0.42f, WHITE);
@@ -656,11 +655,11 @@ static void drawGacha() {
     text("Shiny", 32, 58 + 65 - 3, 0.36f, COL(255, 130, 130, 255));
     snprintf(gTmp, sizeof gTmp, "%.0f%%", SHINY_RATE);
     text(gTmp, 190, 58 + 65 - 3, 0.36f, COL(255, 130, 130, 255), true);
-    text("Garantía", 252, 62, 0.34f, COL(170, 200, 255, 255), true);
-    snprintf(gTmp, sizeof gTmp, "%d/70", gSave.pity[gGen]);
+    int own = 0, tot = 0;
+    for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gGen) { tot++; if (gSave.owned[i]) own++; }
+    text("Poseídos", 252, 62, 0.4f, COL(170, 200, 255, 255), true);
+    snprintf(gTmp, sizeof gTmp, "%d/%d", own, tot);
     text(gTmp, 252, 78, 0.5f, WHITE, true);
-    text("Los repetidos dan Pokémonedas", 252, 104, 0.27f, COL(150, 170, 220, 255), true);
-    text("×10: al menos 1 Épico", 252, 118, 0.27f, COL(150, 170, 220, 255), true);
     bool ok1 = gSave.t1 >= 1, ok10 = gSave.t1 >= 10, okP = gSave.t10 >= 1;
     bool idle = !slotBusy();
     u32 off = COL(70, 60, 90, 255);

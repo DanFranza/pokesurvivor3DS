@@ -260,5 +260,7 @@
  "¡%s se ha asustado y ha huido…!": "%s got scared and ran away…!",
  "%s se ha cansado de esperar y se ha ido…": "%s got tired of waiting and left…",
  "¡%s se une a tu colección!": "%s joins your collection!",
- "¡Has llevado a %s a casa! Te lo agradece": "You took %s home! It thanks you"
+ "¡Has llevado a %s a casa! Te lo agradece": "You took %s home! It thanks you",
+ "Niveles: %d": "Levels: %d",
+ "Poseídos": "Owned"
 }
