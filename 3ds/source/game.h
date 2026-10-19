@@ -33,6 +33,14 @@ void textFrame();
 void text(const char* s, float x, float y, float sc, u32 col, bool center = false);
 void textWrap(const char* s, float x, float y, float w, float sc, u32 col);
 
+// ---------- idioma (core.cpp + include/lang.h generado) ----------
+enum { LANG_ES, LANG_EN, LANG_FR, LANG_N };
+const char* T(const char* es);                  // traduce un texto en español al idioma activo (si no lo conoce, lo devuelve igual)
+const char* typeName(int t);
+const char* const LANG_NAMES[LANG_N] = {"Español", "English", "Français"};
+// Todo formato de snprintf pasa por T(): las cadenas de printf se traducen solas.
+#define snprintf(b, n, f, ...) snprintf(b, n, T(f), ##__VA_ARGS__)
+
 // ---------- sprites (core.cpp) ----------
 void sprLoad(int dexNum);                       // lo carga si no está
 void sprFreeAll();
@@ -56,6 +64,7 @@ struct Save {
     int lastChar;
     u8 startMove[DEX_N];                        // movimiento inicial elegido por Pokémon (0 = el de siempre)
     float vol;
+    u8 lang, langSet;                           // idioma elegido (LANG_*) y si ya se eligió
 };
 extern Save gSave;
 void saveLoad();
@@ -95,7 +104,7 @@ const char* effLabel(float m);
 struct Card {
     int kind;                                    // 0 mov. nuevo, 1 sube mov., 2 estadística
     int arg;                                     // índice de movimiento / id de estadística
-    char title[40], desc[64];
+    char title[48], desc[96];
     u32 col;
 };
 struct CardSet { Card c[3]; int n; };

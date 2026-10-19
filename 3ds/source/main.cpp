@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_SELECT, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING };
+enum State { ST_MENU, ST_SELECT, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -41,7 +41,7 @@ static void typeChip(float x, float y, int t) {
     if (t == 255) return;
     C2D_DrawRectSolid(x, y, 0.3f, 56, 14, typeColorDark(t));
     C2D_DrawRectSolid(x + 1, y + 1, 0.35f, 54, 12, typeColor(t));
-    text(TYPE_NAMES[t], x + 28, y - 3, 0.36f, WHITE, true);
+    text(typeName(t), x + 28, y - 3, 0.36f, WHITE, true);
 }
 
 static int ownedList(int* out) {
@@ -90,6 +90,23 @@ static void doLoadRun() {
     gState = ST_PLAY;
 }
 
+// ---------------------------------------------------------------- idioma
+static void drawLang() {
+    bgFill();
+    text("Idioma · Language · Langue", 160, 14, 0.6f, COL(255, 220, 90, 255), true);
+    static const u32 cols[LANG_N] = {COL(200, 60, 60, 255), COL(60, 100, 200, 255), COL(60, 140, 200, 255)};
+    for (int i = 0; i < LANG_N; i++) {
+        float y = 58 + i * 52;
+        bool cur = gSave.langSet && gSave.lang == i;
+        C2D_DrawRectSolid(40, y - 2, 0.05f, 240, 44, cur ? COL(255, 255, 255, 255) : COL(10, 20, 50, 255));
+        if (button(42, y, 236, 40, LANG_NAMES[i], cols[i], 0.7f)) {
+            gSave.lang = (u8)i; gSave.langSet = 1; saveWrite(); sfxPlay(SFX_UI);
+            gState = ST_MENU;
+        }
+    }
+    if (gSave.langSet && button(100, 212, 120, 24, "Volver", COL(180, 80, 80, 255), 0.45f)) gState = ST_MENU;
+}
+
 static void drawMenu() {
     bgFill();
     text("PokéSurvivor", 160, 4, 0.8f, COL(255, 220, 90, 255), true);
@@ -114,7 +131,8 @@ static void drawMenu() {
     for (int i = 0; i < DEX_N; i++) own += gSave.owned[i];
     snprintf(gTmp, sizeof gTmp, "Colección %d/%d · Volumen %d%% (L/R)", own, DEX_N, (int)(gSave.vol * 100 + 0.5f));
     text(gTmp, 160, 196, 0.4f, COL(170, 200, 255, 255), true);
-    text("START: salir", 160, 218, 0.38f, COL(120, 140, 190, 255), true);
+    text("START: salir", 90, 218, 0.38f, COL(120, 140, 190, 255), true);
+    if (button(228, 212, 88, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.42f)) { gState = ST_LANG; sfxPlay(SFX_UI); }
 }
 static void drawMenuTop(u64 ms) {
     topBg();
@@ -169,7 +187,7 @@ static void drawSelectTop(u64 ms) {
     snprintf(gTmp, sizeof gTmp, "Ataque %d    Atq.Esp %d", (int)(p.pa * 100), (int)(p.sa * 100)); text(gTmp, 190, 82, 0.45f, WHITE);
     snprintf(gTmp, sizeof gTmp, "Defensa %d    Def.Esp %d", p.df, p.sd); text(gTmp, 190, 102, 0.45f, WHITE);
     int dm = defaultStart(gSel);
-    snprintf(gTmp, sizeof gTmp, "Mov. inicial: %s", MOVES[dm].name); text(gTmp, 190, 128, 0.45f, typeColorLight(MOVES[dm].type));
+    snprintf(gTmp, sizeof gTmp, "Mov. inicial: %s", T(MOVES[dm].name)); text(gTmp, 190, 128, 0.45f, typeColorLight(MOVES[dm].type));
     if (p.t2 == 255) text("Monotipo: +20% con ataques de su tipo", 190, 150, 0.36f, COL(255, 230, 120, 255));
     textWrap(MOVES[dm].desc, 190, 170, 200, 0.38f, COL(170, 200, 255, 255));
 }
@@ -201,7 +219,7 @@ static void drawStartTop() {
     int m = gStartChoice[0];
     text(MOVES[m].name, 200, 30, 0.8f, typeColorLight(MOVES[m].type), true);
     textWrap(MOVES[m].desc, 40, 90, 320, 0.5f, WHITE);
-    snprintf(gTmp, sizeof gTmp, "Tipo %s · %s", TYPE_NAMES[MOVES[m].type], MOVES[m].cat == 0 ? "Físico" : MOVES[m].cat == 1 ? "Especial" : "Estado");
+    snprintf(gTmp, sizeof gTmp, "Tipo %s · %s", typeName(MOVES[m].type), T(MOVES[m].cat == 0 ? "Físico" : MOVES[m].cat == 1 ? "Especial" : "Estado"));
     text(gTmp, 200, 160, 0.5f, COL(170, 200, 255, 255), true);
 }
 
@@ -231,7 +249,7 @@ static void drawLoadoutBottom() {
         const MoveDef& d = MOVES[gMoves[gSelBtn].id];
         text(d.name, 160, 94, 0.55f, typeColorLight(d.type), true);
         textWrap(d.desc, 20, 118, 280, 0.42f, WHITE);
-        snprintf(gTmp, sizeof gTmp, "Recarga %.1f s · %s", gMoves[gSelBtn].v[K_CD], d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado");
+        snprintf(gTmp, sizeof gTmp, "Recarga %.1f s · %s", gMoves[gSelBtn].v[K_CD], T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
         text(gTmp, 160, 160, 0.4f, COL(170, 200, 255, 255), true);
     }
     if (button(8, 196, 98, 36, gAuto ? "Auto: SÍ" : "Auto: NO", EDGE, 0.5f)) gAuto = !gAuto;
@@ -256,7 +274,7 @@ static void drawLoadoutTop(u64 ms) {
         C2D_DrawRectSolid(152, y + 2, 0.25f, 236, 34, COL(14, 26, 50, 255));
         text(BTN_NAMES[i], 158, y + 6, 0.55f, typeColorLight(d.type));
         text(d.name, 184, y + 2, 0.5f, WHITE);
-        snprintf(gTmp, sizeof gTmp, "Nv %d · %s", gMoves[i].lvl, d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado");
+        snprintf(gTmp, sizeof gTmp, "Nv %d · %s", gMoves[i].lvl, T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
         text(gTmp, 184, y + 20, 0.36f, COL(170, 200, 255, 255));
     }
     if (gAfterPause) {
@@ -374,7 +392,7 @@ static void drawShop() {
         int cost = maxed ? 0 : permCost(i, lv);
         bool can = !maxed && gSave.coins >= cost;
         panel(6, y, 308, 28, maxed ? COL(90, 200, 120, 255) : can ? COL(255, 220, 90, 255) : EDGE);
-        snprintf(gTmp, sizeof gTmp, "%s  %d/%d", PERM[i].name, lv, PERM[i].max);
+        snprintf(gTmp, sizeof gTmp, "%s  %d/%d", T(PERM[i].name), lv, PERM[i].max);
         text(gTmp, 12, y + 1, 0.45f, WHITE);
         text(PERM[i].unit, 12, y + 15, 0.32f, COL(170, 200, 255, 255));
         if (maxed) text("MÁX", 300, y + 6, 0.5f, COL(120, 255, 160, 255), true);
@@ -486,6 +504,7 @@ int main() {
     audioInit();
     musicPlay(MUS_MENU);
     gSel = gSave.lastChar >= 0 && gSave.lastChar < DEX_N ? gSave.lastChar : 0;
+    if (!gSave.langSet) gState = ST_LANG;
 
     u64 last = osGetTime();
     bool quit = false;
@@ -536,6 +555,7 @@ int main() {
             case ST_SHOP: drawShopTop(); break;
             case ST_GACHA: drawGachaTop(now, dt); break;
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
+            case ST_LANG: topBg(); text("PokéSurvivor 3DS", 200, 60, 1.0f, COL(255, 220, 90, 255), true); break;
             case ST_LOADING: topBg(); text("Cargando…", 200, 100, 0.8f, WHITE, true); break;
             case ST_PLAY: case ST_LEVELUP: playDraw(now); break;
             case ST_OVER: topBg(); text(gRun.won ? "¡Victoria!" : "Fin de la partida", 200, 100, 0.9f, WHITE, true); break;
@@ -549,6 +569,7 @@ int main() {
             case ST_SHOP: drawShop(); break;
             case ST_GACHA: drawGacha(); break;
             case ST_BAN: drawBan(); break;
+            case ST_LANG: drawLang(); break;
             case ST_LOADING: bgFill(); text("Cargando…", 160, 100, 0.8f, WHITE, true); break;
             case ST_PLAY: drawPlayBottom(); break;
             case ST_LEVELUP: drawLevelUp(); break;

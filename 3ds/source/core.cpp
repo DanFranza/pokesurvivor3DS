@@ -23,20 +23,40 @@ u32 typeColor(int t, int a) { return shade(TYPE_RGB[t], 1.0f, a); }
 u32 typeColorDark(int t, int a) { return shade(TYPE_RGB[t], 0.55f, a); }
 u32 typeColorLight(int t, int a) { return shade(TYPE_RGB[t], 1.55f, a); }
 
+// ---------------------------------------------------------------- idioma
+#include "lang.h"
+extern Save gSave;
+#undef snprintf
+const char* T(const char* es) {
+    if (!es || gSave.lang == LANG_ES || !*es) return es;
+    int lo = 0, hi = LANG_N_STR - 1;
+    while (lo <= hi) {
+        int mid = (lo + hi) >> 1;
+        int c = strcmp(es, LANG_STR[mid].es);
+        if (c == 0) { const char* r = LANG_STR[mid].tr[gSave.lang - 1]; return *r ? r : es; }
+        if (c < 0) hi = mid - 1; else lo = mid + 1;
+    }
+    return es;
+}
+const char* typeName(int t) {
+    static const char* N[18] = {"Normal", "Fuego", "Agua", "Eléctrico", "Planta", "Hielo", "Lucha", "Veneno", "Tierra", "Volador", "Psíquico", "Bicho", "Roca", "Fantasma", "Dragón", "Siniestro", "Acero", "Hada"};
+    return t >= 0 && t < 18 ? T(N[t]) : "";
+}
+
 // ---------------------------------------------------------------- texto
 static C2D_TextBuf gTxt;
 void textInit() { gTxt = C2D_TextBufNew(8192); }
 void textFrame() { C2D_TextBufClear(gTxt); }
 void text(const char* s, float x, float y, float sc, u32 col, bool center) {
     C2D_Text t;
-    C2D_TextParse(&t, gTxt, s);
+    C2D_TextParse(&t, gTxt, T(s));
     C2D_TextOptimize(&t);
     if (center) { float w, h; C2D_TextGetDimensions(&t, sc, sc, &w, &h); x -= w / 2; }
     C2D_DrawText(&t, C2D_WithColor, floorf(x), floorf(y), 0.9f, sc, sc, col);
 }
 void textWrap(const char* s, float x, float y, float w, float sc, u32 col) {
     C2D_Text t;
-    C2D_TextParse(&t, gTxt, s);
+    C2D_TextParse(&t, gTxt, T(s));
     C2D_TextOptimize(&t);
     C2D_DrawText(&t, C2D_WithColor | C2D_WordWrap, floorf(x), floorf(y), 0.9f, sc, sc, col, w);
 }
@@ -104,7 +124,11 @@ void saveLoad() {
     memset(&gSave, 0, sizeof gSave);
     FILE* f = fopen(SAVE_PATH, "rb");
     bool ok = false;
-    if (f) { ok = fread(&gSave, sizeof gSave, 1, f) == 1 && gSave.magic == SAVE_MAGIC; fclose(f); }
+    if (f) {   // una partida guardada más corta (versión anterior) sigue valiendo: los campos nuevos quedan a 0
+        size_t n = fread(&gSave, 1, sizeof gSave, f);
+        ok = n >= offsetof(Save, vol) + sizeof(float) && gSave.magic == SAVE_MAGIC;
+        fclose(f);
+    }
     if (!ok) {
         memset(&gSave, 0, sizeof gSave);
         gSave.magic = SAVE_MAGIC;

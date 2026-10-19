@@ -45,7 +45,7 @@ enum { FX_RING, FX_ARC, FX_BEAM, FX_PART, FX_TEXT, FX_FLASH, FX_BOLT };
 struct Fx {
     bool on; u8 kind, rimmed;
     float x, y, x2, y2, r0, r1, a, arc, t, life, w, vx, vy;
-    u32 rgb; char txt[12];
+    u32 rgb; char txt[28];
 };
 struct Player {
     float x, y, hp, maxHp, spd, invuln, flash, aim, vx, vy, dashT;
@@ -173,12 +173,12 @@ static void fxBurst(float x, float y, u32 rgb, int n, float spd) {
 static void fxText(float x, float y, const char* s, u32 rgb, float scale) {
     Fx* f = newFx(FX_TEXT, 0.8f); if (!f) return;
     f->x = x; f->y = y; f->rgb = rgb; f->w = scale; f->vy = -38;
-    snprintf(f->txt, sizeof f->txt, "%s", s);
+    snprintf(f->txt, sizeof f->txt, "%s", T(s));
 }
 static void fxBolt(float x, float y, float x2, float y2, u32 rgb) {
     Fx* f = newFx(FX_BOLT, 0.22f); if (!f) return; f->x = x; f->y = y; f->x2 = x2; f->y2 = y2; f->rgb = rgb;
 }
-static void banner(const char* s, float t = 2.8f) { snprintf(gBanner, sizeof gBanner, "%s", s); gBannerT = t; }
+static void banner(const char* s, float t = 2.8f) { snprintf(gBanner, sizeof gBanner, "%s", T(s)); gBannerT = t; }
 
 // ---------------------------------------------------------------- mundo procedural
 static u32 wseed() { return (u32)gSet * 7919u + 13u; }
@@ -1455,12 +1455,12 @@ void playBuildCards(CardSet& cs) {
         cd.kind = c[idx].kind; cd.arg = c[idx].arg;
         if (cd.kind == 0) {
             const MoveDef& d = MOVES[cd.arg];
-            snprintf(cd.title, sizeof cd.title, "Nuevo: %s", d.name); snprintf(cd.desc, sizeof cd.desc, "%s", d.desc); cd.col = TYPE_RGB[d.type];
+            snprintf(cd.title, sizeof cd.title, "Nuevo: %s", T(d.name)); snprintf(cd.desc, sizeof cd.desc, "%s", T(d.desc)); cd.col = TYPE_RGB[d.type];
         } else if (cd.kind == 1) {
             const MoveInst& m = gMoves[cd.arg]; const MoveDef& d = MOVES[m.id];
-            snprintf(cd.title, sizeof cd.title, "%s  Nv %d → %d", d.name, m.lvl, m.lvl + 1); snprintf(cd.desc, sizeof cd.desc, "%s", d.ups[m.lvl - 1].text); cd.col = TYPE_RGB[d.type];
+            snprintf(cd.title, sizeof cd.title, "%s  Nv %d → %d", T(d.name), m.lvl, m.lvl + 1); snprintf(cd.desc, sizeof cd.desc, "%s", T(d.ups[m.lvl - 1].text)); cd.col = TYPE_RGB[d.type];
         } else {
-            snprintf(cd.title, sizeof cd.title, "%s", STAT_NAME[cd.arg]); snprintf(cd.desc, sizeof cd.desc, "%s", STAT_DESC[cd.arg]); cd.col = 0x8fa3c4;
+            snprintf(cd.title, sizeof cd.title, "%s", T(STAT_NAME[cd.arg])); snprintf(cd.desc, sizeof cd.desc, "%s", T(STAT_DESC[cd.arg])); cd.col = 0x8fa3c4;
         }
         c[idx] = c[--n];
     }
