@@ -606,6 +606,7 @@ static void drawShop() {
             C2D_DrawRectSolid(px + 1, y + 36, 0.35f, pw - 2, 4, q < lv ? COL(255, 210, 63, 255) : COL(46, 60, 110, 255));
         }
     }
+    int pages = (NPERM + 2) / 3;
     if (arrowBtn(6, 204, 60, 30, false, gShopPage > 0)) { gShopPage--; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "%d/%d", gShopPage + 1, pages);
     text(gTmp, 100, 210, 0.42f, WHITE, true);
