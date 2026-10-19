@@ -151,6 +151,7 @@ extern int gNMoves;
 extern bool gAuto;
 struct RunStats { float time; int kills, level, bosses, coins, t1, t10; bool won; };
 RunStats playStats();
+MissionRun playMissionStats();
 void playHud(u64 ms);                            // datos para la pantalla inferior
 float playHpFrac();
 float playXpFrac();

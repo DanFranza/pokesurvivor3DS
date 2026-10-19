@@ -89,6 +89,7 @@ static PlayState gPS = PS_RUN;
 static float gTime, gSpawnAcc, gSurgeT, gShake, gBannerT, gPreT;
 static char gBanner[48];
 static int gKills, gBossesDown, gCoins, gT1, gT10, gNextId, gChar, gSet, gNextBoss, gRerollsLeft;
+static int gKillsType[18], gChests, gEvolves, gRifts;
 static float gCamX, gCamY;
 static Def gCast[6][8]; static int gNCast[6];
 static Def gBossDef[5];
@@ -379,6 +380,11 @@ static void killEnemy(Enemy& e) {
     if (!e.on) return;
     e.on = false;
     gKills++;
+    {
+        const DexE& dp = DEX[e.di];
+        if (dp.t1 < 18) gKillsType[dp.t1]++;
+        if (dp.t2 < 18 && dp.t2 != dp.t1) gKillsType[dp.t2]++;
+    }
     fxBurst(e.x, e.y - 8, 0xffffff, e.boss ? 18 : 6, e.boss ? 150 : 90);
     if (e.boss) fxRing(e.x, e.y - 8, 6, 90, 0xffe070, 0.5f, 5);
     sfxPlay(e.boss ? SFX_BOSS : SFX_KILL);
@@ -750,12 +756,14 @@ static void breakProp(int tx, int ty, int kind) {
         if (r > 0.75f) dropPick(1, x + 6, y, 2);
         if (r > 0.94f) dropPick(2, x - 6, y, 1);
     } else if (kind == PR_CHEST) {
+        gChests++;
         int n = 4 + rnd() % 4;
         for (int i = 0; i < n; i++) dropPick(1, x + frange(-14, 14), y + frange(-10, 10), 3);
         dropPick(frand() < 0.5f ? 2 : 4, x, y, 1);
         dropPick(0, x, y, 20);
         fxRing(x, y - 8, 6, 46, 0xf2c443, 0.45f, 4);
     } else if (kind == PR_BIG) {
+        gChests++;
         for (int i = 0; i < 9; i++) dropPick(1, x + frange(-22, 22), y + frange(-14, 14), 4);
         int tk = 1 + rnd() % 3;
         for (int i = 0; i < tk; i++) dropPick(3, x + frange(-16, 16), y + frange(-10, 10), 1);
@@ -1383,6 +1391,7 @@ void playReset(int charIdx, const int* startMoves, int nStart) {
     memset(gE, 0, sizeof gE); memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
     memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF); memset(gFx, 0, sizeof gFx);
     gNBroken = 0; gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
+    memset(gKillsType, 0, sizeof gKillsType); gChests = gEvolves = gRifts = 0;
     gNextBoss = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gManualDown = 0;
     gChar = charIdx; gSet = charIdx % 3;
     memset(&P, 0, sizeof P);
@@ -1414,6 +1423,15 @@ RunStats playStats() {
     return r;
 }
 float playHpFrac() { return clampf(P.hp / P.maxHp, 0, 1); }
+MissionRun playMissionStats() {
+    MissionRun r;
+    memset(&r, 0, sizeof r);
+    r.kills = gKills; r.bosses = gBossesDown; r.chests = gChests; r.evolves = gEvolves; r.rifts = gRifts;
+    r.coins = gCoins; r.level = P.level; r.minutes = gTime / 60;
+    r.ct1 = DEX[gChar].t1; r.ct2 = DEX[gChar].t2;
+    memcpy(r.killsByType, gKillsType, sizeof r.killsByType);
+    return r;
+}
 float playXpFrac() { return clampf(P.xp / P.xpNeed, 0, 1); }
 int playLevel() { return P.level; }
 float playTime() { return gTime; }
@@ -1471,7 +1489,7 @@ bool playReroll(CardSet& cs) {
 }
 void playApplyCard(const Card& c) {
     if (c.kind == 0) slotPlace(c.arg);
-    else if (c.kind == 1) { MoveInst& m = gMoves[c.arg]; if (m.lvl < 5) { m.lvl++; moveRecompute(m); } }
+    else if (c.kind == 1) { MoveInst& m = gMoves[c.arg]; if (m.lvl < 5) { m.lvl++; moveRecompute(m); if (m.lvl == 5) gEvolves++; } }
     else {
         gStatTaken[c.arg]++;
         switch (c.arg) {
@@ -1755,7 +1773,7 @@ void playDraw(u64 ms) {
             if (P.invuln <= 0 || ((int)(gTime * 14) & 1)) {
                 C2D_ImageTint tint; bool t = false;
                 if (P.flash > 0) { C2D_PlainImageTint(&tint, COL(255, 80, 80, 255), 0.7f); t = true; }
-                sprDraw(DEX_NUM[P.di], P.dir, gMs, P.moving, x, y, t ? &tint : nullptr, 1.0f);
+                sprDraw(DEX_NUM[P.di], P.dir, gMs, P.moving, x, y, t ? &tint : nullptr, 1.0f, gSave.shinyOn[P.di] && gSave.shiny[P.di]);
             }
         }
     }
