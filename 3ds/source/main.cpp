@@ -61,7 +61,8 @@ static int dirFromVec(float dx, float dy, int old) {
 // ---------- entidades ----------
 static const int NTYPES = NTIERS;
 
-struct Enemy { float x, y, hp; u8 type, dir; short spr; float flash; };
+struct Enemy { float x, y, hp; u8 type, dir; short spr; float flash, t, vx, vy; };
+struct EShot { float x, y, vx, vy, life; };
 struct Shot  { float x, y, vx, vy, life; int hitsLeft; };
 struct Gem   { float x, y; int xp; };
 
@@ -77,7 +78,12 @@ enum State { ST_TITLE, ST_PLAY, ST_LEVELUP, ST_OVER };
 static Enemy gEn[110]; static int nEn;
 static Shot  gSh[48];  static int nSh;
 static Gem   gGem[160]; static int nGem;
+static EShot gEs[40]; static int nEs;
 static Player P;
+static int gBest;
+
+static void loadBest() { FILE* f = fopen("sdmc:/3ds/pokesurvivor3ds.sav", "rb"); if (f) { if (fread(&gBest, 4, 1, f) != 1) gBest = 0; fclose(f); } }
+static void saveBest() { FILE* f = fopen("sdmc:/3ds/pokesurvivor3ds.sav", "wb"); if (f) { fwrite(&gBest, 4, 1, f); fclose(f); } }
 static State gState = ST_TITLE;
 static int gChar = 1;
 static float gTime, gSpawnAcc;
@@ -122,7 +128,7 @@ static void resetGame() {
     memset(&P, 0, sizeof(P));
     P.hp = P.maxHp = PLAYER_HP[gChar]; P.speed = PLAYER_SPD[gChar]; P.dmg = 7; P.cooldown = 0.8f; P.shots = 1;
     P.magnet = 40; P.level = 1; P.xpNeed = 6;
-    nEn = nSh = nGem = 0; gTime = gSpawnAcc = 0; gKills = 0;
+    nEn = nSh = nGem = nEs = 0; gTime = gSpawnAcc = 0; gKills = 0;
 }
 
 // ---------- entrada táctil: joystick flotante ----------
@@ -163,7 +169,7 @@ static void spawnEnemy() {
     e.spr = TIER_DEFS[e.type].spr[rnd() % PER_TIER];
     e.x = P.x + cosf(a) * r; e.y = P.y + sinf(a) * r;
     e.hp = TIER_DEFS[e.type].hp * (1.0f + gTime / 120.0f);
-    e.dir = 0; e.flash = 0;
+    e.dir = 0; e.flash = 0; e.t = 1 + frand() * 2; e.vx = e.vy = 0;
 }
 
 static void dropGem(float x, float y, int xp) {
@@ -181,7 +187,8 @@ static void fire() {
     float ang = atan2f(gEn[best].y - P.y, gEn[best].x - P.x);
     for (int k = 0; k < P.shots && nSh < MAX_SHOTS; k++) {
         float a = ang + (k - (P.shots - 1) * 0.5f) * 0.18f;
-        gSh[nSh++] = {P.x, P.y - 8, cosf(a) * 230, sinf(a) * 230, 1.3f, 2};
+        float sp = gChar == 1 ? 280 : (gChar == 0 ? 190 : 230);
+        gSh[nSh++] = {P.x, P.y - 8, cosf(a) * sp, sinf(a) * sp, gChar == 0 ? 1.0f : 1.3f, gChar == 0 ? 4 : (gChar == 2 ? 2 : 1)};
     }
     P.cdTimer = P.cooldown;
 }
@@ -229,11 +236,34 @@ static void update(float dt) {
         }
         float dx = P.x - e.x, dy = P.y - e.y, d = sqrtf(dx * dx + dy * dy);
         if (d > 420) { gEn[i] = gEn[--nEn]; continue; }
-        if (d > 0.1f) { e.x += dx / d * t.spd * dt; e.y += dy / d * t.spd * dt; }
+        float mx = dx / (d + 0.01f), my = dy / (d + 0.01f), sp = t.spd;
+        e.t -= dt;
+        if (e.type == 1) {            // chargeur: se arrête, vise, embiste
+            if (e.t < 0.6f && e.t > 0) sp = 0;
+            else if (e.t <= 0) { e.vx = mx * 200; e.vy = my * 200; e.t = 0.4f + 2.2f; }
+            if (e.t > 2.2f) { e.x += e.vx * dt; e.y += e.vy * dt; sp = 0; }
+        } else if (e.type == 2) {     // tirador: mantiene distancia y dispara
+            if (d < 110) sp = -sp * 0.6f; else if (d < 160) sp = 0;
+            if (e.t <= 0 && d < 220 && nEs < 40) {
+                gEs[nEs++] = {e.x, e.y, mx * 110, my * 110, 3};
+                e.t = 2.2f;
+            }
+        }
+        e.x += mx * sp * dt; e.y += my * sp * dt;
         e.dir = dirFromVec(dx, dy, e.dir);
         if (e.flash > 0) e.flash -= dt;
         if (d < t.radius + 7 && P.invuln <= 0) { P.hp -= t.dmg; P.invuln = 0.6f; }
         i++;
+    }
+
+    // proyectiles enemigos
+    for (int i = 0; i < nEs;) {
+        EShot& b = gEs[i];
+        b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+        float dx = P.x - b.x, dy = P.y - b.y;
+        bool hit = dx * dx + dy * dy < 100;
+        if (hit && P.invuln <= 0) { P.hp -= TIER_DEFS[2].dmg; P.invuln = 0.6f; }
+        if (hit || b.life <= 0) gEs[i] = gEs[--nEs]; else i++;
     }
 
     // gemas de XP
@@ -252,7 +282,7 @@ static void update(float dt) {
         i++;
     }
 
-    if (P.hp <= 0) { P.hp = 0; gState = ST_OVER; }
+    if (P.hp <= 0) { P.hp = 0; gState = ST_OVER; if ((int)gTime > gBest) { gBest = (int)gTime; saveBest(); } }
 }
 
 // ---------- dibujo ----------
@@ -304,10 +334,13 @@ static void drawWorld() {
         }
     }
 
+    for (int i = 0; i < nEs; i++)
+        C2D_DrawCircleSolid(gEs[i].x - cx, gEs[i].y - cy, 0.6f, 4, COL(220, 60, 200, 255));
     for (int i = 0; i < nSh; i++) {
         float x = gSh[i].x - cx, y = gSh[i].y - cy;
-        C2D_DrawCircleSolid(x, y, 0.6f, 5, COL(255, 140, 30, 255));
-        C2D_DrawCircleSolid(x, y, 0.65f, 2.5f, COL(255, 240, 120, 255));
+        static const u32 outer[3] = {COL(60, 200, 70, 255), COL(255, 140, 30, 255), COL(60, 150, 255, 255)};
+        C2D_DrawCircleSolid(x, y, 0.6f, 5, outer[gChar]);
+        C2D_DrawCircleSolid(x, y, 0.65f, 2.5f, COL(255, 255, 220, 255));
     }
 
     // Marco de vida sobre el jugador
@@ -368,6 +401,7 @@ int main() {
     gTxt = C2D_TextBufNew(2048);
     initSprites();
     rngState ^= (u32)osGetTime();
+    loadBest();
     resetGame();
 
     u64 last = osGetTime();
@@ -432,6 +466,8 @@ int main() {
                     text(PLAYER_NAMES[i], cx, 150, 0.5f, COL(255, 255, 255, 255), true);
                 }
                 C2D_DrawRectSolid(60, 196, 0.1f, 200, 32, COL(90, 190, 90, 255));
+                snprintf(b, sizeof b, "Mejor: %02d:%02d", gBest / 60, gBest % 60);
+                text(b, 160, 40, 0.5f, COL(170, 200, 255, 255), true);
                 text("¡Jugar!", 160, 202, 0.7f, COL(255, 255, 255, 255), true);
                 break;
             case ST_PLAY: drawBottomHud(); break;
