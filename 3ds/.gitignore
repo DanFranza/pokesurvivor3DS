@@ -4,3 +4,4 @@ build/
 *.smdh
 gfx/*.png
 include/sprites.h
+romfs/gfx/
