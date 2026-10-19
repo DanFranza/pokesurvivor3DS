@@ -15,7 +15,7 @@
 
 // ---------------------------------------------------------------- tipos de datos
 struct Enemy {
-    bool on, boss, moving;
+    bool on, boss, moving, legend;
     short di;                       // fila en DEX
     u8 beh, dir, st;
     float x, y, hp, maxHp, spd, dmg, xp, r, flash, t, t2, tx, ty, kx, ky, shield, hitCd;
@@ -59,7 +59,7 @@ struct Player {
     float orbA[4];
 };
 
-enum { BEH_COUNT = 13 };
+enum { BEH_COUNT = 13, B_THIEF = 99 };
 struct Def {
     short di; u8 beh, fanN, zones; short minion;
     float hp, spd, dmg, xp, shotDmg, shotCd, range;
@@ -93,6 +93,13 @@ static int gKillsType[18], gChests, gEvolves, gRifts;
 static float gCamX, gCamY;
 static Def gCast[6][8]; static int gNCast[6];
 static Def gBossDef[5];
+// eventos: ladrón de monedas y grieta (arena del legendario)
+static const float ARENA_H = 320;
+static bool gArena, gArenaDead, gPortal;
+static float gArenaX, gArenaY, gArenaT, gArenaEnd, gSavedX, gSavedY;
+static float gThiefT, gRiftChk, gRiftMiss, gPortalX, gPortalY, gPortalT;
+static int gThiefN;
+static Enemy sE[MAXE]; static Pick sP[MAXP]; static Field sF[MAXF];
 static int gTarget;
 static float gTargetD;
 static u32 gManualDown;
@@ -195,6 +202,7 @@ static bool liquidTile(int tx, int ty) {
     float pools = TILESET_POOLS[gSet];
     if (pools <= 0) return false;
     if (tx * tx + ty * ty < 36) return false;
+    if (gArena && fabsf(tx * TS + 16 - gArenaX) < ARENA_H + TS && fabsf(ty * TS + 16 - gArenaY) < ARENA_H + TS) return false;
     return vnoise(tx / 4.5f, ty / 4.5f, wseed() + 3) > 0.78f - pools * 0.85f;
 }
 enum { PR_NONE, PR_TREE, PR_ROCK, PR_CHEST, PR_BIG };
@@ -204,6 +212,7 @@ static bool isBroken(int tx, int ty) {
 }
 static int propAt(int tx, int ty, int* var) {
     if (tx * tx + ty * ty < 30) return PR_NONE;
+    if (gArena && fabsf(tx * TS + 16 - gArenaX) < ARENA_H + TS && fabsf(ty * TS + 16 - gArenaY) < ARENA_H + TS) return PR_NONE;
     u32 h = hash2(tx, ty, wseed() + 1);
     float r = (h & 0xFFFF) / 65536.0f;
     int kind = PR_NONE;
@@ -376,6 +385,8 @@ static int spawnEnemy(const Def& d, float x, float y, bool boss, bool elite, flo
     return slot;
 }
 
+static void thiefLoot(Enemy& e);
+static void riftWin(Enemy& e);
 static void killEnemy(Enemy& e) {
     if (!e.on) return;
     e.on = false;
@@ -385,6 +396,8 @@ static void killEnemy(Enemy& e) {
         if (dp.t1 < 18) gKillsType[dp.t1]++;
         if (dp.t2 < 18 && dp.t2 != dp.t1) gKillsType[dp.t2]++;
     }
+    if (e.beh == B_THIEF) { thiefLoot(e); return; }
+    if (e.legend) { riftWin(e); return; }
     fxBurst(e.x, e.y - 8, 0xffffff, e.boss ? 18 : 6, e.boss ? 150 : 90);
     if (e.boss) fxRing(e.x, e.y - 8, 6, 90, 0xffe070, 0.5f, 5);
     sfxPlay(e.boss ? SFX_BOSS : SFX_KILL);
@@ -808,7 +821,10 @@ static void hurtPlayer(float dmg, int cat, int srcDi) {
     fxText(P.x, P.y - 28, b, 0xff6060, 0.55f);
     shake(0.2f);
     sfxPlay(SFX_HURT);
-    if (P.hp <= 0) { P.hp = 0; gPS = PS_OVER; sfxPlay(SFX_OVER); }
+    if (P.hp <= 0) {
+        if (gArena) { P.hp = 1; P.invuln = 99; gArenaDead = true; return; }
+        P.hp = 0; gPS = PS_OVER; sfxPlay(SFX_OVER);
+    }
 }
 static int enemyCat(const Enemy& e) { return DEX[e.di].sa > DEX[e.di].pa ? 1 : 0; }
 
@@ -864,6 +880,19 @@ static void enemyAI(Enemy& e, float dt) {
     float spd = e.spd;
     e.t += dt;
     if (e.stun > 0) { e.moving = false; return; }
+    if (e.beh == B_THIEF) {
+        float a = atan2f(-dy, -dx) + sinf(e.t * 2.2f) * 0.7f;
+        float ax = cosf(a), ay = sinf(a);
+        moveEnemy(e, ax, ay, dist < 300 ? e.spd : e.spd * 0.35f, dt);
+        e.moving = true;
+        if (fabsf(ax) > fabsf(ay)) e.dir = ax > 0 ? 1 : 3; else e.dir = ay > 0 ? 0 : 2;
+        if (e.t > 15) {
+            e.on = false;
+            fxBurst(e.x, e.y - 8, 0xffd23f, 10, 110);
+            char b[48]; snprintf(b, sizeof b, "¡%s se ha escapado!", DEX[e.di].name); banner(b);
+        }
+        return;
+    }
     bool mv = true;
     switch (e.beh) {
         case B_CHASE: case B_TANK: moveEnemy(e, ux, uy, spd, dt); break;
@@ -1217,12 +1246,12 @@ static void updateEnemies(float dt) {
         pushOut(e.x, e.y, e.r * 0.5f);
         // contacto con el jugador
         e.hitCd -= dt;
-        if (e.hitCd <= 0 && distf(e.x, e.y, P.x, P.y) < e.r + 9 && e.beh != B_BOMBER) {
+        if (e.hitCd <= 0 && distf(e.x, e.y, P.x, P.y) < e.r + 9 && e.beh != B_BOMBER && e.beh != B_THIEF) {
             e.hitCd = 0.8f;
             hurtPlayer(e.dmg, enemyCat(e), e.di);
         }
         // lejos de todo: reaparece por delante
-        if (distf(e.x, e.y, P.x, P.y) > 520 && !e.boss) {
+        if (distf(e.x, e.y, P.x, P.y) > 520 && !e.boss && e.beh != B_THIEF) {
             float a = atan2f(P.vy, P.vx) + frange(-0.9f, 0.9f);
             if (fabsf(P.vx) + fabsf(P.vy) < 5) a = frand() * 6.283f;
             e.x = P.x + cosf(a) * 250; e.y = P.y + sinf(a) * 200;
@@ -1347,6 +1376,131 @@ static void updateMoves(float dt, u32 down) {
     gManualDown = 0;
 }
 
+// ---------------------------------------------------------------- eventos: ladrón de monedas y grieta
+static bool freeSpot(float x, float y) {
+    int tx = (int)floorf(x / TS), ty = (int)floorf(y / TS);
+    return !liquidTile(tx, ty) && propAt(tx, ty, nullptr) == PR_NONE;
+}
+static void ringPos(float minD, float maxD, float* ox, float* oy) {
+    for (int i = 0; i < 14; i++) {
+        float a = frand() * 6.283f, d = frange(minD, maxD);
+        *ox = P.x + cosf(a) * d; *oy = P.y + sinf(a) * d;
+        if (freeSpot(*ox, *oy)) return;
+    }
+}
+static bool anyBoss() { for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].boss) return true; return false; }
+
+static void thiefSpawn() {
+    bool gold = frand() < 0.25f && dexIndexOf(1000) >= 0 && sprHas(1000);
+    int di = dexIndexOf(gold ? 1000 : 52);
+    if (di < 0 || !sprHas(DEX_NUM[di])) return;
+    Def d; memset(&d, 0, sizeof d); d.di = di; d.beh = B_THIEF;
+    float x = P.x + 250, y = P.y; ringPos(230, 300, &x, &y);
+    int s = spawnEnemy(d, x, y, false, false, gTime);
+    if (s < 0) return;
+    Enemy& e = gE[s];
+    e.hp = e.maxHp = 60 * (1 + gTime / 95) * (gold ? 1.5f : 1);
+    e.spd = 92; e.dmg = 0; e.xp = 0; e.st = gold ? 1 : 0; e.t = 0; e.t2 = 0;
+    char b[48]; snprintf(b, sizeof b, "¡%s con monedas! ¡Atrápalo!", DEX[di].name); banner(b, 3.4f);
+    sfxPlay(SFX_RARE);
+    fxRing(x, y - 8, 6, 50, 0xffd23f, 0.5f, 3);
+}
+static void thiefLoot(Enemy& e) {
+    bool gold = e.st == 1;
+    fxBurst(e.x, e.y - 8, 0xffd23f, 16, 140);
+    fxRing(e.x, e.y - 8, 6, 70, 0xffd23f, 0.5f, 4);
+    sfxPlay(SFX_RARE);
+    int n = gold ? 6 : 20;
+    if (gold) { dropPick(3, e.x, e.y - 10, 10); fxText(e.x, e.y - 30, "+10 Tickets", 0xffd23f, 0.6f); }
+    for (int i = 0; i < n; i++) dropPick(1, e.x + frange(-28, 28), e.y + frange(-20, 20), 5);
+}
+
+static void riftOpen() {
+    bool any = false;
+    for (int i = 0; i < DEX_N; i++) if (DEX[i].leg && sprHas(DEX_NUM[i])) { any = true; break; }
+    if (!any) return;
+    gPortalX = P.x + 450; gPortalY = P.y;
+    ringPos(380, 560, &gPortalX, &gPortalY);
+    gPortal = true; gPortalT = 45; gRiftMiss = 0;
+    banner("¡Se abrió una grieta!", 3.2f); sfxPlay(SFX_BOSS); gShake = fmaxf(gShake, 0.4f);
+}
+static void riftEnter() {
+    static short leg[DEX_N]; int n = 0;
+    for (int i = 0; i < DEX_N; i++) if (DEX[i].leg && sprHas(DEX_NUM[i])) leg[n++] = i;
+    if (!n) { gPortal = false; return; }
+    memcpy(sE, gE, sizeof gE); memcpy(sP, gP, sizeof gP); memcpy(sF, gF, sizeof gF);
+    memset(gE, 0, sizeof gE); memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
+    memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF);
+    gSavedX = P.x; gSavedY = P.y;
+    gArena = true; gArenaDead = false; gArenaT = 0; gArenaEnd = 0; gPortal = false;
+    gArenaX = gPortalX; gArenaY = gPortalY; gTarget = -1;
+    P.x = gArenaX; P.y = gArenaY + 160; P.vx = P.vy = 0; P.invuln = 1.5f;
+    int di = leg[rnd() % n];
+    Def d; memset(&d, 0, sizeof d);
+    d.di = di; d.beh = B_CHASE; d.hp = 1; d.spd = 58; d.dmg = 1; d.xp = 0;
+    int s = spawnEnemy(d, gArenaX, gArenaY - 120, true, false, 0);
+    if (s >= 0) {
+        Enemy& e = gE[s];
+        e.legend = true; e.hp = e.maxHp = 5000 + 6 * gTime;
+        e.spd = 58; e.dmg = 45 + gTime * 0.05f; e.shotDmg = e.dmg * 0.55f; e.xp = 0; e.shotCd = 1.1f; e.range = 260;
+    }
+    char b[48]; snprintf(b, sizeof b, "¡%s te desafía!", DEX[di].name); banner(b, 3.4f);
+    musicPlay(MUS_BOSS); sfxPlay(SFX_BOSS); gShake = fmaxf(gShake, 0.6f);
+}
+static void riftExit(bool won, bool dead) {
+    memcpy(gE, sE, sizeof gE); memcpy(gP, sP, sizeof gP); memcpy(gF, sF, sizeof gF);
+    memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
+    gArena = false; gTarget = -1;
+    P.x = gSavedX; P.y = gSavedY; P.vx = P.vy = 0; P.invuln = 2.5f;
+    if (won) { gRifts++; healPlayer(P.maxHp * 0.3f); banner("¡Grieta superada!", 2.8f); }
+    else { if (dead) P.hp = P.maxHp * 0.35f; banner("La grieta se cierra…", 2.8f); }
+    gRiftChk = 30;
+    musicPlay(MUS_BATTLE);
+}
+static void riftWin(Enemy& e) {
+    for (int i = 0; i < MAXE; i++) gE[i].on = false;
+    fxBurst(e.x, e.y - 10, 0xe0a0ff, 30, 190);
+    fxRing(e.x, e.y - 10, 8, 130, 0xe0a0ff, 0.7f, 5);
+    sfxPlay(SFX_BOSS); gShake = 0.8f;
+    bool big = frand() < 0.5f;
+    for (int i = 0; i < 3; i++) dropPick(3, e.x + (i - 1) * 16, e.y - 10, i == 0 && big ? 10 : 1);
+    for (int i = 0; i < 10; i++) dropPick(1, e.x + frange(-30, 30), e.y + frange(-20, 20), 8);
+    for (int i = 0; i < MAXP; i++) if (gP[i].on) gP[i].t = 30;
+    gArenaEnd = 3.5f;
+    banner("¡Legendario derrotado!", 3.2f);
+}
+static void eventsUpdate(float dt) {
+    if (gArena) {
+        gArenaT += dt;
+        float lo = ARENA_H - 10;
+        P.x = clampf(P.x, gArenaX - lo, gArenaX + lo); P.y = clampf(P.y, gArenaY - lo, gArenaY + lo);
+        for (int i = 0; i < MAXE; i++) if (gE[i].on) {
+            gE[i].x = clampf(gE[i].x, gArenaX - lo, gArenaX + lo); gE[i].y = clampf(gE[i].y, gArenaY - lo, gArenaY + lo);
+        }
+        if (gArenaDead) riftExit(false, true);
+        else if (gArenaEnd > 0) { gArenaEnd -= dt; if (gArenaEnd <= 0) riftExit(true, false); }
+        else if (gArenaT > 120) riftExit(false, false);
+        return;
+    }
+    bool boss = anyBoss();
+    gThiefT -= dt;
+    if (gThiefT <= 0) {
+        if (boss) gThiefT = 8;
+        else { thiefSpawn(); gThiefN++; gThiefT = gThiefN < 2 ? frange(240, 360) : 1e9f; }
+    }
+    if (gPortal) {
+        gPortalT -= dt;
+        if (gPortalT <= 0) { gPortal = false; banner("La grieta se cerró…", 2.5f); }
+        else if (distf(P.x, P.y, gPortalX, gPortalY) < 30) riftEnter();
+    } else if (gTime >= 75 && gTime <= WIN_TIME - 120 && !boss) {
+        gRiftChk -= dt;
+        if (gRiftChk <= 0) {
+            gRiftChk = 30;
+            if (frand() < 0.2f * (1 + gRiftMiss)) riftOpen(); else gRiftMiss++;
+        }
+    }
+}
+
 void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
     (void)held;
     gMs = osGetTime();
@@ -1374,13 +1528,14 @@ void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
     updatePlayer(dt, jx / 100.0f, jy / 100.0f);
     updateMoves(dt, down);
     orbitsUpdate(dt);
-    spawnWave(dt);
+    if (!gArena) spawnWave(dt);
     updateEnemies(dt);
     updateShots(dt);
     updateFields(dt);
     updateHazards(dt);
     updatePickups(dt);
     levelUpCheck();
+    eventsUpdate(dt);
     // música de jefe: vuelve a la normal al caer
     bool boss = false; for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].boss) boss = true;
     static bool wasBoss; if (wasBoss && !boss) musicPlay(MUS_BATTLE); wasBoss = boss;
@@ -1393,6 +1548,7 @@ void playReset(int charIdx, const int* startMoves, int nStart) {
     gNBroken = 0; gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
     memset(gKillsType, 0, sizeof gKillsType); gChests = gEvolves = gRifts = 0;
     gNextBoss = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gManualDown = 0;
+    gArena = gArenaDead = gPortal = false; gThiefN = 0; gThiefT = frange(120, 240); gRiftChk = 30; gRiftMiss = 0;
     gChar = charIdx; gSet = charIdx % 3;
     memset(&P, 0, sizeof P);
     P.di = charIdx;
@@ -1709,6 +1865,41 @@ static void drawProp(int kind, int tx, int ty, float cx, float cy) {
     }
 }
 
+static void edgeArrow(float wx, float wy, float cx, float cy, u32 col) {
+    float sx = wx - cx, sy = wy - cy;
+    if (sx > 0 && sx < TOP_W && sy > 14 && sy < TOP_H) return;
+    float dx = sx - TOP_W / 2, dy = sy - TOP_H / 2, l = sqrtf(dx * dx + dy * dy);
+    if (l < 1) return;
+    float t = fminf((TOP_W / 2 - 14) / fmaxf(fabsf(dx), 0.01f), (TOP_H / 2 - 24) / fmaxf(fabsf(dy), 0.01f));
+    float ux = dx / l, uy = dy / l, ax = TOP_W / 2 + dx * t, ay = TOP_H / 2 + dy * t;
+    C2D_DrawTriangle(ax + ux * 9, ay + uy * 9, col, ax - uy * 6 - ux * 5, ay + ux * 6 - uy * 5, col, ax + uy * 6 - ux * 5, ay - ux * 6 - uy * 5, col, 0.78f);
+}
+static void drawEvents(float cx, float cy) {
+    if (gPortal) {
+        float x = gPortalX - cx, y = gPortalY - cy, p = 0.5f + 0.5f * sinf(gMs * 0.006f);
+        circle(x, y, 20 + 3 * p, COL(40, 0, 70, 200), 0.42f);
+        ringDraw(x, y, 22 + 4 * p, 3, COL(190, 90, 255, 255), 0.43f);
+        ringDraw(x, y, 12 + 3 * (1 - p), 2, COL(235, 190, 255, 255), 0.44f);
+        edgeArrow(gPortalX, gPortalY, cx, cy, COL(190, 90, 255, 255));
+    }
+    for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].beh == B_THIEF) edgeArrow(gE[i].x, gE[i].y, cx, cy, COL(255, 215, 60, 255));
+    if (!gArena) return;
+    float aL = gArenaX - ARENA_H - cx, aR = gArenaX + ARENA_H - cx, aT = gArenaY - ARENA_H - cy, aB = gArenaY + ARENA_H - cy;
+    u32 dark = COL(12, 0, 28, 235);
+    if (aT > 0) C2D_DrawRectSolid(0, 0, 0.75f, TOP_W, fminf(aT, TOP_H), dark);
+    if (aB < TOP_H) C2D_DrawRectSolid(0, fmaxf(aB, 0), 0.75f, TOP_W, TOP_H - fmaxf(aB, 0), dark);
+    float y0 = fmaxf(aT, 0), y1 = fminf(aB, TOP_H);
+    if (y1 > y0) {
+        if (aL > 0) C2D_DrawRectSolid(0, y0, 0.75f, fminf(aL, TOP_W), y1 - y0, dark);
+        if (aR < TOP_W) C2D_DrawRectSolid(fmaxf(aR, 0), y0, 0.75f, TOP_W - fmaxf(aR, 0), y1 - y0, dark);
+    }
+    u32 pc = COL(190, 90, 255, 255);
+    C2D_DrawRectSolid(aL - 2, aT - 2, 0.76f, aR - aL + 4, 3, pc); C2D_DrawRectSolid(aL - 2, aB - 1, 0.76f, aR - aL + 4, 3, pc);
+    C2D_DrawRectSolid(aL - 2, aT - 2, 0.76f, 3, aB - aT + 4, pc); C2D_DrawRectSolid(aR - 1, aT - 2, 0.76f, 3, aB - aT + 4, pc);
+    char b[24]; snprintf(b, sizeof b, "%d s", (int)fmaxf(0, 120 - gArenaT));
+    if (gArenaEnd <= 0) text(b, TOP_W - 40, 12, 0.5f, COL(220, 170, 255, 255));
+}
+
 void playDraw(u64 ms) {
     gMs = ms;
     float shx = gShake > 0 ? frange(-1, 1) * gShake * 6 : 0, shy = gShake > 0 ? frange(-1, 1) * gShake * 6 : 0;
@@ -1755,6 +1946,7 @@ void playDraw(u64 ms) {
             else if (e.burn > 0) { C2D_PlainImageTint(&tint, COL(255, 120, 40, 255), 0.35f); tinted = true; }
             else if (e.poison > 0) { C2D_PlainImageTint(&tint, COL(190, 90, 220, 255), 0.35f); tinted = true; }
             else if (e.slow > 0) { C2D_PlainImageTint(&tint, COL(120, 200, 255, 255), 0.35f); tinted = true; }
+            else if (e.beh == B_THIEF && e.st == 1) { C2D_PlainImageTint(&tint, COL(255, 215, 60, 255), 0.4f); tinted = true; }
             sprDraw(DEX_NUM[e.di], e.dir, gMs, e.moving, x, y, tinted ? &tint : nullptr, sc);
             if (e.shield > 0) ringDraw(x, y - 12 * sc, e.r + 6, 2, COL(120, 180, 255, 220), 0.7f);
             if (e.beh >= B_HEALER && e.beh <= B_SUMMONER && !e.boss) {}
@@ -1805,6 +1997,7 @@ void playDraw(u64 ms) {
         }
     }
     drawFx(cx, cy, true);
+    drawEvents(cx, cy);
 
     // HUD superior mínimo
     float bx = TOP_W / 2;
