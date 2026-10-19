@@ -612,6 +612,7 @@ static void drawMissionsTop() {
     text(gTmp, 200, 160, 0.5f, COL(120, 255, 160, 255), true);
 }
 // ---------------------------------------------------------------- vínculo / fusión
+static void coopSend(u16 cmd);
 static void drawBond() {
     bgFill();
     int need = playBondNeed();
@@ -640,13 +641,20 @@ static void drawBond() {
     if (button(8, 170, 150, 36, "Fusionar", ok ? COL(60, 170, 80, 255) : COL(60, 60, 80, 255), 0.55f) && ok) {
         int b[2], n = 0;
         for (int i = 0; i < 4; i++) if (gBondSel[i] && n < 2) b[n++] = i;
+        if (gCoop) {
+            int mask = 0; for (int i = 0; i < n; i++) mask |= 1 << b[i];
+            for (int i = 0; i < 4; i++) gBondSel[i] = false;
+            coopSend(0x2000 | mask);
+            return;
+        }
         playBondApply(b, n);
         for (int i = 0; i < 4; i++) gBondSel[i] = false;
         gState = ST_PLAY;
     }
     if (button(162, 170, 150, 36, "Más tarde", COL(180, 80, 80, 255), 0.5f)) {
-        playBondSkip();
         for (int i = 0; i < 4; i++) gBondSel[i] = false;
+        if (gCoop) { coopSend(0x2000); return; }
+        playBondSkip();
         gState = ST_PLAY;
     }
 }
@@ -735,9 +743,10 @@ static void drawCoopItem() {
     }
     text("Toca el que quieras llevar", 160, 180, 0.4f, COL(150, 170, 220, 255), true);
 }
-// ¿qué debe mostrarse en la pantalla inferior? 0 nada · 1 cartas · 2 objeto
+// ¿qué debe mostrarse en la pantalla inferior? 0 nada · 1 cartas · 2 objeto · 3 vínculo
 static int coopOverlay() {
     if (coopInFlight() > 0) return 0;
+    if (playCoopBond() & 1) return 3;
     if (playItemNew() >= 0) return 2;
     if (playCoopPending() > 0 && !playCoopDead()) return 1;
     return 0;
@@ -931,6 +940,7 @@ int main() {
             case ST_LOADING: topBg(); text("Cargando…", 200, 100, 0.8f, WHITE, true); break;
             case ST_PLAY: case ST_LEVELUP: case ST_BOND: case ST_ITEM: playDraw(now);
                 if (gCoop && gState == ST_PLAY && gStall > 0.4f) text("Esperando al compañero…", 200, 10, 0.5f, COL(255, 220, 90, 255), true);
+                else if (gCoop && gState == ST_PLAY && playCoopBond()) text("Vínculo: partida en pausa", 200, 10, 0.5f, COL(255, 160, 220, 255), true);
                 break;
             case ST_COOP: case ST_COOPWAIT: topBg(); tileBg(); logo(200, 70, 1.3f); break;
             case ST_ACH: drawAchTop(); break;
@@ -948,7 +958,12 @@ int main() {
             case ST_BAN: drawBan(); break;
             case ST_LANG: drawLang(); break;
             case ST_LOADING: bgFill(); text("Cargando…", 160, 100, 0.8f, WHITE, true); break;
-            case ST_PLAY: { int ov = gCoop ? coopOverlay() : 0; if (ov == 1) drawCoopCards(); else if (ov == 2) drawCoopItem(); else drawPlayBottom(); break; }
+            case ST_PLAY: {
+                int ov = gCoop ? coopOverlay() : 0;
+                if (ov == 1) drawCoopCards(); else if (ov == 2) drawCoopItem(); else if (ov == 3) drawBond();
+                else { drawPlayBottom(); if (gCoop && (playCoopBond() & 2)) text("Vínculo: esperando al compañero…", 160, 70, 0.45f, COL(255, 220, 90, 255), true); }
+                break;
+            }
             case ST_COOP: drawCoopLobby(); break;
             case ST_COOPWAIT: drawCoopWait(); break;
             case ST_LEVELUP: drawLevelUp(); break;

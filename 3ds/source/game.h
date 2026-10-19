@@ -162,6 +162,7 @@ void playCoopFrame(float dt);                    // efectos visuales (por fotogr
 u8 playCoopTakeBtn();                            // toques en X/Y/B/A pendientes
 u32 playCoopChecksum();
 int playCoopPending();                           // niveles por elegir del jugador local
+int playCoopBond();                              // vínculo por decidir: 1 = yo · 2 = el compañero
 bool playCoopDead();
 void playCoopPartner(float* x, float* y, float* hpFrac, bool* dead);
 int playCoopPartnerDi();

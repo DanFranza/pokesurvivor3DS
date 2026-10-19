@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[2]; };   // tr[0] = inglés, tr[1] = francés
-#define LANG_N_STR 618
+#define LANG_N_STR 620
 static const LangStr LANG_STR[LANG_N_STR] = {
   {"+%d Pokémonedas  +%d tickets", {"+%d Pokécoins  +%d tickets", "+%d Pokémonnaies  +%d tickets"}},
   {"+%d tickets · %d", {"+%d tickets · %d", "+%d tickets · %d"}},
@@ -588,6 +588,8 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Volver", {"Back", "Retour"}},
   {"Voz Cautivadora", {"Disarming Voice", "Voix Enjôleuse"}},
   {"Vozarrón", {"Hyper Voice", "Mégaphone"}},
+  {"Vínculo: esperando al compañero…", {"Bond: waiting for your partner…", "Lien : en attente du partenaire…"}},
+  {"Vínculo: partida en pausa", {"Bond: game paused", "Lien : partie en pause"}},
   {"Ya llevas %s", {"You already hold %s", "Tu portes déjà %s"}},
   {"Zancada", {"Stride", "Foulée"}},
   {"Zarpazo de acero en arco.", {"A steel swipe in an arc.", "Coup de griffe d'acier en arc."}},

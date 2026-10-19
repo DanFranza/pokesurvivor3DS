@@ -95,6 +95,7 @@ struct Ctx {
     int statTaken[9];
     int pend;                       // niveles por elegir (cooperativo: la partida no se pausa)
     bool dead, shiny;
+    bool bondWait, adead;           // vínculo por decidir (pausa) · caído dentro de la grieta
 };
 static int gTickN;
 static Ctx gC[2];
@@ -141,7 +142,7 @@ static Def gBossDef[5];
 // eventos: ladrón de monedas y grieta (arena del legendario)
 static float ARENA_H = 320;
 static bool gArena, gArenaDead, gPortal;
-static float gArenaX, gArenaY, gArenaT, gArenaEnd, gSavedX, gSavedY;
+static float gArenaX, gArenaY, gArenaT, gArenaEnd, gSavedX[2], gSavedY[2];
 static float gThiefT, gRiftChk, gRiftMiss, gPortalX, gPortalY, gPortalT;
 static int gThiefN;
 static Enemy sE[MAXE]; static Pick sP[MAXP]; static Field sF[MAXF];
@@ -924,7 +925,12 @@ static void hurtPlayer(float dmg, int cat, int srcDi, bool tru = false) {
         return;
     }
     if (P.hp <= 0) {
-        if (gArena && !gJ) { P.hp = 1; P.invuln = 99; gArenaDead = true; return; }
+        if (gArena && !gJ) {
+            P.hp = 1; P.invuln = 99; gCur->adead = true;
+            bool all = true; for (int i = 0; i < gNP; i++) if (!gC[i].adead) all = false;
+            if (all) gArenaDead = true;
+            return;
+        }
         P.hp = 0;
         if (gNP > 1) {
             gCur->dead = true;
@@ -1553,15 +1559,16 @@ void playBondApply(const int* btns, int n) {
     if (!need || n < need) return;
     int tg = need == 1 ? bondGrowGrp() : gMoves[btns[0]].grp;
     for (int i = 0; i < n; i++) if (playBondLoose(btns[i])) gMoves[btns[i]].grp = (u8)tg;
+    if (gNP > 1) for (int i = 0; i < n; i++) if (!playBondLoose(btns[i])) return;
     gBonds--; gActive = btns[0];
     for (int b = 0; b < 4; b++) if (inActive(b)) gMoves[b].cd = 0.2f;
     fxRing(P.x, P.y - 8, 8, 130, 0xff8ad8, 0.8f, 6);
     fxBurst(P.x, P.y - 10, 0xffb3e6, 30, 220);
     sfxPlay(SFX_RARE);
     char b[48]; snprintf(b, sizeof b, "¡Vínculo! %d movimientos a la vez", grpSize(tg)); banner(b, 2.6f);
-    gPS = PS_RUN;
+    if (gNP == 1) gPS = PS_RUN;
 }
-void playBondSkip() { gBondAskN = nMoves(); gPS = PS_RUN; }
+void playBondSkip() { gBondAskN = nMoves(); if (gNP == 1) gPS = PS_RUN; }
 int playWeather(float* left) { if (left) *left = gWx ? gWxDur - gWxT : 0; return wxLevel() > 0 ? gWx : 0; }
 const char* weatherName(int k) { return WX_NAMES[k]; }
 const char* weatherHint(int k) { return WX_HINT[k]; }
@@ -1670,18 +1677,22 @@ static void riftEnter() {
     memcpy(sE, gE, sizeof gE); memcpy(sP, gP, sizeof gP); memcpy(sF, gF, sizeof gF);
     memset(gE, 0, sizeof gE); memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
     memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF);
-    gSavedX = P.x; gSavedY = P.y;
     gWx = 0;
     gArena = true; gArenaDead = false; gArenaT = 0; gArenaEnd = 0; gPortal = false;
-    gArenaX = gPortalX; gArenaY = gPortalY; gTarget = -1;
-    P.x = gArenaX; P.y = gArenaY + 160; P.vx = P.vy = 0; P.invuln = 1.5f;
-    int di = leg[rnd() % n];
+    gArenaX = gPortalX; gArenaY = gPortalY;
+    for (int i = 0; i < gNP; i++) {
+        Ctx& c = gC[i];
+        gSavedX[i] = c.p.x; gSavedY[i] = c.p.y;
+        c.target = -1; c.adead = false;
+        if (c.dead) { c.dead = false; c.p.hp = c.p.maxHp * 0.3f; }
+        c.p.x = gArenaX + (gNP > 1 ? (i ? 30 : -30) : 0); c.p.y = gArenaY + 160; c.p.vx = c.p.vy = 0; c.p.invuln = 1.5f;
+    }    int di = leg[rnd() % n];
     Def d; memset(&d, 0, sizeof d);
     d.di = di; d.beh = B_CHASE; d.hp = 1; d.spd = 58; d.dmg = 1; d.xp = 0;
     int s = spawnEnemy(d, gArenaX, gArenaY - 120, true, false, 0);
     if (s >= 0) {
         Enemy& e = gE[s];
-        e.legend = true; e.hp = e.maxHp = 5000 + 6 * gTime;
+        e.legend = true; e.hp = e.maxHp = (5000 + 6 * gTime) * (gNP > 1 ? 1.8f : 1.0f);
         e.spd = 58; e.dmg = 45 + gTime * 0.05f; e.shotDmg = e.dmg * 0.55f; e.xp = 0; e.shotCd = 1.1f; e.range = 260;
     }
     char b[48]; snprintf(b, sizeof b, "¡%s te desafía!", DEX[di].name); banner(b, 3.4f);
@@ -1690,14 +1701,21 @@ static void riftEnter() {
 static void riftExit(bool won, bool dead) {
     memcpy(gE, sE, sizeof gE); memcpy(gP, sP, sizeof gP); memcpy(gF, sF, sizeof gF);
     memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
-    gArena = false; gTarget = -1;
-    P.x = gSavedX; P.y = gSavedY; P.vx = P.vy = 0; P.invuln = 2.5f;
+    gArena = false;
+    for (int i = 0; i < gNP; i++) {
+        Ctx& c = gC[i];
+        c.target = -1;
+        c.p.x = gSavedX[i]; c.p.y = gSavedY[i]; c.p.vx = c.p.vy = 0; c.p.invuln = 2.5f;
+        if (won) { c.p.hp = fminf(c.p.maxHp, c.p.hp + c.p.maxHp * 0.3f); c.bonds++; c.bondAskN = -1; }
+        else if (dead || c.adead) c.p.hp = c.p.maxHp * 0.35f;
+        c.adead = false;
+    }
     if (won) {
-        gRifts++; healPlayer(P.maxHp * 0.3f); gBonds++; gBondAskN = -1;
+        gRifts++;
         banner("¡Grieta superada! ¡Vínculo!", 2.8f);
         fxRing(P.x, P.y - 8, 8, 90, 0xff8ad8, 0.7f, 5);
     }
-    else { if (dead) P.hp = P.maxHp * 0.35f; banner("La grieta se cierra…", 2.8f); }
+    else banner("La grieta se cierra…", 2.8f);
     gRiftChk = 30;
     musicPlay(MUS_BATTLE);
 }
@@ -1731,10 +1749,15 @@ static bool judgeStart() {
     gJBase = fmaxf(2000, best * 3);
     gWx = 0; gPortal = false;
     gArena = true; gArenaDead = false; gArenaT = 0; gArenaEnd = 0; ARENA_H = 560;
-    gArenaX = P.x; gArenaY = P.y; gTarget = -1;
+    gArenaX = P.x; gArenaY = P.y;
+    for (int i = 0; i < gNP; i++) {
+        Ctx& c = gC[i];
+        c.target = -1; c.adead = false; c.dead = false;
+        if (gNP > 1) { c.p.x = gArenaX + (i ? 30 : -30); c.p.y = gArenaY; c.p.vx = c.p.vy = 0; }
+        c.p.invuln = 5; c.p.hp = c.p.maxHp;
+    }
     gJ = 1; gJT = 0; gJN = 0; gJDowns = 0; gJBossT = 5; gJCast = 3; gJTouch = 0; gJLift = 700;
     gJX = gArenaX; gJY = gArenaY - 140; gJDir = 0; gJMoving = false;
-    P.invuln = 5; P.hp = P.maxHp;
     gSave.stat[SB_JUDGE]++;
     banner("LA SENTENCIA DE ARCEUS", 3.2f);
     musicPlay(MUS_BOSS); sfxPlay(SFX_BOSS); gShake = fmaxf(gShake, 0.8f);
@@ -1769,46 +1792,60 @@ static void judgeUpdate(float dt) {
     gJT += dt;
     if (gJ == 1) {
         gJLift = fmaxf(0, 700 * (1 - gJT / 3.2f));
-        P.invuln = fmaxf(P.invuln, 1);
+        for (int i = 0; i < gNP; i++) gC[i].p.invuln = fmaxf(gC[i].p.invuln, 1);
         if (gJT >= 3.2f) { gJ = 2; gJT = 0; gJLift = 0; gShake = 0.6f; sfxPlay(SFX_BOSS); fxRing(gJX, gJY - 10, 8, 160, 0xffe070, 0.8f, 6); }
         return;
     }
-    // Arceus persigue al jugador y cada vez va más rápido
-    float dx = P.x - gJX, dy = P.y - gJY, dl = sqrtf(dx * dx + dy * dy) + 0.001f;
+    // Arceus persigue al jugador más cercano y cada vez va más rápido
+    int tgt = nearPlayer(gJX, gJY); if (tgt < 0) tgt = 0;
+    Ctx& tc = gC[tgt];
+    float dx = tc.p.x - gJX, dy = tc.p.y - gJY, dl = sqrtf(dx * dx + dy * dy) + 0.001f;
     float sp = 52 + gJT * 0.15f + (gJT > 300 ? (gJT - 300) * 0.5f : 0);
     gJMoving = dl > 6;
     if (gJMoving) { gJX += dx / dl * sp * dt; gJY += dy / dl * sp * dt; gJDir = (u8)(fabsf(dx) > fabsf(dy) ? (dx > 0 ? 2 : 1) : (dy > 0 ? 0 : 3)); }
     float lo = ARENA_H - 20;
     gJX = clampf(gJX, gArenaX - lo, gArenaX + lo); gJY = clampf(gJY, gArenaY - lo, gArenaY + lo);
     gJTouch -= dt;
-    if (dl < 26 && gJTouch <= 0) {
-        gJTouch = 0.9f; P.invuln = 0;
-        float pct = fminf(1, 0.4f + fmaxf(0, gJT - 420) / 180 * 0.6f);
-        hurtPlayer(P.maxHp * pct, 0, -1, true);
-        fxRing(P.x, P.y - 8, 6, 60, 0xffe070, 0.4f, 4);
+    if (gJTouch <= 0) {
+        for (int i = 0; i < gNP; i++) {
+            if (gC[i].dead || distf(gC[i].p.x, gC[i].p.y, gJX, gJY) >= 26) continue;
+            Sc sc(i);
+            gJTouch = 0.9f; P.invuln = 0;
+            float pct = fminf(1, 0.4f + fmaxf(0, gJT - 420) / 180 * 0.6f);
+            hurtPlayer(P.maxHp * pct, 0, -1, true);
+            fxRing(P.x, P.y - 8, 6, 60, 0xffe070, 0.4f, 4);
+        }
     }
     gJCast -= dt;
     if (gJCast <= 0) {
         gJCast = fmaxf(1.4f, 3.2f - gJT * 0.025f);
-        float dmg = P.maxHp * 0.25f; u32 gold = 0xffd860;
+        float mh = 0; for (int i = 0; i < gNP; i++) if (!gC[i].dead) mh = fmaxf(mh, gC[i].p.maxHp);
+        float dmg = mh * 0.25f; u32 gold = 0xffd860;
         gHazTru = true;
         switch (rnd() % 3) {
-            case 0: { int c = 3 + (int)(gJT / 120); if (c > 8) c = 8; for (int i = 0; i < c; i++) hazCircle(P.x + (i ? frange(-130, 130) : 0), P.y + (i ? frange(-100, 100) : 0), 42, 0.9f, dmg, gold); break; }
+            case 0: {
+                int c = 3 + (int)(gJT / 120); if (c > 8) c = 8;
+                for (int pi = 0; pi < gNP; pi++) {
+                    if (gC[pi].dead) continue;
+                    for (int i = 0; i < c; i++) hazCircle(gC[pi].p.x + (i ? frange(-130, 130) : 0), gC[pi].p.y + (i ? frange(-100, 100) : 0), 42, 0.9f, dmg, gold);
+                }
+                break;
+            }
             case 1: { float a = frand() * 6.2832f; for (int i = 0; i < 4; i++) hazLine(gJX, gJY - 8, a + i * 1.5708f, 700, 34, 0.9f, dmg, gold); break; }
             default: hazCircle(gJX, gJY, 130, 0.9f, dmg, gold); break;
         }
         gHazTru = false;
     }
     gJBossT -= dt;
-    if (gJBossT <= 0) { gJBossT = 5; judgeSpawnLegend(); }
-    if (P.hp <= 0 || gArenaDead) { gPS = PS_OVER; sfxPlay(SFX_OVER); }
+    if (gJBossT <= 0) { gJBossT = gNP > 1 ? 4 : 5; judgeSpawnLegend(); }
+    if (gNP == 1 && (P.hp <= 0 || gArenaDead)) { gPS = PS_OVER; sfxPlay(SFX_OVER); }
 }
 
 static void eventsUpdate(float dt) {
     if (gArena) {
         gArenaT += dt;
         float lo = ARENA_H - 10;
-        P.x = clampf(P.x, gArenaX - lo, gArenaX + lo); P.y = clampf(P.y, gArenaY - lo, gArenaY + lo);
+        for (int i = 0; i < gNP; i++) { Player& q = gC[i].p; q.x = clampf(q.x, gArenaX - lo, gArenaX + lo); q.y = clampf(q.y, gArenaY - lo, gArenaY + lo); }
         for (int i = 0; i < MAXE; i++) if (gE[i].on) {
             gE[i].x = clampf(gE[i].x, gArenaX - lo, gArenaX + lo); gE[i].y = clampf(gE[i].y, gArenaY - lo, gArenaY + lo);
         }
@@ -1857,7 +1894,7 @@ static void eventsUpdate(float dt) {
         }
     }
     // vínculo pendiente tras vencer a un legendario
-    if (gBonds > 0 && gArenaEnd <= 0 && gPS == PS_RUN && nMoves() > gBondAskN && playBondNeed()) gPS = PS_BOND;
+    if (gNP == 1 && gBonds > 0 && gArenaEnd <= 0 && gPS == PS_RUN && nMoves() > gBondAskN && playBondNeed()) gPS = PS_BOND;
     gThiefT -= dt;
     if (gThiefT <= 0) {
         if (boss) gThiefT = 8;
@@ -1866,8 +1903,10 @@ static void eventsUpdate(float dt) {
     if (gPortal) {
         gPortalT -= dt;
         if (gPortalT <= 0) { gPortal = false; banner("La grieta se cerró…", 2.5f); }
-        else if (distf(P.x, P.y, gPortalX, gPortalY) < 30) riftEnter();
-    } else if (gNP == 1 && gTime >= 75 && gTime <= WIN_TIME - 120 && !boss) {
+        else {
+            for (int i = 0; i < gNP; i++) if (!gC[i].dead && distf(gC[i].p.x, gC[i].p.y, gPortalX, gPortalY) < 30) { riftEnter(); break; }
+        }
+    } else if (gTime >= 75 && gTime <= WIN_TIME - 120 && !boss) {
         gRiftChk -= dt;
         if (gRiftChk <= 0) {
             gRiftChk = 30;
@@ -1939,18 +1978,43 @@ void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
 // un paso fijo del cooperativo: las dos consolas lo ejecutan con las mismas entradas
 void playCoopTick(float dt, const CoopIn* in) {
     if (gPS != PS_RUN) return;
+    for (int i = 0; i < 2; i++) {
+        Sc sc(i);
+        u16 cmd = in[i].cmd;
+        if (cmd & 0x8000) {
+            Card c; memset(&c, 0, sizeof c); c.kind = (cmd >> 8) & 3; c.arg = cmd & 0xff;
+            if (gCur->pend > 0) playApplyCard(c);
+        } else if (cmd & 0x4000) {
+            if (gItemNew >= 0) playItemChoose(cmd & 1);
+        } else if ((cmd & 0x2000) && gCur->bondWait) {
+            int b[4], n = 0;
+            for (int k = 0; k < 4; k++) if (cmd >> k & 1) b[n++] = k;
+            int need = playBondNeed();
+            if (need && n >= need) playBondApply(b, n); else playBondSkip();
+            gCur->bondWait = false;
+        }
+    }
+    // el vínculo pausa la partida hasta que los dos hayan elegido
+    if (gC[0].bondWait || gC[1].bondWait) return;
     gTickN++;
     gTime += dt;
-    if (gTime >= WIN_TIME) { gPS = PS_WIN; sfxPlay(SFX_LEVEL); return; }
+    int lead0 = gC[0].dead ? 1 : 0;
+    if (gTime >= WIN_TIME && !gJ && !gArena && gArenaEnd <= 0) {
+        bool started; { Sc sc(lead0); started = judgeStart(); }
+        if (started) return;
+        gPS = PS_WIN; sfxPlay(SFX_LEVEL); return;
+    }
+    if (!gJ) {
+        gJSecT += dt;
+        if (gJSecT >= 1) {
+            gJSecT = 0; float b = 0;
+            for (int i = 0; i < MAXE; i++) { if (gE[i].on && gE[i].took > b) b = gE[i].took; gE[i].took = 0; }
+            gJSamp[gJNs % 30] = b; gJNs++;
+        }
+    }
     biomeStep();
     for (int i = 0; i < 2; i++) {
         Sc sc(i);
-        if (in[i].cmd & 0x8000) {
-            Card c; memset(&c, 0, sizeof c); c.kind = (in[i].cmd >> 8) & 3; c.arg = in[i].cmd & 0xff;
-            if (gCur->pend > 0) playApplyCard(c);
-        } else if (in[i].cmd & 0x4000) {
-            if (gItemNew >= 0) playItemChoose(in[i].cmd & 1);
-        }
         if (gCur->dead) continue;
         if (gCur->pend > 0 || gItemNew >= 0) P.invuln = fmaxf(P.invuln, 0.3f);
         gManualDown |= in[i].btn & 15;
@@ -1961,7 +2025,7 @@ void playCoopTick(float dt, const CoopIn* in) {
     orbitsCool(dt);
     int lead = (gTickN & 1);
     if (gC[lead].dead) lead ^= 1;
-    { Sc sc(lead); spawnWave(dt); }
+    if (!gArena) { Sc sc(lead); spawnWave(dt); }
     updateEnemies(dt);
     updateShots(dt);
     updateFields(dt);
@@ -1970,8 +2034,13 @@ void playCoopTick(float dt, const CoopIn* in) {
     for (int i = 0; i < 2; i++) { Sc sc(i); levelUpCheck(); }
     lead = gC[0].dead ? 1 : 0;
     { Sc sc(lead); eventsUpdate(dt); }
+    for (int i = 0; i < 2; i++) {
+        Sc sc(i);
+        if (!gCur->dead && !gArena && gArenaEnd <= 0 && gBonds > 0 && nMoves() > gBondAskN && playBondNeed()) gCur->bondWait = true;
+    }
     bossMusicStep();
 }
+int playCoopBond() { return (gC[gLoc].bondWait ? 1 : 0) | (gC[gLoc ^ 1].bondWait ? 2 : 0); }
 void playCoopFrame(float dt) { fxStep(dt); }
 u8 playCoopTakeBtn() { u8 b = (u8)(gC[gLoc].manualDown & 15); gC[gLoc].manualDown = 0; return b; }
 u32 playCoopChecksum() {
@@ -1980,7 +2049,7 @@ u32 playCoopChecksum() {
     mix(gTickN); mix(rngGet()); mix((u32)(gTime * 1000));
     for (int i = 0; i < 2; i++) { mix((u32)(int)(gC[i].p.x * 8)); mix((u32)(int)(gC[i].p.y * 8)); mix((u32)(int)(gC[i].p.hp * 8)); mix(gC[i].p.level); }
     int n = 0; for (int i = 0; i < MAXE; i++) if (gE[i].on) n++;
-    mix(n); mix(gKills);
+    mix(n); mix(gKills); mix(gArena); mix(gJ); mix(gC[0].bondWait | gC[1].bondWait << 1);
     return h;
 }
 int playCoopPending() { return gC[gLoc].pend; }
