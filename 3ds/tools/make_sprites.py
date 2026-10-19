@@ -58,10 +58,25 @@ def build(dn, m, tmp):
     subprocess.run(["tex3ds", "-f", "rgba5551", "-o", str(OUT / f"romfs/gfx/{name}.t3x"), str(png)],
                    check=True, capture_output=True)
     d = w["d"][:n]
+    sh = 0
+    sp = ROOT / f"assets/pokemon/{dn}/s/Walk.png"
+    if m.get("sh") and sp.exists() and "sm" not in m:
+        ss = Image.open(sp).convert("RGBA")
+        if ss.size == sheet.size:
+            im2 = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
+            for r in range(4):
+                for f in range(n):
+                    fr = ss.crop((f * fw, ROWS[r] * fh, (f + 1) * fw, (ROWS[r] + 1) * fh))
+                    im2.paste(fr.crop((bx0, by0, bx1, by1)), (f * bw, r * bh))
+            png2 = tmp / f"{name}s.png"
+            im2.save(png2)
+            subprocess.run(["tex3ds", "-f", "rgba5551", "-o", str(OUT / f"romfs/gfx/{name}s.t3x"), str(png2)],
+                           check=True, capture_output=True)
+            sh = 1
     ms = max(30, int(sum(d) / n * 1000 / 60))
     ax = int(round(w["ax"] - bx0))
     ay = int(round(w["ay"] - by0))
-    return dn, (bw, bh, n, tw, th, ms, ax, ay)
+    return dn, (bw, bh, n, tw, th, ms, ax, ay, sh)
 
 
 def main():
@@ -76,10 +91,10 @@ def main():
                 res[dn] = e
     lines = ["// GENERADO por tools/make_sprites.py — no editar", "#pragma once",
              f"#define POKE_MAX {POKE_MAX}",
-             "struct PokeSpr { short w, h, n, tw, th, ms, ax, ay; };",
+             "struct PokeSpr { short w, h, n, tw, th, ms, ax, ay, sh; };",
              "static const PokeSpr POKE_SPR[POKE_MAX] = {"]
     for i in range(POKE_MAX):
-        lines.append("  {" + ",".join(map(str, res.get(i, (0,) * 8))) + "},")
+        lines.append("  {" + ",".join(map(str, res.get(i, (0,) * 9))) + "},")
     lines.append("};")
     (OUT / "include/spritemeta.h").write_text("\n".join(lines) + "\n")
     print(len(res), "pokemon")

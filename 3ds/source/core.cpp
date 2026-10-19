@@ -62,7 +62,7 @@ void textWrap(const char* s, float x, float y, float w, float sc, u32 col) {
 }
 
 // ---------------------------------------------------------------- sprites
-static C2D_SpriteSheet gSheets[POKE_MAX];
+static C2D_SpriteSheet gSheets[POKE_MAX], gSheetsS[POKE_MAX];
 static int gDexIdx[POKE_MAX];
 static bool gIdxReady;
 static void buildIdx() {
@@ -72,21 +72,32 @@ static void buildIdx() {
 }
 int dexIndexOf(int d) { if (!gIdxReady) buildIdx(); return d >= 0 && d < POKE_MAX ? gDexIdx[d] : -1; }
 bool sprHas(int d) { return d > 0 && d < POKE_MAX && POKE_SPR[d].w > 0; }
+bool sprHasShiny(int d) { return sprHas(d) && POKE_SPR[d].sh; }
 void sprLoad(int d) {
     if (!sprHas(d) || gSheets[d]) return;
     char p[48]; snprintf(p, sizeof p, "romfs:/gfx/p%04d.t3x", d);
     gSheets[d] = C2D_SpriteSheetLoad(p);
 }
-void sprFreeAll() {
-    for (int i = 0; i < POKE_MAX; i++) if (gSheets[i]) { C2D_SpriteSheetFree(gSheets[i]); gSheets[i] = nullptr; }
+static void sprLoadShiny(int d) {
+    if (!sprHasShiny(d) || gSheetsS[d]) return;
+    char p[48]; snprintf(p, sizeof p, "romfs:/gfx/p%04ds.t3x", d);
+    gSheetsS[d] = C2D_SpriteSheetLoad(p);
 }
-void sprDraw(int d, int dir, u64 ms, bool moving, float x, float y, const C2D_ImageTint* tint, float sc) {
+void sprFreeAll() {
+    for (int i = 0; i < POKE_MAX; i++) {
+        if (gSheets[i]) { C2D_SpriteSheetFree(gSheets[i]); gSheets[i] = nullptr; }
+        if (gSheetsS[i]) { C2D_SpriteSheetFree(gSheetsS[i]); gSheetsS[i] = nullptr; }
+    }
+}
+void sprDraw(int d, int dir, u64 ms, bool moving, float x, float y, const C2D_ImageTint* tint, float sc, bool shiny) {
     if (!sprHas(d)) return;
-    if (!gSheets[d]) sprLoad(d);
-    if (!gSheets[d]) return;
+    C2D_SpriteSheet sh;
+    if (shiny && sprHasShiny(d)) { if (!gSheetsS[d]) sprLoadShiny(d); sh = gSheetsS[d]; }
+    else { if (!gSheets[d]) sprLoad(d); sh = gSheets[d]; }
+    if (!sh) return;
     const PokeSpr& s = POKE_SPR[d];
     int f = (moving && s.n > 1) ? (int)((ms / (u64)(s.ms > 0 ? s.ms : 100)) % s.n) : 0;
-    C2D_Image img = C2D_SpriteSheetGetImage(gSheets[d], 0);
+    C2D_Image img = C2D_SpriteSheetGetImage(sh, 0);
     Tex3DS_SubTexture st;
     st.width = s.w; st.height = s.h;
     st.left = (float)(f * s.w) / s.tw;
@@ -147,7 +158,8 @@ int permCost(int id, int lvl) { return (int)(floorf(PERM[id].base * powf(PERM[id
 
 // ---------------------------------------------------------------- gacha
 const char* GACHA_GEN_NAMES[9] = {"Kanto", "Johto", "Hoenn", "Sinnoh", "Teselia", "Kalos", "Alola", "Galar", "Paldea"};
-static const float RATES[5] = {45, 30, 17, 6.5f, 1.5f};
+const float GACHA_RATES[5] = {45, 30, 17, 6.5f, 1.5f};
+#define RATES GACHA_RATES
 static const int REFUND[6] = {0, 15, 30, 60, 120, 300};
 
 static int rollRarity(int min) {
@@ -186,11 +198,26 @@ int gachaPull(int gen, int n, PullResult* out) {
         if (rar == 5) gSave.pity[gen] = 0;
         if (rar >= 4) has4 = true;
         PullResult& r = out[i];
-        r.dex = idx; r.rarity = rar;
+        r.dex = idx; r.rarity = rar; r.shiny = false;
+        // 1% de shiny; si ya lo tienes se busca otro de la misma rareza al que le falte
+        if (frand() * 100 < SHINY_RATE && sprHasShiny(DEX_NUM[idx])) {
+            r.shiny = true;
+            if (gSave.shiny[idx]) {
+                static short alt[DEX_N]; int na = 0;
+                for (int k = 0; k < DEX_N; k++)
+                    if (DEX[k].gen == gen && DEX[k].rarity == rar && !gSave.shiny[k] && sprHasShiny(DEX_NUM[k])) alt[na++] = k;
+                if (na) { idx = alt[rnd() % na]; r.dex = idx; }
+            }
+        }
         r.isNew = !gSave.owned[idx];
         r.refund = 0;
         if (r.isNew) gSave.owned[idx] = 1;
-        else { r.refund = REFUND[rar]; gSave.coins += r.refund; }
+        if (r.shiny) {
+            if (gSave.shiny[idx]) r.refund = REFUND[rar] * 3;
+            gSave.shiny[idx] = 1;
+            r.isNew = r.isNew || r.refund == 0;
+        } else if (!r.isNew) r.refund = REFUND[rar];
+        gSave.coins += r.refund;
     }
     (void)g;
     saveWrite();
