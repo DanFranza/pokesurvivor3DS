@@ -53,18 +53,22 @@ const char* typeName(int t) {
 
 // ---------------------------------------------------------------- texto
 static C2D_TextBuf gTxt;
-void textInit() { gTxt = C2D_TextBufNew(8192); }
+static C2D_Font gFont;
+void textInit() {
+    gTxt = C2D_TextBufNew(8192);
+    gFont = C2D_FontLoad("romfs:/pixel.bcfnt");   // Pixelify Sans, la misma tipografía de la versión web
+}
 void textFrame() { C2D_TextBufClear(gTxt); }
 void text(const char* s, float x, float y, float sc, u32 col, bool center) {
     C2D_Text t;
-    C2D_TextParse(&t, gTxt, T(s));
+    C2D_TextFontParse(&t, gFont, gTxt, T(s));
     C2D_TextOptimize(&t);
     if (center) { float w, h; C2D_TextGetDimensions(&t, sc, sc, &w, &h); x -= w / 2; }
     C2D_DrawText(&t, C2D_WithColor, floorf(x), floorf(y), 0.9f, sc, sc, col);
 }
 void textWrap(const char* s, float x, float y, float w, float sc, u32 col) {
     C2D_Text t;
-    C2D_TextParse(&t, gTxt, T(s));
+    C2D_TextFontParse(&t, gFont, gTxt, T(s));
     C2D_TextOptimize(&t);
     C2D_DrawText(&t, C2D_WithColor | C2D_WordWrap, floorf(x), floorf(y), 0.9f, sc, sc, col, w);
 }
@@ -135,6 +139,27 @@ void tileDraw(const TCell& c, float x, float y, float z, const C2D_ImageTint* ti
     C2D_DrawImageAt(img, floorf(x), floorf(y), z, tint, sc, sc);
 }
 
+// ---------------------------------------------------------------- iconos
+static C2D_SpriteSheet gIcons;
+void iconsLoad() {
+    gIcons = C2D_SpriteSheetLoad("romfs:/gfx/icons.t3x");
+    if (gIcons) { C2D_Image im = C2D_SpriteSheetGetImage(gIcons, 0); C3D_TexSetFilter(im.tex, GPU_NEAREST, GPU_NEAREST); }
+}
+// sc = 1 → celda de 32 px (cada píxel del arte, 2 px de pantalla)
+void icon(int ic, float x, float y, float sc, u32 tint) {
+    if (!gIcons || ic < 0 || ic >= IC_COUNT) return;
+    C2D_Image img = C2D_SpriteSheetGetImage(gIcons, 0);
+    Tex3DS_SubTexture st;
+    int cx = (ic % ICON_COLS) * ICON_CELL, cy = (ic / ICON_COLS) * ICON_CELL;
+    st.width = ICON_CELL; st.height = ICON_CELL;
+    st.left = cx / 256.0f; st.right = (cx + ICON_CELL) / 256.0f;
+    st.top = 1.0f - cy / (float)ICON_TEX_H; st.bottom = 1.0f - (cy + ICON_CELL) / (float)ICON_TEX_H;
+    img.subtex = &st;
+    C2D_ImageTint t;
+    C2D_PlainImageTint(&t, tint, 1.0f);
+    C2D_DrawImageAt(img, floorf(x), floorf(y), 0.85f, tint == 0xFFFFFFFF ? nullptr : &t, sc, sc);
+}
+
 // ---------------------------------------------------------------- guardado
 Save gSave;
 #define SAVE_MAGIC 0x50533344u
@@ -155,8 +180,15 @@ void saveLoad() {
         gSave.t1 = 5;                          // regalo de bienvenida
         for (int i = 0; i < NSTARTERS; i++) gSave.owned[STARTERS_IDX[i]] = 1;
     }
-    for (int i = 0; i < NPERM; i++) if (gSave.perm[i] > PERM[i].max) gSave.perm[i] = PERM[i].max;
+    if (!gSave.pupgMig) {   // las mejoras antiguas eran de toda la cuenta: pasan al compañero actual (como en la web)
+        int d = (gSave.lastChar >= 0 && gSave.lastChar < DEX_N && gSave.owned[gSave.lastChar]) ? gSave.lastChar : STARTERS_IDX[0];
+        for (int i = 0; i < NPERM; i++) gSave.pupg[d][i] = gSave.perm[i];
+        gSave.pupgMig = 1;
+    }
+    for (int d = 0; d < DEX_N; d++)
+        for (int i = 0; i < NPERM; i++) if (gSave.pupg[d][i] > PERM[i].max) gSave.pupg[d][i] = PERM[i].max;
 }
+int permLv(int id) { int d = gSave.lastChar; return gSave.pupg[(d >= 0 && d < DEX_N) ? d : 0][id]; }
 void saveWrite() {
     mkdir("sdmc:/3ds", 0777);
     FILE* f = fopen(SAVE_PATH, "wb");
@@ -190,8 +222,9 @@ static int pickInBanner(int gen, int rarity, int* outRarity) {
     *outRarity = rarity;
     return STARTERS_IDX[0];
 }
-int gachaPull(int gen, int n, PullResult* out) {
-    if (n == 10) { if (gSave.t10 >= 1) gSave.t10--; else if (gSave.t1 >= 10) gSave.t1 -= 10; else return 0; }
+int gachaPull(int gen, int n, PullResult* out, bool useT10) {
+    if (n == 10 && useT10) { if (gSave.t10 >= 1) gSave.t10--; else return 0; }     // ticket violeta = 10 normales
+    else if (n == 10) { if (gSave.t1 >= 10) gSave.t1 -= 10; else return 0; }
     else { if (gSave.t1 < n) return 0; gSave.t1 -= n; }
     int g = gen - 1;
     bool has4 = false;

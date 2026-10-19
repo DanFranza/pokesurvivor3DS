@@ -499,10 +499,11 @@ static void killEnemy(Enemy& e) {
         gBossesDown++;
         dropPick(5, e.x - 26, e.y - 10, (float)itemRoll());
         for (int i = 0; i < 12; i++) dropPick(1, e.x + frange(-24, 24), e.y + frange(-18, 18), 3);
-        dropPick(3, e.x, e.y - 10, 1);
+        if (frand() < 1.0f / 3) dropPick(3, e.x, e.y - 10, 10);   // ticket ×10 (como en la web)
         dropPick(2, e.x + 14, e.y, 1);
         gShake = 0.5f;
     } else {
+        if (frand() < 1.0f / 400) dropPick(3, e.x + frange(-6, 6), e.y, 1);
         if (r < 0.10f) dropPick(1, e.x + frange(-6, 6), e.y + frange(-4, 4), 1);
         else if (r < 0.115f) dropPick(2, e.x, e.y, 1);
         else if (r < 0.12f) dropPick(4, e.x, e.y, 1);
@@ -1465,8 +1466,8 @@ static void itemOffer(int id) {
     gItemNew = id; if (gNP == 1) gPS = PS_ITEM;
 }
 int itemCount() { return 11; }
-const char* itemName(int i) { return ITEMS[i].name; }
-const char* itemDesc(int i) { return ITEMS[i].desc; }
+const char* itemName(int i) { return T(ITEMS[i].name); }
+const char* itemDesc(int i) { return T(ITEMS[i].desc); }
 int playItem() { return gItem; }
 int playItemNew() { return gItemNew; }
 void playItemChoose(bool takeNew) {
@@ -1494,7 +1495,7 @@ static void updatePickups(float dt) {
                 case 0: P.xp += p.val * P.xpMul; sfxPlay(SFX_PICK); break;
                 case 1: gCoins += (int)p.val; sfxPlay(SFX_PICK); break;
                 case 2: healPlayer(P.maxHp * 0.25f); fxText(P.x, P.y - 30, "+PS", 0x60e080, 0.5f); sfxPlay(SFX_PICK); break;
-                case 3: if (p.val >= 10) gT10++; else gT1++; fxText(P.x, P.y - 30, "+Ticket", 0xffd23f, 0.5f); sfxPlay(SFX_PICK); break;
+                case 3: if (p.val >= 10) gT10++; else gT1++; if (p.val >= 10) fxText(P.x, P.y - 30, "+10 Tickets", 0xc47bff, 0.6f); else fxText(P.x, P.y - 30, "+Ticket", 0xffd23f, 0.5f); sfxPlay(SFX_PICK); break;
                 case 4:
                     for (int k = 0; k < MAXP; k++) if (gP[k].on && gP[k].kind <= 1) { gP[k].t = 30; }
                     fxText(P.x, P.y - 30, "¡Imán!", 0x80c0ff, 0.5f); sfxPlay(SFX_PICK); break;
@@ -1725,8 +1726,7 @@ static void riftWin(Enemy& e) {
     fxBurst(e.x, e.y - 10, 0xe0a0ff, 30, 190);
     fxRing(e.x, e.y - 10, 8, 130, 0xe0a0ff, 0.7f, 5);
     sfxPlay(SFX_BOSS); gShake = 0.8f;
-    bool big = frand() < 0.5f;
-    for (int i = 0; i < 3; i++) dropPick(3, e.x + (i - 1) * 16, e.y - 10, i == 0 && big ? 10 : 1);
+    if (frand() < 0.5f) dropPick(3, e.x, e.y - 10, 10);
     for (int i = 0; i < 10; i++) dropPick(1, e.x + frange(-30, 30), e.y + frange(-20, 20), 8);
     for (int i = 0; i < MAXP; i++) if (gP[i].on) gP[i].t = 30;
     gArenaEnd = 3.5f;
@@ -2102,7 +2102,7 @@ void playReset(int charIdx, const int* startMoves, int nStart) {
     gNP = 1; gLoc = 0; gCur = &gC[0]; gCi = 0; gMovesL = gC[0].moves;
     memset(gC, 0, sizeof gC);
     resetWorld(charIdx);
-    ctxInit(0, charIdx, gSave.perm, startMoves, nStart, gSave.shinyOn[charIdx] && gSave.shiny[charIdx]);
+    ctxInit(0, charIdx, gSave.pupg[charIdx], startMoves, nStart, gSave.shinyOn[charIdx] && gSave.shiny[charIdx]);
     finishReset();
 }
 // cooperativo: el anfitrión (0) define personaje/mundo; todo se genera con la misma semilla en las dos consolas
@@ -2589,7 +2589,7 @@ void playDraw(u64 ms) {
             case 0: circle(x, y, 4.5f, COL(20, 60, 120, 255), 0.45f); circle(x, y, 3.5f, COL(90, 200, 255, 255), 0.46f); circle(x - 1, y - 1, 1.2f, COL(255, 255, 255, 255), 0.47f); break;
             case 1: circle(x, y, 5, COL(120, 80, 0, 255), 0.45f); circle(x, y, 4, COL(255, 210, 50, 255), 0.46f); break;
             case 2: circle(x, y, 6, COL(255, 255, 255, 255), 0.45f); C2D_DrawRectSolid(x - 1.5f, y - 4, 0.47f, 3, 8, COL(230, 50, 80, 255)); C2D_DrawRectSolid(x - 4, y - 1.5f, 0.47f, 8, 3, COL(230, 50, 80, 255)); break;
-            case 3: C2D_DrawRectSolid(x - 7, y - 5, 0.45f, 14, 10, COL(255, 255, 255, 255)); C2D_DrawRectSolid(x - 6, y - 4, 0.46f, 12, 8, COL(255, 190, 40, 255)); break;
+            case 3: if (p.val >= 10) icon(IC_TICKET10, x - 12, y - 12, 0.75f); else icon(IC_TICKET, x - 8, y - 8, 0.5f); break;
             case 4: circle(x, y, 6, COL(60, 90, 230, 255), 0.45f); circle(x, y, 3, COL(230, 60, 60, 255), 0.46f); break;
             case 5: C2D_DrawRectSolid(x - 7, y - 7, 0.45f, 14, 14, COL(255, 255, 255, 255)); C2D_DrawRectSolid(x - 6, y - 6, 0.46f, 12, 12, COL(255, 120, 200, 255)); C2D_DrawRectSolid(x - 2, y - 2, 0.47f, 4, 4, COL(255, 230, 90, 255)); break;
         }

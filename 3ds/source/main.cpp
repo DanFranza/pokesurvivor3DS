@@ -41,17 +41,63 @@ static u32 shade(u32 c, float k) {
 }
 static void gradRect(float x, float y, float w, float h, float z, u32 top, u32 bot) { C2D_DrawRectangle(x, y, z, w, h, top, top, bot, bot); }
 // Caja azul con borde blanco/dorado, como las del juego web.
+static const u32 INK = COL(27, 21, 40, 255);     // el contorno oscuro de los iconos y cajas de la web
+// Caja pixel art como las de la web: contorno oscuro, marco de color, relleno degradado y esquinas cortadas.
 static void panel(float x, float y, float w, float h, u32 edge, u32 fill = PANEL) {
-    C2D_DrawRectSolid(x, y, 0.1f, w, h, edge);
-    gradRect(x + 2, y + 2, w - 4, h - 4, 0.2f, shade(fill, 1.0f), shade(fill, 0.55f));
+    C2D_DrawRectSolid(x + 2, y, 0.08f, w - 4, h, INK);
+    C2D_DrawRectSolid(x, y + 2, 0.08f, w, h - 4, INK);
+    C2D_DrawRectSolid(x + 2, y + 1, 0.1f, w - 4, h - 2, edge);
+    C2D_DrawRectSolid(x + 1, y + 2, 0.1f, w - 2, h - 4, edge);
+    gradRect(x + 3, y + 3, w - 6, h - 6, 0.2f, shade(fill, 1.1f), shade(fill, 0.6f));
+    C2D_DrawRectSolid(x + 3, y + 3, 0.21f, w - 6, 1, COL(255, 255, 255, 40));
 }
-static bool button(float x, float y, float w, float h, const char* label, u32 bg, float sc = 0.5f) {
+// Botón con relieve (barra inferior más oscura) e icono opcional delante de la etiqueta.
+static bool button(float x, float y, float w, float h, const char* label, u32 bg, float sc = 0.5f, int ic = -1) {
     bool press = gTouching && inRect(gTp.px, gTp.py, x, y, w, h);
-    C2D_DrawRectSolid(x - 1, y - 1, 0.09f, w + 2, h + 2, COL(255, 255, 255, 230));
-    gradRect(x, y, w, h, 0.1f, shade(bg, press ? 0.8f : 1.25f), shade(bg, press ? 0.6f : 0.7f));
-    C2D_DrawRectSolid(x, y, 0.15f, w, 2, COL(255, 255, 255, 70));
-    text(label, x + w / 2, y + h / 2 - 9 * sc / 0.5f, sc, WHITE, true);
+    float dy = press ? 2 : 0;
+    C2D_DrawRectSolid(x + 2, y, 0.09f, w - 4, h, INK);
+    C2D_DrawRectSolid(x, y + 2, 0.09f, w, h - 4, INK);
+    C2D_DrawRectSolid(x + 1, y + 1 + dy, 0.1f, w - 2, h - 2 - dy, shade(bg, 0.55f));
+    gradRect(x + 2, y + 2 + dy, w - 4, h - 7 - dy, 0.12f, shade(bg, 1.3f), shade(bg, 1.0f));
+    C2D_DrawRectSolid(x + 2, y + 2 + dy, 0.15f, w - 4, 1, COL(255, 255, 255, 90));
+    float tx = x + w / 2, ty = y + h / 2 - 9 * sc / 0.5f + dy - 1;
+    if (ic >= 0) {
+        float isc = h >= 50 ? 1.0f : h >= 34 ? 0.75f : 0.5f, isz = 32 * isc;
+        icon(ic, x + 6, y + (h - isz) / 2 + dy - 2, isc);
+        tx += isz / 2 - 2;
+    }
+    text(label, tx, ty, sc, WHITE, true);
     return tapIn(x, y, w, h);
+}
+// Flecha ◀ / ▶ para pasar de página.
+static bool arrowBtn(float x, float y, float w, float h, bool right, bool on = true) {
+    bool press = on && gTouching && inRect(gTp.px, gTp.py, x, y, w, h);
+    u32 bg = on ? EDGE : COL(40, 54, 96, 255);
+    C2D_DrawRectSolid(x + 2, y, 0.09f, w - 4, h, INK);
+    C2D_DrawRectSolid(x, y + 2, 0.09f, w, h - 4, INK);
+    C2D_DrawRectSolid(x + 1, y + 1, 0.1f, w - 2, h - 2, shade(bg, 0.55f));
+    gradRect(x + 2, y + 2 + (press ? 2 : 0), w - 4, h - 7, 0.12f, shade(bg, 1.3f), shade(bg, 1.0f));
+    float isc = h >= 28 ? 0.75f : 0.5f, isz = 32 * isc;
+    icon(right ? IC_RIGHT : IC_LEFT, x + (w - isz) / 2, y + (h - isz) / 2 - 2 + (press ? 2 : 0), isc, on ? 0xFFFFFFFF : COL(140, 140, 160, 255));
+    return on && tapIn(x, y, w, h);
+}
+// Barra de título de una pantalla: icono + nombre sobre franja oscura.
+static void headerBar(const char* title, int ic) {
+    gradRect(0, 0, 320, 24, 0.3f, COL(8, 14, 36, 255), COL(20, 36, 84, 255));
+    C2D_DrawRectSolid(0, 24, 0.31f, 320, 2, INK);
+    C2D_DrawRectSolid(0, 22, 0.31f, 320, 2, EDGE);
+    if (ic >= 0) icon(ic, 6, -3, 0.75f);
+    text(title, ic >= 0 ? 34 : 10, -1, 0.55f, COL(120, 60, 0, 255));
+    text(title, ic >= 0 ? 33 : 9, -2, 0.55f, GOLD);
+}
+// Monedas y tickets (icono + cifra), centrados en y.
+static void currencyBar(float y, bool coins = true) {
+    char a[16], b[16], c[16];
+    snprintf(a, sizeof a, "%d", gSave.coins); snprintf(b, sizeof b, "%d", gSave.t1); snprintf(c, sizeof c, "%d", gSave.t10);
+    float x = coins ? 12 : 60;
+    if (coins) { icon(IC_COIN, x, y - 6, 0.5f); text(a, x + 18, y - 2, 0.42f, GOLD); x += 100; }
+    icon(IC_TICKET, x, y - 6, 0.5f); text(b, x + 18, y - 2, 0.42f, WHITE); x += 70;
+    icon(IC_TICKET10, x, y - 6, 0.5f); text(c, x + 18, y - 2, 0.42f, COL(220, 170, 255, 255));
 }
 static void bgFill() { gradRect(0, 0, 320, 240, 0, COL(10, 20, 48, 255), COL(26, 48, 104, 255)); }
 static void topBg() { gradRect(0, 0, TOP_W, TOP_H, 0, COL(10, 20, 48, 255), COL(26, 48, 104, 255)); }
@@ -100,7 +146,10 @@ static int defaultStart(int di) {
     return DEX[di].start;
 }
 
-static void beginRun() {
+// El orden elegido en la pantalla de movimientos (puesto de cada ataque en X/Y/B/A).
+static int gOrder[4] = {0, 1, 2, 3};
+// Antes de enseñar los movimientos del compañero elegido: se prepara su partida (si no, saldrían los de la anterior).
+static void prepareLoadout() {
     int n = 1;
     gStartChoice[1] = -1;
     if (permLv(PU_MOVES) > 0) {
@@ -112,11 +161,16 @@ static void beginRun() {
         }
     }
     gNStart = n;
+    playReset(gSel, gStartChoice, gNStart);
+    for (int i = 0; i < 4; i++) gOrder[i] = i;
+    gSelBtn = 3; gSelMove = -1; gAfterPause = false;
+}
+static void beginRun() {
     if (gCoop) {
         CoopHello h; memset(&h, 0, sizeof h);
         h.di = gSel; h.shiny = gSave.shinyOn[gSel] && gSave.shiny[gSel]; h.nStart = gNStart;
         h.start[0] = gStartChoice[0]; h.start[1] = gStartChoice[1];
-        memcpy(h.perm, gSave.perm, sizeof h.perm);
+        memcpy(h.perm, gSave.pupg[gSel], sizeof h.perm);
         coopHelloSet(h);
         gCoopErr = 0;
         gState = ST_COOPWAIT;
@@ -132,7 +186,12 @@ static void doLoadRun() {
         coopRunBegin(gCoopMe);
         gAcc = gStall = 0; gCoopBtn = 0; gCoopCards = false; gCoopEnd = 0;
     } else
-    playReset(gSel, gStartChoice, gNStart);
+    {
+        playReset(gSel, gStartChoice, gNStart);
+        MoveInst keep[4];
+        for (int i = 0; i < 4; i++) keep[i] = gMoves[i];
+        for (int i = 0; i < 4; i++) gMoves[i] = keep[gOrder[i]];
+    }
     playPreloadSprites();
     gSave.lastChar = gSel;
     musicPlay(MUS_BATTLE);
@@ -167,7 +226,7 @@ static void startRun() {                       // «Jugar»: sale con el compañ
     gSel = partner();
     gStartChoice[0] = defaultStart(gSel);
     if (permLv(PU_START) > 0) { gState = ST_STARTMOVE; gBanPage = 0; }
-    else { gSelBtn = 3; gSelMove = -1; gAfterPause = false; gState = ST_LOADOUT; }
+    else { prepareLoadout(); gState = ST_LOADOUT; }
     sfxPlay(SFX_UI);
 }
 static bool missionClaimable() {
@@ -175,22 +234,22 @@ static bool missionClaimable() {
     for (int i = 0; i < 2; i++) if (!gSave.mw[i].claimed && missionDone(gSave.mw[i], true)) return true;
     return false;
 }
+static void shopEnter();
 static void drawMenu() {
     bgFill();
-    panel(8, 4, 304, 24, WHITE, COL(26, 49, 112, 255));
-    snprintf(gTmp, sizeof gTmp, "%d Pokémonedas · %d tickets · %d ×10", gSave.coins, gSave.t1, gSave.t10);
-    text(gTmp, 160, 6, 0.42f, GOLD, true);
-    if (button(20, 36, 184, 56, "¡Jugar!", GOLD_BTN, 0.95f)) { gCoop = false; gCoopEnd = 0; startRun(); }
-    if (button(210, 36, 90, 56, "Coop", COL(40, 160, 170, 255), 0.7f)) { if (coopOpen()) { gState = ST_COOP; gJoining = false; sfxPlay(SFX_UI); } else msg("No se pudo iniciar la red local"); }
-    if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.6f)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
-    if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.6f)) { gState = ST_SHOP; gShopPage = 0; sfxPlay(SFX_UI); }
-    if (button(20, 150, 136, 40, "Gacha", COL(150, 80, 200, 255), 0.6f)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
-    if (button(164, 150, 136, 40, "Misiones", COL(60, 150, 90, 255), 0.6f)) { missionsRefresh(); gState = ST_MISSIONS; sfxPlay(SFX_UI); }
+    panel(8, 4, 304, 26, EDGE, COL(20, 36, 84, 255));
+    currencyBar(17);
+    if (button(20, 38, 184, 56, "¡Jugar!", GOLD_BTN, 0.95f, IC_BALL)) { gCoop = false; gCoopEnd = 0; startRun(); }
+    if (button(210, 38, 90, 56, "Coop", COL(40, 160, 170, 255), 0.6f, IC_FRIENDS)) { if (coopOpen()) { gState = ST_COOP; gJoining = false; sfxPlay(SFX_UI); } else msg("No se pudo iniciar la red local"); }
+    if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.55f, IC_BOOK)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
+    if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.55f, IC_UP)) { shopEnter(); gState = ST_SHOP; sfxPlay(SFX_UI); }
+    if (button(20, 150, 136, 40, "Gacha", COL(150, 80, 200, 255), 0.55f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
+    if (button(164, 150, 136, 40, "Misiones", COL(60, 150, 90, 255), 0.55f, IC_MEDAL3)) { missionsRefresh(); gState = ST_MISSIONS; sfxPlay(SFX_UI); }
     if (missionClaimable()) { C2D_DrawCircleSolid(294, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(294, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 294, 145, 0.45f, WHITE, true); }
     bool ban = permLv(PU_BAN) > 0;
-    if (ban && button(20, 198, 88, 24, "Vetar", COL(160, 80, 80, 255), 0.45f)) { gState = ST_BAN; gBanPage = 0; }
-    if (button(ban ? 114 : 20, 198, ban ? 98 : 190, 24, "Logros", COL(200, 140, 40, 255), 0.45f)) { achCheck(); gState = ST_ACH; gAchCat = 0; gAchPage = 0; sfxPlay(SFX_UI); }
-    if (button(218, 198, 82, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.42f)) { gState = ST_LANG; sfxPlay(SFX_UI); }
+    if (ban && button(20, 198, 88, 24, "Vetar", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; }
+    if (button(ban ? 114 : 20, 198, ban ? 98 : 190, 24, "Logros", COL(200, 140, 40, 255), 0.42f, IC_TROPHY)) { achCheck(); gState = ST_ACH; gAchCat = 0; gAchPage = 0; sfxPlay(SFX_UI); }
+    if (button(218, 198, 82, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_LANG; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "START: salir · Volumen %d%% (L/R)", (int)(gSave.vol * 100 + 0.5f));
     text(gTmp, 160, 224, 0.34f, COL(140, 165, 220, 255), true);
 }
@@ -237,8 +296,8 @@ static void drawDex(u64 ms) {
         panel(x, y, 50, 44, di == gDexSel ? GOLD : (own ? WHITE : COL(80, 100, 150, 255)), own ? PANEL : COL(20, 32, 70, 255));
         if (own) {
             sprDraw(DEX_NUM[di], 0, ms, false, x + 25, y + 38, nullptr, 0.75f);
-            if (gSave.shiny[di]) text("★", x + 38, y + 1, 0.38f, COL(255, 90, 90, 255));
-            if (di == gSave.lastChar) text("♥", x + 3, y + 1, 0.36f, COL(255, 120, 160, 255));
+            if (gSave.shiny[di]) icon(IC_SHINY, x + 32, y + 1, 0.5f);
+            if (di == gSave.lastChar) icon(IC_HEART, x + 1, y + 1, 0.5f);
         } else text("?", x + 25, y + 8, 0.7f, COL(110, 130, 180, 255), true);
         if (tapIn(x, y, 50, 44)) { gDexSel = di; sfxPlay(SFX_UI); }
     }
@@ -250,8 +309,8 @@ static void drawDex(u64 ms) {
         bool on = gSave.shinyOn[gDexSel];
         if (button(164, 168, 150, 26, on ? "Aspecto: Shiny ★" : "Aspecto: Normal", on ? COL(200, 70, 90, 255) : EDGE, 0.42f)) { gSave.shinyOn[gDexSel] ^= 1; saveWrite(); sprFreeAll(); sfxPlay(SFX_UI); }
     }
-    if (button(6, 204, 50, 30, "◀", EDGE, 0.7f) && gDexPage > 0) { gDexPage--; sprFreeAll(); }
-    if (button(264, 204, 50, 30, "▶", EDGE, 0.7f) && gDexPage < pages - 1) { gDexPage++; sprFreeAll(); }
+    if (arrowBtn(6, 204, 50, 30, false, gDexPage > 0)) { gDexPage--; sprFreeAll(); sfxPlay(SFX_UI); }
+    if (arrowBtn(264, 204, 50, 30, true, gDexPage < pages - 1)) { gDexPage++; sprFreeAll(); sfxPlay(SFX_UI); }
     int have = 0;
     for (int i = 0; i < n; i++) have += gSave.owned[list[i]];
     snprintf(gTmp, sizeof gTmp, "%s %d/%d", GACHA_GEN_NAMES[gDexGen - 1], have, n);
@@ -310,10 +369,10 @@ static void drawStartMove() {
         text(MOVES[m].name, x + 6, y + 4, 0.45f, WHITE);
         if (tapIn(x, y, 154, 30)) { gStartChoice[0] = m; gSave.startMove[gSel] = (u8)(m + 1); sfxPlay(SFX_UI); }
     }
-    if (button(6, 204, 50, 30, "◀", EDGE, 0.6f) && gBanPage > 0) gBanPage--;
-    if (button(60, 204, 50, 30, "▶", EDGE, 0.6f) && gBanPage < pages - 1) gBanPage++;
+    if (arrowBtn(6, 204, 50, 30, false, gBanPage > 0)) { gBanPage--; sfxPlay(SFX_UI); }
+    if (arrowBtn(60, 204, 50, 30, true, gBanPage < pages - 1)) { gBanPage++; sfxPlay(SFX_UI); }
     if (button(116, 204, 90, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
-    if (button(212, 204, 100, 30, "Continuar", COL(60, 170, 80, 255), 0.5f)) { gSelBtn = 3; gSelMove = -1; gAfterPause = false; gState = ST_LOADOUT; }
+    if (button(212, 204, 100, 30, "Continuar", COL(60, 170, 80, 255), 0.5f)) { prepareLoadout(); gState = ST_LOADOUT; }
 }
 static void drawStartTop() {
     topBg();
@@ -340,7 +399,7 @@ static void drawLoadoutBottom() {
             text(gTmp, x + 66, y + 1, 0.4f, COL(255, 230, 120, 255), true);
         } else text("vacío", x + 36, y + 24, 0.4f, COL(120, 140, 190, 255), true);
         if (tapIn(x, y, 72, 64)) {
-            if (gSelMove >= 0 && gSelMove != i) { playSwapSlots(gSelMove, i); gSelMove = -1; }
+            if (gSelMove >= 0 && gSelMove != i) { playSwapSlots(gSelMove, i); if (!gAfterPause) { int t = gOrder[gSelMove]; gOrder[gSelMove] = gOrder[i]; gOrder[i] = t; } gSelMove = -1; }
             else gSelMove = gSelMove == i ? -1 : i;
             gSelBtn = i;
             sfxPlay(SFX_UI);
@@ -489,39 +548,84 @@ static void drawOver() {
 }
 
 // ---------------------------------------------------------------- mejoras permanentes
+static const u8 PERM_ICON[NPERM] = {IC_HEART, IC_FIST, IC_BOOT, IC_CLOCK, IC_SHIELD, IC_SPROUT, IC_MAGNET, IC_BOOK, IC_COIN, IC_CARDS, IC_STAR, IC_UP, IC_BAN, IC_CURSOR};
+static int gUpgList[DEX_N], gUpgN, gUpgI;
+static int pokeLevels(int di) { int t = 0; for (int i = 0; i < NPERM; i++) t += gSave.pupg[di][i]; return t; }
+// Cada Pokémon tiene sus mejoras: el compañero va primero, luego los que ya tienen niveles.
+static void shopEnter() {
+    gUpgN = ownedList(gUpgList);
+    int p = partner();
+    for (int i = 1; i < gUpgN; i++) {
+        int v = gUpgList[i], j = i - 1;
+        auto key = [&](int d) { return d == p ? 100000 : pokeLevels(d) * 1000 - d; };
+        while (j >= 0 && key(gUpgList[j]) < key(v)) { gUpgList[j + 1] = gUpgList[j]; j--; }
+        gUpgList[j + 1] = v;
+    }
+    gUpgI = 0; gShopPage = 0;
+    sprFreeAll();
+}
+static int upgDex() { return gUpgN ? gUpgList[gUpgI] : partner(); }
 static void drawShop() {
     bgFill();
-    snprintf(gTmp, sizeof gTmp, "Mejoras permanentes · %d Pokémonedas", gSave.coins);
-    text(gTmp, 160, 0, 0.5f, COL(255, 220, 90, 255), true);
-    for (int k = 0; k < 6; k++) {
-        int i = gShopPage * 6 + k;
+    int di = upgDex();
+    headerBar("Mejoras", IC_UP);
+    icon(IC_COIN, 232, 3, 0.5f);
+    snprintf(gTmp, sizeof gTmp, "%d", gSave.coins);
+    text(gTmp, 252, 1, 0.5f, GOLD);
+    // selector de Pokémon
+    if (arrowBtn(6, 29, 36, 22, false, gUpgN > 1)) { gUpgI = (gUpgI + gUpgN - 1) % gUpgN; gShopPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
+    if (arrowBtn(278, 29, 36, 22, true, gUpgN > 1)) { gUpgI = (gUpgI + 1) % gUpgN; gShopPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
+    panel(46, 29, 228, 22, WHITE, COL(26, 49, 112, 255));
+    snprintf(gTmp, sizeof gTmp, "%s%s", pname(di), di == partner() ? " ♥" : "");
+    text(gTmp, 56, 28, 0.42f, WHITE);
+    snprintf(gTmp, sizeof gTmp, "%d niveles", pokeLevels(di));
+    text(gTmp, 266, 31, 0.32f, COL(170, 200, 255, 255), false);
+    for (int k = 0; k < 4; k++) {
+        int i = gShopPage * 4 + k;
         if (i >= NPERM) break;
-        float y = 22 + k * 31;
-        int lv = gSave.perm[i];
+        float y = 55 + k * 35;
+        int lv = gSave.pupg[di][i];
         bool maxed = lv >= PERM[i].max;
         int cost = maxed ? 0 : permCost(i, lv);
         bool can = !maxed && gSave.coins >= cost;
-        panel(6, y, 308, 28, maxed ? COL(90, 200, 120, 255) : can ? COL(255, 220, 90, 255) : EDGE);
-        snprintf(gTmp, sizeof gTmp, "%s  %d/%d", T(PERM[i].name), lv, PERM[i].max);
-        text(gTmp, 12, y + 1, 0.45f, WHITE);
-        text(PERM[i].unit, 12, y + 15, 0.32f, COL(170, 200, 255, 255));
-        if (maxed) text("MÁX", 300, y + 6, 0.5f, COL(120, 255, 160, 255), true);
-        else { snprintf(gTmp, sizeof gTmp, "%d", cost); text(gTmp, 296, y + 6, 0.5f, can ? COL(255, 220, 90, 255) : COL(150, 150, 170, 255), true); }
-        if (tapIn(6, y, 308, 28)) {
-            if (can) { gSave.coins -= cost; gSave.perm[i]++; saveWrite(); sfxPlay(SFX_LEVEL); }
-            else if (!maxed) { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); }
+        panel(6, y, 308, 33, maxed ? COL(90, 200, 120, 255) : EDGE, COL(26, 49, 112, 255));
+        icon(PERM_ICON[i], 8, y + 3, 0.75f);
+        text(PERM[i].name, 38, y - 1, 0.42f, WHITE);
+        textWrap(PERM[i].unit, 38, y + 13, 150, 0.27f, COL(170, 200, 255, 255));
+        int pw = PERM[i].max > 5 ? 7 : 12;
+        for (int q = 0; q < PERM[i].max; q++) {
+            float px = 38 + q * (pw + 2);
+            C2D_DrawRectSolid(px, y + 25, 0.3f, pw, 5, INK);
+            C2D_DrawRectSolid(px + 1, y + 26, 0.35f, pw - 2, 3, q < lv ? COL(255, 210, 63, 255) : COL(46, 60, 110, 255));
+        }
+        char b[16];
+        if (maxed) snprintf(b, sizeof b, "Máx.");
+        else snprintf(b, sizeof b, "%d", cost);
+        if (button(226, y + 3, 82, 27, b, maxed ? COL(70, 130, 90, 255) : can ? GOLD_BTN : COL(80, 84, 110, 255), 0.42f, maxed ? -1 : IC_COIN) && !maxed) {
+            if (can) { gSave.coins -= cost; gSave.pupg[di][i]++; saveWrite(); sfxPlay(SFX_LEVEL); }
+            else { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); }
         }
     }
-    int pages = (NPERM + 5) / 6;
-    if (button(6, 210, 60, 26, "◀", EDGE, 0.5f) && gShopPage > 0) gShopPage--;
-    if (button(72, 210, 60, 26, "▶", EDGE, 0.5f) && gShopPage < pages - 1) gShopPage++;
-    if (button(220, 210, 94, 26, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
-    if (gMsgT > 0) text(gMsg, 176, 196, 0.4f, COL(255, 120, 120, 255), true);
+    int pages = (NPERM + 3) / 4;
+    if (arrowBtn(6, 204, 60, 30, false, gShopPage > 0)) { gShopPage--; sfxPlay(SFX_UI); }
+    snprintf(gTmp, sizeof gTmp, "%d/%d", gShopPage + 1, pages);
+    text(gTmp, 100, 210, 0.42f, WHITE, true);
+    if (arrowBtn(134, 204, 60, 30, true, gShopPage < pages - 1)) { gShopPage++; sfxPlay(SFX_UI); }
+    if (button(220, 204, 94, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
+    if (gMsgT > 0) text(gMsg, 160, 192, 0.38f, COL(255, 120, 120, 255), true);
 }
-static void drawShopTop() {
+static void drawShopTop(u64 ms) {
     topBg();
-    text("Mejoras", 200, -2, 0.7f, COL(255, 220, 90, 255), true);
-    textWrap("Las mejoras compradas se aplican a todos tus Pokémon en cada partida. Consigue Pokémonedas jugando y con los duplicados del gacha.", 24, 50, 350, 0.46f, WHITE);
+    tileBg();
+    int di = upgDex();
+    panel(14, 28, 150, 196, WHITE, COL(26, 49, 112, 255));
+    sprDraw(DEX_NUM[di], 0, ms, true, 89, 150, nullptr, 2.0f, gSave.shinyOn[di] && gSave.shiny[di]);
+    text(pname(di), 89, 170, 0.5f, WHITE, true);
+    snprintf(gTmp, sizeof gTmp, "%d niveles", pokeLevels(di));
+    text(gTmp, 89, 192, 0.38f, COL(170, 200, 255, 255), true);
+    text("Mejoras", 280, 4, 0.7f, GOLD, true);
+    textWrap("Cada Pokémon tiene sus propias mejoras: sólo cuentan cuando juegas con él. Consigue Pokémonedas jugando y con los duplicados del gacha.", 182, 40, 206, 0.42f, WHITE);
+    if (upgDex() != partner()) textWrap("Para jugar con él, elígelo como compañero en «Pokémon».", 182, 140, 206, 0.38f, COL(255, 220, 120, 255));
 }
 
 // ---------------------------------------------------------------- gacha
@@ -532,40 +636,47 @@ static void drawGacha() {
         static const char* ab[9] = {"Kan", "Joh", "Hoe", "Sin", "Tes", "Kal", "Alo", "Gal", "Pal"};
         if (button(4 + (g - 1) * 34, 2, 32, 20, ab[g - 1], g == gGen ? GOLD_BTN : EDGE, 0.34f) && g != gGen && !slotBusy()) { gGen = g; sfxPlay(SFX_UI); }
     }
-    snprintf(gTmp, sizeof gTmp, "Gacha — %s", GACHA_GEN_NAMES[gGen - 1]);
-    text(gTmp, 160, 24, 0.55f, GOLD, true);
+    // tickets que tienes
+    panel(6, 26, 308, 24, EDGE, COL(20, 36, 84, 255));
+    currencyBar(38);
+    snprintf(gTmp, sizeof gTmp, "%s", GACHA_GEN_NAMES[gGen - 1]);
+    text(gTmp, 284, 30, 0.38f, GOLD, true);
     // probabilidades
-    panel(8, 44, 304, 96, WHITE, COL(26, 49, 112, 255));
+    panel(6, 54, 308, 88, WHITE, COL(26, 49, 112, 255));
     static const char* rn[6] = {"", "Común", "Poco común", "Raro", "Épico", "Legendario"};
+    static const u8 BALLS[6] = {0, IC_BALL, IC_BALL2, IC_BALL3, IC_BALLLUX, IC_BALL4};
     for (int r = 5; r >= 1; r--) {
-        float y = 47 + (5 - r) * 14;
-        C2D_DrawCircleSolid(22, y + 8, 0.4f, 5, rarCol(r));
-        text(rn[r], 34, y, 0.38f, WHITE);
+        float y = 58 + (5 - r) * 13;
+        icon(BALLS[r], 12, y - 2, 0.5f);
+        text(rn[r], 32, y - 3, 0.36f, rarCol(r));
         snprintf(gTmp, sizeof gTmp, "%.1f%%", GACHA_RATES[r - 1]);
-        text(gTmp, 190, y, 0.38f, rarCol(r), true);
+        text(gTmp, 190, y - 3, 0.36f, rarCol(r), true);
     }
-    C2D_DrawCircleSolid(22, 47 + 70 + 8, 0.4f, 5, COL(255, 90, 90, 255));
-    text("Shiny ★", 34, 47 + 70, 0.38f, COL(255, 130, 130, 255));
+    icon(IC_SHINY, 12, 58 + 65 - 2, 0.5f);
+    text("Shiny", 32, 58 + 65 - 3, 0.36f, COL(255, 130, 130, 255));
     snprintf(gTmp, sizeof gTmp, "%.0f%%", SHINY_RATE);
-    text(gTmp, 190, 47 + 70, 0.38f, COL(255, 130, 130, 255), true);
-    snprintf(gTmp, sizeof gTmp, "Garantía: %d/70", gSave.pity[gGen]);
-    text(gTmp, 224, 56, 0.36f, COL(170, 200, 255, 255));
-    snprintf(gTmp, sizeof gTmp, "Tickets %d", gSave.t1);
-    text(gTmp, 224, 80, 0.4f, WHITE);
-    snprintf(gTmp, sizeof gTmp, "×10: %d", gSave.t10);
-    text(gTmp, 224, 98, 0.4f, WHITE);
-    snprintf(gTmp, sizeof gTmp, "Monedas %d", gSave.coins);
-    text(gTmp, 224, 116, 0.4f, GOLD);
-    bool ok1 = gSave.t1 >= 1, ok10 = gSave.t10 >= 1 || gSave.t1 >= 10;
+    text(gTmp, 190, 58 + 65 - 3, 0.36f, COL(255, 130, 130, 255), true);
+    text("Garantía", 252, 62, 0.34f, COL(170, 200, 255, 255), true);
+    snprintf(gTmp, sizeof gTmp, "%d/70", gSave.pity[gGen]);
+    text(gTmp, 252, 78, 0.5f, WHITE, true);
+    text("Los repetidos dan Pokémonedas", 252, 104, 0.27f, COL(150, 170, 220, 255), true);
+    text("×10: al menos 1 Épico", 252, 118, 0.27f, COL(150, 170, 220, 255), true);
+    bool ok1 = gSave.t1 >= 1, ok10 = gSave.t1 >= 10, okP = gSave.t10 >= 1;
     bool idle = !slotBusy();
-    if (button(14, 148, 140, 44, "Tirar ×1", ok1 ? COL(150, 80, 200, 255) : COL(70, 60, 90, 255), 0.6f) && idle) {
+    u32 off = COL(70, 60, 90, 255);
+    if (button(6, 148, 100, 38, "Tirar ×1", ok1 ? COL(150, 80, 200, 255) : off, 0.4f, IC_TICKET) && idle) {
         if (ok1) { sprFreeAll(); gNPulls = gachaPull(gGen, 1, gPulls); slotStart(gPulls, gNPulls); sfxPlay(SFX_GACHA); } else { msg("Sin tickets"); sfxPlay(SFX_HURT); }
     }
-    if (button(166, 148, 140, 44, "Tirar ×10", ok10 ? COL(200, 90, 150, 255) : COL(70, 60, 90, 255), 0.6f) && idle) {
-        if (ok10) { sprFreeAll(); gNPulls = gachaPull(gGen, 10, gPulls); slotStart(gPulls, gNPulls); sfxPlay(SFX_GACHA); } else { msg("Necesitas 10 tickets o un ticket ×10"); sfxPlay(SFX_HURT); }
+    if (button(110, 148, 100, 38, "Tirar ×10", ok10 ? COL(200, 90, 150, 255) : off, 0.4f, IC_TICKET) && idle) {
+        if (ok10) { sprFreeAll(); gNPulls = gachaPull(gGen, 10, gPulls, false); slotStart(gPulls, gNPulls); sfxPlay(SFX_GACHA); } else { msg("Necesitas 10 tickets"); sfxPlay(SFX_HURT); }
     }
-    text("Los repetidos se convierten en Pokémonedas", 160, 196, 0.34f, COL(150, 170, 220, 255), true);
-    if (gMsgT > 0) text(gMsg, 160, 180, 0.42f, COL(255, 120, 120, 255), true);
+    if (button(214, 148, 100, 38, "Tirar ×10", okP ? COL(130, 70, 210, 255) : off, 0.4f, IC_TICKET10) && idle) {
+        if (okP) { sprFreeAll(); gNPulls = gachaPull(gGen, 10, gPulls, true); slotStart(gPulls, gNPulls); sfxPlay(SFX_GACHA); } else { msg("Sin tickets ×10"); sfxPlay(SFX_HURT); }
+    }
+    text("1 ticket", 56, 187, 0.27f, COL(170, 200, 255, 255), true);
+    text("10 tickets", 160, 187, 0.27f, COL(170, 200, 255, 255), true);
+    text("1 ticket ×10", 264, 187, 0.27f, COL(220, 170, 255, 255), true);
+    if (gMsgT > 0) text(gMsg, 160, 196, 0.38f, COL(255, 120, 120, 255), true);
     if (slotBusy()) { if (button(100, 210, 120, 26, "Saltar", GOLD_BTN, 0.5f)) slotSkip(); }
     else if (button(100, 210, 120, 26, "Volver", COL(180, 80, 80, 255), 0.5f)) { gState = ST_MENU; slotStart(nullptr, 0); sprFreeAll(); }
 }
@@ -574,32 +685,33 @@ static void drawGacha() {
 static void drawMission(float y, MSlot& m, bool weekly) {
     int goal = missionGoal(m, weekly);
     bool done = missionDone(m, weekly);
-    panel(6, y, 308, 36, m.claimed ? COL(90, 200, 120, 255) : done ? GOLD : WHITE, COL(26, 49, 112, 255));
+    panel(6, y, 308, 33, m.claimed ? COL(90, 200, 120, 255) : done ? GOLD : EDGE, COL(26, 49, 112, 255));
     char b[96];
     missionText(m, weekly, b, sizeof b);
-    textWrap(b, 12, y + 2, 215, 0.34f, WHITE);
+    textWrap(b, 12, y + 3, 215, 0.34f, WHITE);
     float frac = goal > 0 ? (float)m.prog / goal : 0;
-    C2D_DrawRectSolid(12, y + 27, 0.3f, 150, 5, COL(10, 20, 48, 255));
-    C2D_DrawRectSolid(12, y + 27, 0.35f, 150 * clampf(frac, 0, 1), 5, done ? COL(120, 255, 140, 255) : COL(80, 160, 255, 255));
+    C2D_DrawRectSolid(12, y + 24, 0.3f, 150, 5, COL(10, 20, 48, 255));
+    C2D_DrawRectSolid(12, y + 24, 0.35f, 150 * clampf(frac, 0, 1), 5, done ? COL(120, 255, 140, 255) : COL(80, 160, 255, 255));
     snprintf(b, sizeof b, "%d/%d", m.prog, goal);
-    text(b, 170, y + 22, 0.32f, WHITE);
+    text(b, 170, y + 19, 0.32f, WHITE);
     int t1, t10, coins;
     missionReward(m, weekly, &t1, &t10, &coins);
-    if (m.claimed) text("✔", 270, y + 8, 0.6f, COL(120, 255, 160, 255), true);
+    if (m.claimed) text("✔", 270, y + 4, 0.8f, COL(120, 255, 160, 255), true);
     else if (done) {
-        if (button(226, y + 4, 80, 28, "Cobrar", GOLD_BTN, 0.45f) && missionClaim(m, weekly)) { sfxPlay(SFX_LEVEL); }
+        if (button(226, y + 3, 80, 26, "Cobrar", GOLD_BTN, 0.45f) && missionClaim(m, weekly)) { sfxPlay(SFX_LEVEL); }
     } else {
         if (t10) snprintf(b, sizeof b, "+1 ×10 · %d", coins); else snprintf(b, sizeof b, "+%d tickets · %d", t1, coins);
-        text(b, 266, y + 10, 0.32f, COL(255, 220, 120, 255), true);
+        text(b, 266, y + 8, 0.32f, COL(255, 220, 120, 255), true);
     }
 }
 static void drawMissions() {
     bgFill();
-    text("Diarias", 8, 0, 0.4f, GOLD);
-    for (int i = 0; i < 3; i++) drawMission(12 + i * 38, gSave.md[i], false);
-    text("Semanales", 8, 126, 0.4f, GOLD);
-    for (int i = 0; i < 2; i++) drawMission(138 + i * 38, gSave.mw[i], true);
-    if (button(100, 214, 120, 24, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
+    headerBar("Misiones", IC_MEDAL3);
+    text("Diarias", 8, 25, 0.38f, GOLD);
+    for (int i = 0; i < 3; i++) drawMission(40 + i * 38, gSave.md[i], false);
+    text("Semanales", 8, 153, 0.38f, GOLD);
+    for (int i = 0; i < 2; i++) drawMission(168 + i * 33, gSave.mw[i], true);
+    if (button(240, 212, 76, 24, "Volver", COL(180, 80, 80, 255), 0.45f)) gState = ST_MENU;
 }
 static void drawMissionsTop() {
     topBg();
@@ -772,10 +884,10 @@ static void drawAch() {
         achInfo(i, nm, ds, sizeof nm, &tier, &val, &goal, &done);
         float y = 26 + k * 38;
         panel(6, y, 308, 35, done ? COL(90, 200, 120, 255) : EDGE);
-        C2D_DrawCircleSolid(22, y + 17, 0.5f, 9, MED[tier]);
+        icon(tier == 1 ? IC_MEDAL1 : tier == 2 ? IC_MEDAL2 : IC_MEDAL3, 4, y + 1, 0.75f, done ? 0xFFFFFFFF : COL(150, 160, 190, 255));
         text(nm, 38, y, 0.42f, WHITE);
         textWrap(ds, 38, y + 14, 220, 0.3f, COL(170, 200, 255, 255));
-        if (done) text("✓", 296, y + 4, 0.7f, COL(120, 255, 160, 255), true);
+        if (done) text("✓", 290, y + 2, 0.8f, COL(120, 255, 160, 255), true);
         else {
             C2D_DrawRectSolid(38, y + 29, 0.6f, 200, 4, COL(0, 0, 0, 160));
             C2D_DrawRectSolid(38, y + 29, 0.65f, 200 * clampf(goal > 0 ? (float)val / goal : 0, 0, 1), 4, MED[tier]);
@@ -784,8 +896,8 @@ static void drawAch() {
         }
     }
     if (pages > 1) {
-        if (button(6, 182, 60, 22, "◀", EDGE, 0.5f)) { gAchPage = (gAchPage + pages - 1) % pages; sfxPlay(SFX_UI); }
-        if (button(254, 182, 60, 22, "▶", EDGE, 0.5f)) { gAchPage = (gAchPage + 1) % pages; sfxPlay(SFX_UI); }
+        if (arrowBtn(6, 182, 60, 22, false)) { gAchPage = (gAchPage + pages - 1) % pages; sfxPlay(SFX_UI); }
+        if (arrowBtn(254, 182, 60, 22, true)) { gAchPage = (gAchPage + 1) % pages; sfxPlay(SFX_UI); }
         snprintf(gTmp, sizeof gTmp, "%d/%d", gAchPage + 1, pages);
         text(gTmp, 160, 184, 0.45f, WHITE, true);
     }
@@ -809,23 +921,24 @@ static void drawBan() {
     int used = 0;
     for (int i = 0; i < NMOVES; i++) used += gSave.bannedMove[i];
     snprintf(gTmp, sizeof gTmp, "Vetar movimientos %d/%d", used, permLv(PU_BAN));
-    text(gTmp, 160, 0, 0.55f, COL(255, 150, 150, 255), true);
+    headerBar(gTmp, IC_BAN);
     int pages = (NMOVES + 11) / 12;
     for (int k = 0; k < 12; k++) {
         int m = gBanPage * 12 + k;
         if (m >= NMOVES) break;
-        float x = 6 + (k % 2) * 158, y = 22 + (k / 2) * 30;
-        panel(x, y, 154, 27, gSave.bannedMove[m] ? COL(230, 60, 60, 255) : typeColor(MOVES[m].type));
-        text(MOVES[m].name, x + 6, y + 3, 0.4f, WHITE);
-        if (tapIn(x, y, 154, 27)) {
+        float x = 6 + (k % 2) * 158, y = 30 + (k / 2) * 28;
+        panel(x, y, 154, 26, gSave.bannedMove[m] ? COL(230, 60, 60, 255) : typeColor(MOVES[m].type));
+        text(MOVES[m].name, x + 6, y + 2, 0.4f, WHITE);
+        if (gSave.bannedMove[m]) icon(IC_BAN, x + 126, y - 2, 0.75f);
+        if (tapIn(x, y, 154, 26)) {
             if (gSave.bannedMove[m]) gSave.bannedMove[m] = 0;
             else if (used < permLv(PU_BAN)) gSave.bannedMove[m] = 1;
             else msg("Sin vetos libres");
             saveWrite();
         }
     }
-    if (button(6, 206, 50, 28, "◀", EDGE, 0.5f) && gBanPage > 0) gBanPage--;
-    if (button(60, 206, 50, 28, "▶", EDGE, 0.5f) && gBanPage < pages - 1) gBanPage++;
+    if (arrowBtn(6, 206, 50, 28, false, gBanPage > 0)) { gBanPage--; sfxPlay(SFX_UI); }
+    if (arrowBtn(60, 206, 50, 28, true, gBanPage < pages - 1)) { gBanPage++; sfxPlay(SFX_UI); }
     if (button(220, 206, 94, 28, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
     if (gMsgT > 0) text(gMsg, 160, 190, 0.4f, COL(255, 120, 120, 255), true);
 }
@@ -839,6 +952,7 @@ int main() {
     C3D_RenderTarget* top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
     C3D_RenderTarget* bot = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
     textInit();
+    iconsLoad();
     saveLoad();
     missionsRefresh();
     audioInit();
@@ -868,7 +982,7 @@ int main() {
         else if (gState == ST_PAUSE && (down & KEY_START)) { gState = ST_PLAY; gAfterPause = false; }
         if (gState == ST_LOADOUT || gState == ST_PAUSE)
             for (int i = 0; i < 4; i++) if (down & BTN_KEYS[i]) {
-                if (gSelMove >= 0 && gSelMove != i) { playSwapSlots(gSelMove, i); gSelMove = -1; }
+                if (gSelMove >= 0 && gSelMove != i) { playSwapSlots(gSelMove, i); if (gState == ST_LOADOUT) { int t = gOrder[gSelMove]; gOrder[gSelMove] = gOrder[i]; gOrder[i] = t; } gSelMove = -1; }
                 else gSelMove = gSelMove == i ? -1 : i;
                 gSelBtn = i;
             }
@@ -933,7 +1047,7 @@ int main() {
             case ST_MISSIONS: drawMissionsTop(); break;
             case ST_STARTMOVE: drawStartTop(); break;
             case ST_LOADOUT: case ST_PAUSE: drawLoadoutTop(now); break;
-            case ST_SHOP: drawShopTop(); break;
+            case ST_SHOP: drawShopTop(now); break;
             case ST_GACHA: drawGachaTop(now); break;
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
             case ST_LANG: topBg(); tileBg(); logo(200, 70, 1.3f); break;

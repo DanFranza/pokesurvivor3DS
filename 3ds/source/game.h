@@ -33,6 +33,11 @@ void textFrame();
 void text(const char* s, float x, float y, float sc, u32 col, bool center = false);
 void textWrap(const char* s, float x, float y, float w, float sc, u32 col);
 
+// ---------- iconos pixel art (include/icons.h generado) ----------
+#include "icons.h"
+void iconsLoad();
+void icon(int ic, float x, float y, float sc = 0.5f, u32 tint = 0xFFFFFFFF);   // sc 0.5 = 16 px
+
 // ---------- idioma (core.cpp + include/lang.h generado) ----------
 enum { LANG_ES, LANG_EN, LANG_FR, LANG_N };
 const char* pname(int di);                      // nombre del Pokémon (fila de DEX) en el idioma activo
@@ -76,6 +81,8 @@ struct Save {
     u8 legends[DEX_N];                          // legendarios vencidos en una grieta
     int stat[8];                                // SB_*: estadísticas para los logros
     u8 items[16];                               // objetos equipables encontrados
+    u8 pupg[DEX_N][NPERM];                      // mejoras de CADA Pokémon (perm[] es el formato antiguo)
+    u8 pupgMig;                                 // 1 = perm[] ya pasado al compañero
 };
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
@@ -83,12 +90,13 @@ void saveLoad();
 void saveWrite();
 int permCost(int id, int lvl);
 float permFloat(int id);                        // helper de lectura de niveles
-static inline int permLv(int id) { return gSave.perm[id]; }
+int permLv(int id);                             // nivel de una mejora del compañero actual (lastChar)
+static inline int permLvOf(int di, int id) { return gSave.pupg[di][id]; }
 enum { PU_HP, PU_ATK, PU_SPD, PU_CD, PU_DEF, PU_REGEN, PU_MAGNET, PU_XP, PU_COINS, PU_MOVES, PU_CRIT, PU_REROLL, PU_BAN, PU_START };
 
 // ---------- gacha (core.cpp) ----------
 struct PullResult { int dex; int rarity; bool isNew; int refund; bool shiny; };
-int gachaPull(int gen, int n, PullResult* out);   // devuelve nº de tiradas hechas (0 si no hay tickets)
+int gachaPull(int gen, int n, PullResult* out, bool useT10 = false);   // devuelve nº de tiradas hechas (0 si no hay tickets)
 extern const float GACHA_RATES[5];                // % por rareza 1..5
 #define SHINY_RATE 1.0f                           // % de shiny por tirada
 
