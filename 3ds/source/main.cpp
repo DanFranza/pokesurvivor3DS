@@ -313,7 +313,7 @@ static void drawKecleonTop() {
 static void drawLang() {
     bgFill();
     text("Idioma · Language · Langue", 160, 14, 0.6f, COL(255, 220, 90, 255), true);
-    static const u32 cols[LANG_N] = {COL(200, 60, 60, 255), COL(60, 100, 200, 255), COL(60, 140, 200, 255), COL(60, 150, 90, 255), COL(60, 150, 70, 255), COL(190, 60, 60, 255), COL(150, 80, 170, 255)};
+    static const u32 cols[LANG_N] = {COL(200, 60, 60, 255), COL(60, 100, 200, 255), COL(60, 140, 200, 255), COL(60, 150, 90, 255), COL(60, 150, 70, 255)};
     for (int i = 0; i < LANG_N; i++) {
         float x = 12 + (i & 1) * 152, y = 36 + (i >> 1) * 44;
         bool cur = gSave.langSet && gSave.lang == i;
@@ -411,7 +411,7 @@ static void drawDex(u64 ms) {
         bool own = gSave.owned[di] && sprHas(DEX_NUM[di]);
         panel(x, y, 50, 44, di == gDexSel ? GOLD : (own ? WHITE : COL(80, 100, 150, 255)), own ? PANEL : COL(20, 32, 70, 255));
         if (own) {
-            sprDraw(DEX_NUM[di], 0, ms, false, x + 25, y + 38, nullptr, 0.75f);
+            { const PokeSpr& ps = POKE_SPR[DEX_NUM[di]]; sprDraw(DEX_NUM[di], 0, ms, false, x + 25, y + 22 + (ps.ay - ps.h / 2.0f) * 0.75f, nullptr, 0.75f); }
             if (gSave.shiny[di]) icon(IC_SHINY, x + 32, y + 1, 0.5f);
             if (di == gSave.lastChar) icon(IC_HEART, x + 1, y + 1, 0.5f);
         } else text("?", x + 25, y + 8, 0.7f, COL(110, 130, 180, 255), true);
@@ -448,12 +448,12 @@ static void drawDexMoves(int di) {
     char nb[96];
     if (nt.up >= 0) snprintf(nb, sizeof nb, "Naturaleza: %s (+%s −%s)", natureName(monNature(di)), T(SN[nt.up]), T(SN[nt.down]));
     else snprintf(nb, sizeof nb, "Naturaleza: %s", natureName(monNature(di)));
-    text(nb, 18, 46, 0.4f, WHITE);
+    text(nb, 18, 44, 0.52f, WHITE);
     int ab = monAbil(di);
     snprintf(gTmp, sizeof gTmp, "Habilidad: %s", abilName(ab));
-    text(gTmp, 18, 60, 0.4f, GOLD);
+    text(gTmp, 18, 62, 0.52f, GOLD);
     char dsc[200]; abilDesc(ab, di, dsc, sizeof dsc);
-    textWrap(dsc, 18, 74, 360, 0.34f, COL(170, 200, 255, 255));
+    textWrap(dsc, 18, 81, 360, 0.42f, COL(170, 200, 255, 255));
     int list[60], n = 0; list[n++] = p.start;
     int ts[2] = {p.t1, p.t2};
     for (int k = 0; k < 2; k++) {
@@ -463,12 +463,12 @@ static void drawDexMoves(int di) {
     }
     int nNat = n, tg[NTM], nT = monTaughtMoves(di, tg);
     for (int i = 0; i < nT && n < 60; i++) list[n++] = tg[i];
-    for (int i = 0; i < n && i < 20; i++) {
-        float x = 18 + (i / 10) * 190, y = 104 + (i % 10) * 11;
-        C2D_DrawRectSolid(x, y + 2, 0.3f, 7, 7, typeColor(MOVES[list[i]].type));
-        text(MOVES[list[i]].name, x + 11, y - 3, 0.32f, i == 0 ? GOLD : i >= nNat ? COL(140, 230, 160, 255) : WHITE);
+    for (int i = 0; i < n && i < 21; i++) {
+        float x = 16 + (i / 7) * 126, y = 118 + (i % 7) * 13;
+        C2D_DrawRectSolid(x, y + 3, 0.3f, 7, 7, typeColor(MOVES[list[i]].type));
+        text(MOVES[list[i]].name, x + 11, y - 3, 0.42f, i == 0 ? GOLD : i >= nNat ? COL(140, 230, 160, 255) : WHITE);
     }
-    text("L: página 1", 20, 212, 0.34f, COL(170, 200, 255, 255));
+    text("L: página 1", 20, 208, 0.42f, COL(170, 200, 255, 255));
 }
 // Pantalla táctil de los detalles: menta (naturaleza), cápsulas (habilidad) y MT (movimientos extra).
 static void drawMonBottom(int di) {
@@ -561,36 +561,42 @@ static void drawDexTop(u64 ms) {
     int dm = p.start;
     snprintf(gTmp, sizeof gTmp, "Mov. inicial: %s", T(MOVES[dm].name)); text(gTmp, 192, 140, 0.42f, typeColorLight(MOVES[dm].type));
     textWrap(MOVES[dm].desc, 192, 160, 188, 0.36f, COL(170, 200, 255, 255));
-    text("R: movimientos", 284, 210, 0.34f, COL(170, 200, 255, 255), true);
-    if (gSave.shiny[gDexSel]) text("★ Shiny conseguido", 192, 206, 0.38f, COL(255, 120, 120, 255));
+    text("R: movimientos", 284, 204, 0.46f, COL(170, 200, 255, 255), true);
+    if (gSave.shiny[gDexSel]) text("★ Shiny conseguido", 192, 186, 0.42f, COL(255, 120, 120, 255));
 }
 
+// Se eligen directamente los dos ataques de inicio: 1) y 2) aparecen sobre los elegidos.
 static void drawStartMove() {
     bgFill();
     bool has1 = permLv(PU_START) > 0, has2 = permLv(PU_START2) > 0 && permLv(PU_MOVES) > 0;
-    if (!has1) gPick2 = true;
-    if (!has2) gPick2 = false;
-    text(gPick2 ? "Elige tu segundo movimiento" : "Elige tu movimiento inicial", 160, 0, 0.55f, COL(255, 230, 120, 255), true);
+    bool two = has2;
+    text(two ? "Elige tus dos ataques de inicio" : "Elige tu movimiento inicial", 160, 0, 0.55f, COL(255, 230, 120, 255), true);
     int pool[NMOVES];
     int np = poolFor(gSel, pool);
     int pages = (np + 9) / 10;
     if (gBanPage >= pages) gBanPage = pages - 1;
     if (gBanPage < 0) gBanPage = 0;
+    int first = gStartChoice[0], second = pick2Of(gSel, first);
     for (int k = 0; k < 10; k++) {
         int idx = gBanPage * 10 + k;
         if (idx >= np) break;
         int m = pool[idx];
         float x = 6 + (k % 2) * 158, y = 22 + (k / 2) * 34;
-        bool on = gPick2 ? m == gSave.startMove2[gSel] - 1 : m == gStartChoice[0];
-        panel(x, y, 154, 30, typeColor(MOVES[m].type), on ? COL(50, 70, 130, 255) : PANEL);
-        text(MOVES[m].name, x + 6, y + 4, 0.45f, m == gStartChoice[0] && gPick2 ? COL(120, 125, 150, 255) : WHITE);
+        int rank = m == first ? 1 : m == second ? 2 : 0;
+        panel(x, y, 154, 30, rank ? GOLD : typeColor(MOVES[m].type), rank ? COL(50, 70, 130, 255) : PANEL);
+        text(MOVES[m].name, x + 6, y + 4, 0.45f, WHITE);
+        if (rank) { snprintf(gTmp, sizeof gTmp, "%d)", rank); text(gTmp, x + 146, y + 4, 0.5f, GOLD, false); }
         if (tapIn(x, y, 154, 30)) {
-            if (!gPick2) { gStartChoice[0] = m; gSave.startMove[gSel] = (u8)(m + 1); sfxPlay(SFX_UI); }
-            else if (m != gStartChoice[0]) { gSave.startMove2[gSel] = gSave.startMove2[gSel] == m + 1 ? 0 : (u8)(m + 1); saveWrite(); sfxPlay(SFX_UI); }
+            sfxPlay(SFX_UI);
+            if (rank == 1) {                         // quitar el 1): el 2) pasa a ser el primero
+                if (two && second >= 0 && has1) { gStartChoice[0] = second; gSave.startMove[gSel] = (u8)(second + 1); gSave.startMove2[gSel] = 0; }
+            } else if (rank == 2) gSave.startMove2[gSel] = 0;
+            else if (two) gSave.startMove2[gSel] = (u8)(m + 1);
+            else { gStartChoice[0] = m; gSave.startMove[gSel] = (u8)(m + 1); }
+            saveWrite();
         }
     }
-    if (has1 && has2 && button(116, 168, 196, 26, gPick2 ? "Cambiar el primero" : "Cambiar el segundo", COL(90, 110, 190, 255), 0.42f)) gPick2 = !gPick2;
-    if (gPick2) text(gSave.startMove2[gSel] ? "Toca de nuevo para dejarlo al azar" : "Segundo ataque: al azar", 6, 170, 0.34f, COL(170, 200, 255, 255));
+    if (two) text(second >= 0 ? "Toca un ataque marcado para quitarlo" : "2): al azar si no eliges ninguno", 160, 172, 0.38f, COL(170, 200, 255, 255), true);
     if (arrowBtn(6, 204, 50, 30, false, gBanPage > 0)) { gBanPage--; sfxPlay(SFX_UI); }
     if (arrowBtn(60, 204, 50, 30, true, gBanPage < pages - 1)) { gBanPage++; sfxPlay(SFX_UI); }
     if (button(116, 204, 90, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
@@ -798,10 +804,9 @@ static void drawShop() {
     if (arrowBtn(6, 29, 36, 22, false, gUpgN > 1)) { gUpgI = (gUpgI + gUpgN - 1) % gUpgN; gShopPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (arrowBtn(278, 29, 36, 22, true, gUpgN > 1)) { gUpgI = (gUpgI + 1) % gUpgN; gShopPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     panel(46, 29, 228, 22, WHITE, COL(26, 49, 112, 255));
-    snprintf(gTmp, sizeof gTmp, "%s%s", pname(di), di == partner() ? " ♥" : "");
-    text(gTmp, 56, 28, 0.42f, WHITE);
-    snprintf(gTmp, sizeof gTmp, "Niveles: %d", pokeLevels(di));
-    text(gTmp, 266, 33, 0.36f, COL(170, 200, 255, 255), false);
+    static const char* const LV[LANG_N] = {"Nv", "Lvl", "Nv", "Liv", "Nv"};
+    snprintf(gTmp, sizeof gTmp, "%s%s  %s %d", pname(di), di == partner() ? " ♥" : "", LV[gSave.lang], pokeLevels(di));
+    text(gTmp, 160, 29 + (22 - textH(gTmp, 0.45f)) / 2 - 2, 0.45f, WHITE, true);
     for (int k = 0; k < 3; k++) {
         int i = gShopPage * 3 + k;
         if (i >= NPERM) break;
@@ -813,8 +818,9 @@ static void drawShop() {
         bool can = !maxed && !locked && gSave.coins >= cost;
         panel(6, y, 308, 47, maxed ? COL(90, 200, 120, 255) : EDGE, COL(26, 49, 112, 255));
         icon(PERM_ICON[i], 9, y + 7, 1.0f);
-        text(PERM[i].name, 46, y + 2, 0.5f, WHITE);
-        textWrap(PERM[i].unit, 46, y + 20, 170, 0.36f, COL(190, 215, 255, 255));
+        const char* unit = i == PU_START2 ? "Elige tu segundo ataque inicial (necesita Repertorio)" : PERM[i].unit;
+        text(PERM[i].name, 46, y + 5, 0.5f, WHITE);
+        textWrap(unit, 46, y + 23, 170, 0.36f, COL(190, 215, 255, 255));
         char b[16];
         if (locked) snprintf(b, sizeof b, "Bloq.");
         else if (maxed) snprintf(b, sizeof b, "Máx.");

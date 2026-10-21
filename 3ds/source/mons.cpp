@@ -3,7 +3,7 @@
 #include <time.h>
 
 int langNameIdx() {
-    static const u8 col[LANG_N] = {0, 1, 2, 3, 1, 4, 5};   // pt-BR usa los nombres en inglés, como la web
+    static const u8 col[LANG_N] = {0, 1, 2, 3, 1};   // pt-BR usa los nombres en inglés, como la web
     return col[gSave.lang < LANG_N ? gSave.lang : 0];
 }
 const char* natureName(int n) { return NATURES[n].n[langNameIdx()]; }

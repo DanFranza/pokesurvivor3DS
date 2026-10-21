@@ -54,25 +54,10 @@ const char* typeName(int t) {
 // ---------------------------------------------------------------- texto
 static C2D_TextBuf gTxt;
 static C2D_Font gFont;
-static C2D_Font gFontLatin, gFontCjk;
-static int gFontCjkLang = -1;
-// Chino: tipografía del sistema (la Pixelify Sans sólo tiene alfabeto latino).
-void textSetLang() {
-    int l = gSave.lang;
-    if (l == LANG_ZHS || l == LANG_ZHT) {
-        if (gFontCjkLang != l) {
-            if (gFontCjk) C2D_FontFree(gFontCjk);
-            gFontCjk = C2D_FontLoadSystem(l == LANG_ZHS ? CFG_REGION_CHN : CFG_REGION_TWN);
-            gFontCjkLang = l;
-        }
-        gFont = gFontCjk ? gFontCjk : gFontLatin;
-    } else gFont = gFontLatin;
-}
+void textSetLang() {}
 void textInit() {
     gTxt = C2D_TextBufNew(8192);
-    gFontLatin = C2D_FontLoad("romfs:/pixel.bcfnt");   // Pixelify Sans, la misma tipografía de la versión web
-    gFont = gFontLatin;
-    textSetLang();
+    gFont = C2D_FontLoad("romfs:/pixel.bcfnt");   // Pixelify Sans, la misma tipografía de la versión web
 }
 void textFrame() { C2D_TextBufClear(gTxt); }
 void text(const char* s, float x, float y, float sc, u32 col, bool center) {
@@ -206,6 +191,7 @@ void saveLoad() {
     }
     for (int d = 0; d < DEX_N; d++)
         for (int i = 0; i < NPERM; i++) if (permLvOf(d, i) > PERM[i].max) permSetLv(d, i, PERM[i].max);
+    if (gSave.lang >= LANG_N) { gSave.lang = LANG_EN; gSave.langSet = 0; }
     if (!gSave.seed) { gSave.seed = (u32)osGetTime() * 2654435761u + 0x9E3779B9u; if (!gSave.seed) gSave.seed = 1; saveWrite(); }
 }
 int permLvOf(int di, int id) { return id < NPERM_OLD ? gSave.pupg[di][id] : gSave.pstart2[di]; }
