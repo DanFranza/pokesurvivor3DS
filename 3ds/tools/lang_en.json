@@ -284,5 +284,22 @@
  "¡Bienvenido a la Tienda Kecleon!": "Welcome to the Kecleon Shop!",
  "¡Hola! Echa un vistazo, ¿eh?": "Hi! Have a look around, eh?",
  "Puede aprenderla": "Can learn it",
- "MT del día": "Daily TMs"
+ "MT del día": "Daily TMs",
+ "Menta": "Mint",
+ "Cápsula Habilidad": "Ability Capsule",
+ "Parche Habilidad": "Ability Patch",
+ "Menta ×%d": "Mint ×%d",
+ "Cápsula ×%d  ·  Parche ×%d": "Capsule ×%d  ·  Patch ×%d",
+ "No tienes Mentas: cómpralas a Kecleon": "You have no Mints: buy them from Kecleon",
+ "Sin cápsulas o sin habilidades que elegir": "No capsules or no abilities to choose",
+ "Cambia la naturaleza de un Pokémon por la que tú elijas.": "Changes a Pokémon's nature to the one you choose.",
+ "Cambia la habilidad de un Pokémon por otra de las suyas (no la oculta).": "Changes a Pokémon's ability to another of its own (not the hidden one).",
+ "Cambia la habilidad de un Pokémon por cualquiera de las suyas, también la oculta.": "Changes a Pokémon's ability to any of its own, including the hidden one.",
+ "Sac": "Bag",
+ "Elige un Pokémon": "Choose a Pokémon",
+ "Ninguno puede usarlo": "None can use it",
+ "No tienes ninguno: cómpralos a Kecleon": "You have none: buy some from Kecleon",
+ "Enseña a un Pokémon un movimiento que su tipo no le da. Cada MT se gasta al enseñarla.": "Teaches a Pokémon a move its type doesn't give it. Each TM is used up when taught.",
+ "Usa aquí lo que compras a Kecleon: elige un objeto y luego un Pokémon.": "Use what you buy from Kecleon here: pick an item, then a Pokémon.",
+ "MT": "TM"
 }

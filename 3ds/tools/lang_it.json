@@ -5,5 +5,22 @@
  "¡Bienvenido a la Tienda Kecleon!": "Benvenuto al Negozio Kecleon!",
  "¡Hola! Echa un vistazo, ¿eh?": "Ciao! Dai un'occhiata, eh?",
  "Puede aprenderla": "Può impararla",
- "MT del día": "MT del giorno"
+ "MT del día": "MT del giorno",
+ "Menta": "Menta",
+ "Cápsula Habilidad": "Capsula Abilità",
+ "Parche Habilidad": "Cerotto Abilità",
+ "Menta ×%d": "Menta ×%d",
+ "Cápsula ×%d  ·  Parche ×%d": "Capsula ×%d  ·  Cerotto ×%d",
+ "No tienes Mentas: cómpralas a Kecleon": "Non hai Menta: comprale da Kecleon",
+ "Sin cápsulas o sin habilidades que elegir": "Nessuna capsula o abilità da scegliere",
+ "Cambia la naturaleza de un Pokémon por la que tú elijas.": "Cambia la natura di un Pokémon con quella che scegli.",
+ "Cambia la habilidad de un Pokémon por otra de las suyas (no la oculta).": "Cambia l'abilità di un Pokémon con un'altra sua (non la nascosta).",
+ "Cambia la habilidad de un Pokémon por cualquiera de las suyas, también la oculta.": "Cambia l'abilità di un Pokémon con una qualsiasi delle sue, anche la nascosta.",
+ "Sac": "Zaino",
+ "Elige un Pokémon": "Scegli un Pokémon",
+ "Ninguno puede usarlo": "Nessuno può usarlo",
+ "No tienes ninguno: cómpralos a Kecleon": "Non ne hai: comprali da Kecleon",
+ "Enseña a un Pokémon un movimiento que su tipo no le da. Cada MT se gasta al enseñarla.": "Insegna a un Pokémon una mossa che il suo tipo non dà. Ogni MT si consuma.",
+ "Usa aquí lo que compras a Kecleon: elige un objeto y luego un Pokémon.": "Usa qui ciò che compri da Kecleon: scegli un oggetto e poi un Pokémon.",
+ "MT": "MT"
 }

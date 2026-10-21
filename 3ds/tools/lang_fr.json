@@ -785,5 +785,22 @@
  "¡Bienvenido a la Tienda Kecleon!": "Bienvenue à la Boutique Kecleon !",
  "¡Hola! Echa un vistazo, ¿eh?": "Salut ! Jette un œil, hein ?",
  "Puede aprenderla": "Peut l'apprendre",
- "MT del día": "CT du jour"
+ "MT del día": "CT du jour",
+ "Menta": "Aromates",
+ "Cápsula Habilidad": "Pilule Talent",
+ "Parche Habilidad": "Patch Talent",
+ "Menta ×%d": "Aromates ×%d",
+ "Cápsula ×%d  ·  Parche ×%d": "Pilule ×%d  ·  Patch ×%d",
+ "No tienes Mentas: cómpralas a Kecleon": "Pas d'Aromates : achètes-en chez Kecleon",
+ "Sin cápsulas o sin habilidades que elegir": "Pas de pilule ou de talent à choisir",
+ "Cambia la naturaleza de un Pokémon por la que tú elijas.": "Change la nature d'un Pokémon pour celle que tu choisis.",
+ "Cambia la habilidad de un Pokémon por otra de las suyas (no la oculta).": "Change le talent d'un Pokémon pour un autre des siens (pas le caché).",
+ "Cambia la habilidad de un Pokémon por cualquiera de las suyas, también la oculta.": "Change le talent d'un Pokémon pour n'importe lequel des siens, même le caché.",
+ "Sac": "Sac",
+ "Elige un Pokémon": "Choisis un Pokémon",
+ "Ninguno puede usarlo": "Aucun ne peut l'utiliser",
+ "No tienes ninguno: cómpralos a Kecleon": "Tu n'en as pas : achètes-en chez Kecleon",
+ "Enseña a un Pokémon un movimiento que su tipo no le da. Cada MT se gasta al enseñarla.": "Apprend à un Pokémon une capacité que son type ne lui donne pas. Chaque CT est consommée.",
+ "Usa aquí lo que compras a Kecleon: elige un objeto y luego un Pokémon.": "Utilise ici ce que tu achètes à Kecleon : choisis un objet puis un Pokémon.",
+ "MT": "CT"
 }

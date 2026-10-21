@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BAG };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -13,6 +13,7 @@ static bool gTap, gTouching;
 static int gSel;
 static int gPage, gShopPage, gGen = 1, gBanPage;
 static bool gPick2;
+static int gBagItem = -1, gBagPage;
 static int gKecPage, gKecSel = -1;
 static int partner();
 static int gMonMode, gMonPage;   // detalles del Pokémon: 0 = acciones · 1 = menta · 2 = habilidad · 3 = MT
@@ -406,6 +407,65 @@ static void drawKecleonTop(u64 now) {
     }
 }
 
+// ---------------------------------------------------------------- sac (usar lo comprado en Kecleon)
+// -1 = lista · 0 aromates · 1 píldora · 2 parche · 3 MT
+static void bagUse(int di) {
+    gState = ST_DEX; gDexSel = di; gDexGen = DEX[di].gen; gDexPage = 0; gDexTop = 1; gMonPage = 0;
+    gMonMode = gBagItem == 0 ? 1 : gBagItem == 3 ? 3 : 2;
+    sprFreeAll(); sfxPlay(SFX_UI);
+}
+static bool bagCanUse(int di) {
+    int s[3];
+    if (gBagItem == 0) return gSave.bag[BAG_MINT] > 0;
+    if (gBagItem == 3) { for (int i = 0; i < NTM; i++) if (gSave.tms[i] && monCanLearn(di, i)) return true; return false; }
+    if (gBagItem == 1) return gSave.bag[BAG_CAP] > 0 && monAbilChoices(di, s, false) > 0;
+    return gSave.bag[BAG_CAPH] > 0 && monAbilChoices(di, s, true) > 0;
+}
+static void drawBag() {
+    bgFill();
+    headerBar("Sac", IC_BOOK);
+    if (gBagItem < 0) {
+        int tms = 0; for (int i = 0; i < NTM; i++) tms += gSave.tms[i];
+        static const u32 bc[4] = {COL(70, 150, 90, 255), COL(70, 110, 190, 255), COL(150, 90, 190, 255), COL(200, 130, 50, 255)};
+        for (int i = 0; i < 4; i++) {
+            int cnt = i < 3 ? gSave.bag[i] : tms;
+            snprintf(gTmp, sizeof gTmp, "%s  ×%d", i < 3 ? BAG_NAME[i] : "MT", cnt);
+            if (button(10, 32 + i * 40, 300, 36, gTmp, cnt ? bc[i] : COL(80, 84, 110, 255), 0.5f)) {
+                if (cnt) { gBagItem = i; gBagPage = 0; sfxPlay(SFX_UI); } else msg("No tienes ninguno: cómpralos a Kecleon");
+            }
+        }
+        if (gMsgT > 0) text(gMsg, 160, 196, 0.36f, COL(255, 120, 120, 255), true);
+        if (button(214, 204, 100, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
+        return;
+    }
+    text("Elige un Pokémon", 160, 28, 0.45f, GOLD, true);
+    int l[DEX_N], n = ownedList(l), m = 0;
+    for (int i = 0; i < n; i++) if (bagCanUse(l[i])) l[m++] = l[i];
+    int pages = (m + 11) / 12;
+    if (gBagPage >= pages) gBagPage = pages ? pages - 1 : 0;
+    if (!m) text("Ninguno puede usarlo", 160, 100, 0.45f, WHITE, true);
+    for (int k = 0; k < 12; k++) {
+        int idx = gBagPage * 12 + k;
+        if (idx >= m) break;
+        if (button(6 + (k % 3) * 104, 50 + (k / 3) * 36, 102, 32, pname(l[idx]), EDGE, 0.36f)) { bagUse(l[idx]); return; }
+    }
+    if (arrowBtn(6, 204, 44, 30, false, gBagPage > 0)) gBagPage--;
+    if (arrowBtn(54, 204, 44, 30, true, gBagPage < pages - 1)) gBagPage++;
+    if (button(214, 204, 100, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gBagItem = -1;
+}
+static void drawBagTop() {
+    topBg();
+    tileBg();
+    text("Sac", 200, 4, 0.7f, GOLD, true);
+    if (gBagItem >= 0 && gBagItem < 3) {
+        text(BAG_NAME[gBagItem], 200, 60, 0.6f, WHITE, true);
+        textWrap(BAG_DESC[gBagItem], 40, 100, 320, 0.5f, COL(255, 220, 120, 255));
+    } else if (gBagItem == 3) {
+        text("MT", 200, 60, 0.6f, WHITE, true);
+        textWrap("Enseña a un Pokémon un movimiento que su tipo no le da. Cada MT se gasta al enseñarla.", 40, 100, 320, 0.5f, COL(255, 220, 120, 255));
+    } else textWrap("Usa aquí lo que compras a Kecleon: elige un objeto y luego un Pokémon.", 40, 80, 320, 0.5f, WHITE);
+}
+
 // ---------------------------------------------------------------- idioma
 static void drawLang() {
     bgFill();
@@ -451,10 +511,11 @@ static void drawMenu() {
     if (button(210, 38, 90, 56, "Coop", COL(40, 160, 170, 255), 0.6f, IC_FRIENDS)) { if (coopOpen()) { gState = ST_COOP; gJoining = false; sfxPlay(SFX_UI); } else msg("No se pudo iniciar la red local"); }
     if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.55f, IC_BOOK)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.55f, IC_UP)) { shopEnter(); gState = ST_SHOP; sfxPlay(SFX_UI); }
-    if (button(20, 150, 92, 40, "Gacha", COL(150, 80, 200, 255), 0.45f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
-    if (button(118, 150, 92, 40, "Misiones", COL(60, 150, 90, 255), 0.42f, IC_MEDAL3)) { missionsRefresh(); gState = ST_MISSIONS; sfxPlay(SFX_UI); }
-    if (button(216, 150, 84, 40, "Kecleon", COL(110, 170, 70, 255), 0.4f, IC_COIN)) { gKecPage = 0; gState = ST_KECLEON; sfxPlay(SFX_UI); }
-    if (missionClaimable()) { C2D_DrawCircleSolid(202, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(202, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 202, 145, 0.45f, WHITE, true); }
+    if (button(20, 150, 67, 40, "Gacha", COL(150, 80, 200, 255), 0.36f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
+    if (button(91, 150, 67, 40, "Misiones", COL(60, 150, 90, 255), 0.32f, IC_MEDAL3)) { missionsRefresh(); gState = ST_MISSIONS; sfxPlay(SFX_UI); }
+    if (button(162, 150, 67, 40, "Kecleon", COL(110, 170, 70, 255), 0.32f, IC_COIN)) { gKecPage = 0; gState = ST_KECLEON; sfxPlay(SFX_UI); }
+    if (button(233, 150, 67, 40, "Sac", COL(200, 130, 50, 255), 0.4f, IC_BOOK)) { gBagItem = -1; gState = ST_BAG; sfxPlay(SFX_UI); }
+    if (missionClaimable()) { C2D_DrawCircleSolid(152, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(152, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 152, 145, 0.45f, WHITE, true); }
     bool ban = permLv(PU_BAN) > 0;
     if (ban && button(20, 198, 88, 24, "Vetar", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; }
     if (button(ban ? 114 : 20, 198, ban ? 98 : 190, 24, "Logros", COL(200, 140, 40, 255), 0.42f, IC_TROPHY)) { achCheck(); gState = ST_ACH; gAchCat = 0; gAchPage = 0; sfxPlay(SFX_UI); }
@@ -577,7 +638,7 @@ static void drawMonBottom(int di) {
     if (gMonMode == 0) {
         snprintf(gTmp, sizeof gTmp, "Menta ×%d", gSave.bag[BAG_MINT]);
         if (button(10, 56, 300, 30, gTmp, COL(70, 150, 90, 255), 0.5f)) { if (gSave.bag[BAG_MINT]) { gMonMode = 1; sfxPlay(SFX_UI); } else msg("No tienes Mentas: cómpralas a Kecleon"); }
-        snprintf(gTmp, sizeof gTmp, "Cápsula habilidad ×%d  ·  oculta ×%d", gSave.bag[BAG_CAP], gSave.bag[BAG_CAPH]);
+        snprintf(gTmp, sizeof gTmp, "Cápsula ×%d  ·  Parche ×%d", gSave.bag[BAG_CAP], gSave.bag[BAG_CAPH]);
         if (button(10, 92, 300, 30, gTmp, COL(150, 90, 190, 255), 0.42f)) {
             int s[3];
             if ((gSave.bag[BAG_CAP] || gSave.bag[BAG_CAPH]) && monAbilChoices(di, s, gSave.bag[BAG_CAPH] > 0)) { gMonMode = 2; sfxPlay(SFX_UI); }
@@ -1392,6 +1453,7 @@ int main() {
             case ST_LOADOUT: case ST_PAUSE: drawLoadoutTop(now); break;
             case ST_SHOP: drawShopTop(now); break;
             case ST_KECLEON: drawKecleonTop(now); break;
+            case ST_BAG: drawBagTop(); break;
             case ST_GACHA: drawGachaTop(now); break;
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
             case ST_LANG: topBg(); tileBg(); logo(200, 70, 1.3f); break;
@@ -1414,6 +1476,7 @@ int main() {
             case ST_LOADOUT: case ST_PAUSE: drawLoadoutBottom(); break;
             case ST_SHOP: drawShop(); break;
             case ST_KECLEON: drawKecleon(); break;
+            case ST_BAG: drawBag(); break;
             case ST_GACHA: drawGacha(); break;
             case ST_BAN: drawBan(); break;
             case ST_LANG: drawLang(); break;

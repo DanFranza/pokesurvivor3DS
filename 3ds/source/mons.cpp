@@ -143,7 +143,7 @@ int tmDaily(int* out) {
 }
 
 const int BAG_PRICE[3] = {1500, 1500, 5000};
-const char* const BAG_NAME[3] = {"Menta", "Cápsula Habilidad", "Cápsula Habilidad Oculta"};
+const char* const BAG_NAME[3] = {"Menta", "Cápsula Habilidad", "Parche Habilidad"};
 const char* const BAG_DESC[3] = {"Cambia la naturaleza de un Pokémon por la que tú elijas.",
                                  "Cambia la habilidad de un Pokémon por otra de las suyas (no la oculta).",
                                  "Cambia la habilidad de un Pokémon por cualquiera de las suyas, también la oculta."};
