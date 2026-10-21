@@ -80,67 +80,83 @@ static void drawCard(float x, float y, float w, float h, const PullResult& r, u6
 
 void slotDraw(u64 ms) {
     gradV(0, 0, TOP_W, TOP_H, 0.0f, COL(10, 20, 48, 255), COL(24, 44, 96, 255));
-    const float mx = 14, my = 8, mw = 236, mh = 224;
-    // cuerpo de la máquina
-    C2D_DrawRectSolid(mx - 3, my - 3, 0.1f, mw + 6, mh + 6, COL(255, 210, 70, 255));
-    gradV(mx, my, mw, mh, 0.12f, COL(214, 52, 56, 255), COL(130, 22, 36, 255));
-    text("GACHA", mx + mw / 2, my + 2, 0.7f, COL(255, 232, 130, 255), true);
-    // luces
-    for (int i = 0; i < 12; i++) {
-        bool on = ((ms / 180) + i) % 2 == 0;
-        float lx = mx + 12 + i * ((mw - 24) / 11.0f);
-        C2D_DrawCircleSolid(lx, my + 32, 0.2f, 4, on ? COL(255, 240, 150, 255) : COL(110, 60, 30, 255));
+    // 10 tiradas terminadas: sólo el resumen, a tamaño grande
+    if (sDone && sN > 1) {
+        text("¡Resultados!", TOP_W / 2, 0, 0.5f, COL(255, 232, 130, 255), true);
+        for (int i = 0; i < sN; i++) drawCard(6 + (i % 5) * 79, 22 + (i / 5) * 109, 76, 105, sR[i], ms, 1.0f);
+        return;
     }
+    const u32 GOLDC = COL(214, 164, 40, 255), RED = COL(184, 58, 64, 255), DARK = COL(26, 8, 24, 255);
+    const float mx = 22, mw = 204;
+    // cuerpo de la máquina
+    C2D_DrawRectSolid(mx - 2, 40, 0.1f, mw + 4, 192, COL(40, 14, 26, 255));
+    C2D_DrawRectSolid(mx, 42, 0.12f, mw, 186, RED);
+    C2D_DrawRectSolid(mx, 42, 0.13f, 10, 186, COL(224, 108, 104, 255));
+    C2D_DrawRectSolid(mx, 214, 0.13f, mw, 14, COL(130, 40, 50, 255));
+    // rótulo con bombillas
+    C2D_DrawRectSolid(mx + 6, 4, 0.5f, mw - 12, 42, GOLDC);
+    C2D_DrawRectSolid(mx + 10, 8, 0.51f, mw - 20, 34, DARK);
+    for (int i = 0; i < 14; i++) {
+        bool on = ((ms / 200) + i) % 2 == 0;
+        float lx = mx + 9 + i * ((mw - 24) / 13.0f);
+        C2D_DrawRectSolid(lx, 4, 0.52f, 5, 4, on ? COL(255, 240, 170, 255) : COL(120, 84, 24, 255));
+        C2D_DrawRectSolid(lx, 42, 0.52f, 5, 4, on ? COL(120, 84, 24, 255) : COL(255, 240, 170, 255));
+    }
+    text("POKÉ SLOTS", mx + mw / 2, 12, 0.6f, COL(255, 214, 70, 255), true);
     // ventana de rodillos
-    const float wx = mx + 18, wy = my + 46, ww = mw - 36, wh = 82;
-    C2D_DrawRectSolid(wx - 3, wy - 3, 0.2f, ww + 6, wh + 6, COL(255, 210, 70, 255));
-    C2D_DrawRectSolid(wx, wy, 0.22f, ww, wh, COL(245, 240, 225, 255));
+    const float wx = mx + 14, wy = 56, ww = mw - 28, wh = 76;
+    C2D_DrawRectSolid(wx - 4, wy - 4, 0.2f, ww + 8, wh + 8, GOLDC);
+    C2D_DrawRectSolid(wx - 2, wy - 2, 0.21f, ww + 4, wh + 4, DARK);
     const float rw = ww / 3;
+    for (int k = 0; k < 3; k++) C2D_DrawRectSolid(wx + rw * k + 1, wy, 0.22f, rw - 2, wh, COL(244, 238, 224, 255));
     bool have = sN > 0 && sCur < sN;
     for (int k = 0; k < 3; k++) {
         float cx = wx + rw * k + rw / 2;
-        if (k) C2D_DrawRectSolid(wx + rw * k - 1, wy, 0.3f, 2, wh, COL(150, 140, 120, 255));
         bool stopped = have && sT >= stopAt(k);
         bool spinning = have && !stopped;
         if (spinning) {
-            const float step = 56;
+            const float step = 46;
             float pos = sT * 520 + k * 31;
             float off = fmodf(pos, step);
             int base = (int)(pos / step);
             for (int j = -1; j <= 2; j++) {
                 int sym = (int)(hash2(k, base - j, 9) % 5) + 1;
-                ball(cx, wy + wh / 2 + (j - 1) * step + off, 0.3f, sym, 20);
+                ball(cx, wy + wh / 2 + (j - 1) * step + off, 0.3f, sym, 16);
             }
         } else if (have) {
             const PullResult& r = sR[sCur];
-            ball(cx, wy + wh / 2, 0.3f, r.shiny ? 6 : r.rarity, 22);
-        } else ball(cx, wy + wh / 2, 0.3f, 1 + k, 20);
+            ball(cx, wy + wh / 2, 0.3f, r.shiny ? 6 : r.rarity, 18);
+        } else ball(cx, wy + wh / 2, 0.3f, 1, 16);
+        C2D_DrawRectSolid(wx + rw * k + 1, wy, 0.38f, rw - 2, 6, COL(190, 184, 170, 255));
+        C2D_DrawRectSolid(wx + rw * k + 1, wy + wh - 6, 0.38f, rw - 2, 6, COL(190, 184, 170, 255));
     }
-    // máscaras arriba y abajo para recortar los rodillos en movimiento
-    C2D_DrawRectSolid(wx - 3, wy - 60, 0.4f, ww + 6, 57, COL(160, 30, 40, 255));
-    C2D_DrawRectSolid(wx - 3, wy + wh + 3, 0.4f, ww + 6, 60, COL(130, 22, 36, 255));
-    C2D_DrawRectSolid(wx - 3, wy + wh / 2 - 1, 0.35f, ww + 6, 2, COL(255, 80, 80, 140));
-    // texto de estado
+    // máscaras para recortar los rodillos en movimiento
+    C2D_DrawRectSolid(wx - 4, wy - 50, 0.4f, ww + 8, 46, RED);
+    C2D_DrawRectSolid(wx - 4, wy + wh + 4, 0.4f, ww + 8, 50, RED);
+    // pantallita de estado
+    C2D_DrawRectSolid(mx + 34, 142, 0.2f, mw - 68, 26, DARK);
+    C2D_DrawRectSolid(mx + 14, 146, 0.2f, 12, 12, COL(110, 220, 140, 255));
+    C2D_DrawRectSolid(mx + mw - 26, 146, 0.2f, 12, 12, COL(250, 206, 70, 255));
     char b[48];
     if (have && sT >= stopAt(2)) {
         const PullResult& r = sR[sCur];
-        text(r.shiny ? T("¡SHINY!") : T(rarityName(r.rarity)), mx + mw / 2, my + 140, 0.7f, r.shiny ? COL(255, 130, 130, 255) : rarityColor(r.rarity), true);
-    } else if (have) text("…", mx + mw / 2, my + 140, 0.7f, COL(255, 255, 255, 255), true);
-    else text("Tira de la palanca", mx + mw / 2, my + 146, 0.5f, COL(255, 232, 130, 255), true);
-    if (sN > 1 && have) {
-        snprintf(b, sizeof b, "%d/%d", sCur + 1, sN);
-        text(b, mx + mw / 2, my + 184, 0.5f, COL(255, 255, 255, 255), true);
-    }
+        text(r.shiny ? T("¡SHINY!") : T(rarityName(r.rarity)), mx + mw / 2, 144, 0.5f, r.shiny ? COL(255, 130, 130, 255) : rarityColor(r.rarity), true);
+    } else if (have) text("…", mx + mw / 2, 144, 0.5f, COL(255, 214, 70, 255), true);
+    else text("¡Buena suerte!", mx + mw / 2, 144, 0.46f, COL(255, 214, 70, 255), true);
+    // bandeja de salida
+    C2D_DrawRectSolid(mx + 18, 178, 0.2f, mw - 36, 32, COL(40, 14, 26, 255));
+    C2D_DrawRectSolid(mx + 20, 180, 0.21f, mw - 40, 28, COL(10, 6, 20, 255));
+    C2D_DrawRectSolid(mx + 20, 204, 0.22f, mw - 40, 3, COL(140, 150, 170, 255));
+    if (sN > 1 && have) { snprintf(b, sizeof b, "%d/%d", sCur + 1, sN); text(b, mx + mw / 2, 184, 0.5f, COL(255, 255, 255, 255), true); }
     // palanca
     float lever = (have && sT < 0.25f) ? sT * 4 : (have ? 1 : 0);
     if (have && sT > 0.45f) lever = 0;
-    C2D_DrawRectSolid(mx + mw + 10, my + 60, 0.1f, 8, 70, COL(150, 150, 160, 255));
-    C2D_DrawCircleSolid(mx + mw + 14, my + 60 + lever * 56, 0.2f, 12, COL(240, 60, 70, 255));
+    float lx = mx + mw + 8;
+    C2D_DrawRectSolid(lx + 4, 70, 0.1f, 6, 60, COL(150, 160, 180, 255));
+    C2D_DrawRectSolid(lx, 124, 0.1f, 14, 28, COL(190, 200, 215, 255));
+    C2D_DrawCircleSolid(lx + 7, 66 + lever * 40, 0.2f, 9, COL(236, 66, 70, 255));
 
-    // tarjeta del resultado actual / resumen
-    if (sDone && sN == 1) drawCard(268, 40, 120, 160, sR[0], ms, 1.6f);
-    else if (sDone && sN > 1) {
-        gradV(256, 4, 142, 232, 0.42f, COL(10, 20, 48, 255), COL(10, 20, 48, 255));
-        for (int i = 0; i < sN; i++) drawCard(258 + (i % 2) * 70, 6 + (i / 2) * 45, 68, 43, sR[i], ms, 0.5f);
-    } else if (have && sT >= stopAt(2)) drawCard(268, 40, 120, 160, sR[sCur], ms, 1.6f);
+    // resultado de la tirada actual
+    if (sDone && sN == 1) drawCard(266, 30, 124, 170, sR[0], ms, 1.7f);
+    else if (have && sT >= stopAt(2)) drawCard(266, 30, 124, 170, sR[sCur], ms, 1.7f);
 }

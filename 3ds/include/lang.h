@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[2]; };   // tr[0] = inglés, tr[1] = francés
-#define LANG_N_STR 631
+#define LANG_N_STR 632
 static const LangStr LANG_STR[LANG_N_STR] = {
   {"+%d Pokémonedas  +%d tickets", {"+%d Pokécoins  +%d tickets", "+%d Pokémonnaies  +%d tickets"}},
   {"+%d tickets · %d", {"+%d tickets · %d", "+%d tickets · %d"}},
@@ -278,7 +278,6 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Furia Dragón", {"Dragon Rage", "Draco-Rage"}},
   {"Fusionar", {"Fuse", "Fusionner"}},
   {"Físico", {"Physical", "Physique"}},
-  {"GACHA", {"GACHA", "GACHA"}},
   {"Gacha", {"Gacha", "Gacha"}},
   {"Gal", {"Gal", "Gal"}},
   {"Galar", {"Galar", "Galar"}},
@@ -417,6 +416,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Orden: Rareza", {"Sort: Rarity", "Tri : Rareté"}},
   {"Otr", {"Oth", "Aut"}},
   {"Otros", {"Other", "Autres"}},
+  {"POKÉ SLOTS", {"POKÉ SLOTS", "POKÉ SLOTS"}},
   {"PS %d    Velocidad %d", {"HP %d    Speed %d", "PV %d    Vitesse %d"}},
   {"Pal", {"Pal", "Pal"}},
   {"Paldea", {"Paldea", "Paldea"}},
@@ -526,7 +526,6 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Tierra", {"Ground", "Sol"}},
   {"Tinieblas", {"Night Shade", "Ténèbres"}},
   {"Tipo %s · %s", {"Type %s · %s", "Type %s · %s"}},
-  {"Tira de la palanca", {"Pull the lever", "Tire le levier"}},
   {"Tirador", {"Puller", "Tireur"}},
   {"Tirar ×1", {"Pull ×1", "Tirer ×1"}},
   {"Tirar ×10", {"Pull ×10", "Tirer ×10"}},
@@ -611,6 +610,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"¡%s te desafía!", {"%s challenges you!", "%s te défie !"}},
   {"¡%s te sigue! Llévalo a la marca verde", {"%s is following you! Take it to the green marker", "%s te suit ! Ramène-le à la marque verte"}},
   {"¡Banda Focus!", {"Focus Sash!", "Bandeau Focus !"}},
+  {"¡Buena suerte!", {"Good luck!", "Bonne chance !"}},
   {"¡Eficaz!", {"Effective!", "Efficace !"}},
   {"¡Grieta superada! ¡Vínculo!", {"Rift cleared! Bond!", "Brèche vaincue ! Lien !"}},
   {"¡Has caído!", {"You fainted!", "Tu es K.O. !"}},
@@ -626,6 +626,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"¡Nivel! Elige una mejora", {"Level up! Choose an upgrade", "Niveau ! Choisis une amélioration"}},
   {"¡Nuevo récord!", {"New record!", "Nouveau record !"}},
   {"¡Objeto nuevo!", {"New item!", "Nouvel objet !"}},
+  {"¡Resultados!", {"Results!", "Résultats !"}},
   {"¡Revivido!", {"Revived!", "Ranimé !"}},
   {"¡SHINY!", {"SHINY!", "SHINY !"}},
   {"¡Se abrió una grieta!", {"A rift has opened!", "Une faille s'est ouverte !"}},
