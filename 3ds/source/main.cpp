@@ -38,7 +38,7 @@ static void msg(const char* s) { snprintf(gMsg, sizeof gMsg, "%s", s); gMsgT = 2
 struct FocR { float x, y, w, h; };
 static FocR gFoc[96], gFocPrev[96];
 static int gFocN, gFocPrevN, gFocIdx = -1;
-static bool gFocShow, gFocOn, gFocAct, gBotScene;
+static bool gFocShow, gFocOn, gFocAct, gBotScene, gBackReq;
 static u64 gFocMs;
 static bool tapIn(float x, float y, float w, float h) {
     bool hit = gTap && inRect(gTp.px, gTp.py, x, y, w, h);
@@ -110,6 +110,7 @@ static bool button(float x, float y, float w, float h, const char* label, u32 bg
         tx += isz / 2 - 2;
     }
     text(label, tx, ty, sc, WHITE, true);
+    if (gBackReq && (!strcmp(label, "Volver") || !strcmp(label, "Atrás"))) { gBackReq = false; return true; }
     return tapIn(x, y, w, h);
 }
 // Flecha ◀ / ▶ para pasar de página.
@@ -1050,6 +1051,7 @@ int main() {
             bool padKeys = gState == ST_LOADOUT || gState == ST_PAUSE;
             if (gFocOn) focusMove(down);
             gFocAct = gFocOn && gFocShow && (down & (padKeys ? KEY_SELECT : KEY_A));
+            gBackReq = gFocOn && !padKeys && (down & KEY_B);
             gFocN = 0;
             gBotScene = false;
         }
@@ -1170,6 +1172,7 @@ int main() {
             case ST_OVER: drawOver(); break;
         }
         C3D_FrameEnd(0);
+        gBackReq = false;
         memcpy(gFocPrev, gFoc, sizeof(FocR) * gFocN);
         gFocPrevN = gFocN;
         if (gFocIdx >= gFocN) gFocIdx = gFocN - 1;
