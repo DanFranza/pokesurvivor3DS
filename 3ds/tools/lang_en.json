@@ -270,5 +270,11 @@
  "R: movimientos": "R: moves",
  "¡Resultados!": "Results!",
  "¡Buena suerte!": "Good luck!",
- "POKÉ SLOTS": "POKÉ SLOTS"
+ "POKÉ SLOTS": "POKÉ SLOTS",
+ "¡Un %s shiny anda cerca!": "A shiny %s is nearby!",
+ "¡Has conseguido a %s shiny!": "You got shiny %s!",
+ "¡Otro %s shiny! (+300 monedas)": "Another shiny %s! (+300 coins)",
+ "¡%s se ha enfurecido!": "%s is enraged!",
+ "¡Bomba!": "Bomb!",
+ "¡Abierto!": "Opened!"
 }

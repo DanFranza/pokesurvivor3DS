@@ -652,5 +652,11 @@
  "R: movimientos": "R : attaques",
  "¡Resultados!": "Résultats !",
  "¡Buena suerte!": "Bonne chance !",
- "POKÉ SLOTS": "POKÉ SLOTS"
+ "POKÉ SLOTS": "POKÉ SLOTS",
+ "¡Un %s shiny anda cerca!": "Un %s shiny rôde dans les parages !",
+ "¡Has conseguido a %s shiny!": "Tu as obtenu %s shiny !",
+ "¡Otro %s shiny! (+300 monedas)": "Un autre %s shiny ! (+300 pièces)",
+ "¡%s se ha enfurecido!": "%s est en colère !",
+ "¡Bomba!": "Bombe !",
+ "¡Abierto!": "Ouvert !"
 }

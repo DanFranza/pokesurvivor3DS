@@ -37,7 +37,7 @@ void textWrap(const char* s, float x, float y, float w, float sc, u32 col);
 // ---------- iconos pixel art (include/icons.h generado) ----------
 #include "icons.h"
 void iconsLoad();
-void icon(int ic, float x, float y, float sc = 0.5f, u32 tint = 0xFFFFFFFF);   // sc 0.5 = 16 px
+void icon(int ic, float x, float y, float sc = 0.5f, u32 tint = 0xFFFFFFFF, float z = 0.85f);   // sc 0.5 = 16 px
 
 // ---------- idioma (core.cpp + include/lang.h generado) ----------
 enum { LANG_ES, LANG_EN, LANG_FR, LANG_N };

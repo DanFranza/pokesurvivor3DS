@@ -63,5 +63,8 @@ enum {
     IC_STARDIM,
     IC_LEFT,
     IC_RIGHT,
+    IC_CHEST,
+    IC_BIGCHEST,
+    IC_BIGCHEST2,
     IC_COUNT
 };

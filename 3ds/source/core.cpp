@@ -149,7 +149,7 @@ void iconsLoad() {
     if (gIcons) { C2D_Image im = C2D_SpriteSheetGetImage(gIcons, 0); C3D_TexSetFilter(im.tex, GPU_NEAREST, GPU_NEAREST); }
 }
 // sc = 1 → celda de 32 px (cada píxel del arte, 2 px de pantalla)
-void icon(int ic, float x, float y, float sc, u32 tint) {
+void icon(int ic, float x, float y, float sc, u32 tint, float z) {
     if (!gIcons || ic < 0 || ic >= IC_COUNT) return;
     C2D_Image img = C2D_SpriteSheetGetImage(gIcons, 0);
     Tex3DS_SubTexture st;
@@ -160,7 +160,7 @@ void icon(int ic, float x, float y, float sc, u32 tint) {
     img.subtex = &st;
     C2D_ImageTint t;
     C2D_PlainImageTint(&t, tint, 1.0f);
-    C2D_DrawImageAt(img, floorf(x), floorf(y), 0.85f, tint == 0xFFFFFFFF ? nullptr : &t, sc, sc);
+    C2D_DrawImageAt(img, floorf(x), floorf(y), z, tint == 0xFFFFFFFF ? nullptr : &t, sc, sc);
 }
 
 // ---------------------------------------------------------------- guardado

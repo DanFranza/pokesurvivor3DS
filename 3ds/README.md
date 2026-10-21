@@ -19,6 +19,8 @@ Para oír la música en consola real hace falta `sdmc:/3ds/dspfirm.cdc` (DSP1); 
 - 103 movimientos de 23 tipos de comportamiento, con 4 mejoras cada uno; cada Pokémon usa su movimiento inicial y los de sus tipos.
 - Enemigos con comportamientos (perseguidor, embestida, a distancia, tanque, curandero, escudo, invocador, bombardero, rayo, zonas, abanico, saltador, corredor), jefes y mareas.
 - Mapas por bioma con suelo, líquidos que dañan o frenan, árboles, rocas y cofres.
+- Cofres con sprites de la web; los grandes se abren quedándose a su lado 3,5 s. Rocas indestructibles en la grieta.
+- Bomba (0,6 % de las bajas): daña a todos los enemigos cercanos. Jefes con ataques de la web (embestida, salto, lluvia, rayos, ráfaga, nova) y furia al 50 % de PS. Pokémon shiny salvajes (1/4096): al derrotarlos se desbloquean. PS en número y clima más visible con indicador.
 - Progresión permanente: mejoras, gacha de 9 generaciones con garantía, colección de Pokémon, vetos y movimiento inicial.
 - Música (aldea, bosque, jefe) y efectos sintetizados por software.
 - Idiomas: español, inglés y francés (selección al inicio). Pokédex por regiones, gacha con máquina tragaperras, probabilidades y brillantes (1 %), misiones diarias y semanales.

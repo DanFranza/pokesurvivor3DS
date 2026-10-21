@@ -15,7 +15,8 @@
 
 // ---------------------------------------------------------------- tipos de datos
 struct Enemy {
-    bool on, boss, moving, legend, judge;
+    bool on, boss, moving, legend, judge, shiny, fury, binit;
+    u8 bmode, bst, batk, bside; float bcd, bmodeT, bt, bax, bay, bdx, bdy;
     short di;                       // fila en DEX
     u8 beh, dir, st;
     float x, y, hp, maxHp, spd, dmg, xp, r, flash, t, t2, tx, ty, kx, ky, shield, hitCd, took;
@@ -288,14 +289,24 @@ static bool liquidTile(int tx, int ty) {
     if (gArena && fabsf(tx * TS + 16 - gArenaX) < ARENA_H + TS && fabsf(ty * TS + 16 - gArenaY) < ARENA_H + TS) return false;
     return vnoise(tx / 4.5f, ty / 4.5f, wseed() + 3) > 0.78f - pools * 0.85f;
 }
-enum { PR_NONE, PR_TREE, PR_ROCK, PR_CHEST, PR_BIG };
+enum { PR_NONE, PR_TREE, PR_ROCK, PR_CHEST, PR_BIG, PR_AROCK };
+static bool breakable(int k) { return k == PR_ROCK || k == PR_CHEST; }
 static bool isBroken(int tx, int ty) {
     for (int i = 0; i < gNBroken; i++) if (gBroken[i][0] == (u8)(tx & 255) && gBroken[i][1] == (u8)(ty & 255)) return true;
     return false;
 }
 static int propAt(int tx, int ty, int* var) {
     if (tx * tx + ty * ty < 30) return PR_NONE;
-    if (gArena && fabsf(tx * TS + 16 - gArenaX) < ARENA_H + TS && fabsf(ty * TS + 16 - gArenaY) < ARENA_H + TS) return PR_NONE;
+    if (gArena && fabsf(tx * TS + 16 - gArenaX) < ARENA_H + TS && fabsf(ty * TS + 16 - gArenaY) < ARENA_H + TS) {
+        if (gJ) return PR_NONE;
+        float dx = tx * TS + 16 - gArenaX, dy = ty * TS + 27 - gArenaY;
+        if (fabsf(dx) > ARENA_H - 60 || fabsf(dy) > ARENA_H - 60) return PR_NONE;
+        if (dx * dx + dy * dy < 100 * 100 || dx * dx + (dy - 160) * (dy - 160) < 80 * 80 || dx * dx + (dy + 120) * (dy + 120) < 80 * 80) return PR_NONE;
+        u32 ha = hash2(tx, ty, wseed() + 7);
+        if ((ha & 0xFFFF) / 65536.0f >= 0.022f) return PR_NONE;
+        if (var) *var = (ha >> 16) % 2;
+        return PR_AROCK;
+    }
     u32 h = hash2(tx, ty, wseed() + 1);
     float r = (h & 0xFFFF) / 65536.0f;
     int kind = PR_NONE;
@@ -310,7 +321,7 @@ static int propAt(int tx, int ty, int* var) {
     if (var) *var = (h >> 16) % (kind == PR_TREE ? 3 : 2);
     return kind;
 }
-static float propR(int k) { return k == PR_TREE ? 8.0f : k == PR_ROCK ? 11.0f : 9.0f; }
+static float propR(int k) { return k == PR_TREE ? 8.0f : (k == PR_ROCK || k == PR_AROCK) ? 11.0f : 9.0f; }
 static void propPos(int tx, int ty, float* x, float* y) { *x = tx * TS + 16; *y = ty * TS + 27; }
 static void pushOut(float& x, float& y, float r) {
     int tx0 = (int)floorf(x / TS), ty0 = (int)floorf(y / TS);
@@ -472,11 +483,28 @@ static int spawnEnemy(const Def& d, float x, float y, bool boss, bool elite, flo
     float sz = fminf((float)s.w, (float)s.h);
     e.r = clampf(sz * 0.34f, 8, 16) * (boss ? 1.9f : 1);
     e.t = frange(0, 2); e.t2 = frange(0, 1);
+    if (!gArena && d.beh != B_THIEF && rnd() % 4096 == 0 && sprHasShiny(DEX_NUM[d.di])) {
+        e.shiny = true; e.maxHp = e.hp = e.hp * 2; e.xp *= 5;
+        char b[64]; snprintf(b, sizeof b, "¡Un %s shiny anda cerca!", pname(d.di)); banner(b, 3.4f);
+        sfxPlay(SFX_RARE);
+    }
     return slot;
 }
 
 static void thiefLoot(Enemy& e);
 static void riftWin(Enemy& e);
+static void shinyCaught(Enemy& e) {
+    char b[64];
+    if (!gSave.shiny[e.di]) {
+        gSave.shiny[e.di] = 1; gSave.owned[e.di] = 1;
+        snprintf(b, sizeof b, "¡Has conseguido a %s shiny!", pname(e.di)); saveWrite();
+    } else {
+        gCoins += 300;
+        snprintf(b, sizeof b, "¡Otro %s shiny! (+300 monedas)", pname(e.di));
+    }
+    banner(b, 3.6f); sfxPlay(SFX_RARE);
+    fxRing(e.x, e.y - 8, 6, 110, 0x70f0ff, 0.7f, 5); fxBurst(e.x, e.y - 8, 0x70f0ff, 24, 150);
+}
 static void killEnemy(Enemy& e) {
     if (!e.on) return;
     e.on = false;
@@ -488,6 +516,7 @@ static void killEnemy(Enemy& e) {
     }
     if (e.beh == B_THIEF) { thiefLoot(e); return; }
     if (e.legend) { riftWin(e); return; }
+    if (e.shiny) shinyCaught(e);
     fxBurst(e.x, e.y - 8, 0xffffff, e.boss ? 18 : 6, e.boss ? 150 : 90);
     if (e.boss) fxRing(e.x, e.y - 8, 6, 90, 0xffe070, 0.5f, 5);
     sfxPlay(e.boss ? SFX_BOSS : SFX_KILL);
@@ -510,6 +539,7 @@ static void killEnemy(Enemy& e) {
         if (r < 0.10f) dropPick(1, e.x + frange(-6, 6), e.y + frange(-4, 4), 1);
         else if (r < 0.115f) dropPick(2, e.x, e.y, 1);
         else if (r < 0.12f) dropPick(4, e.x, e.y, 1);
+        else if (r < 0.126f) dropPick(6, e.x, e.y, 1);
     }
 }
 
@@ -894,7 +924,7 @@ static void breakProps(float x, float y, float r, float dmg) {
     for (int ty = ty0; ty <= ty1; ty++)
         for (int tx = tx0; tx <= tx1; tx++) {
             int k = propAt(tx, ty, nullptr);
-            if (k < PR_ROCK) continue;
+            if (!breakable(k)) continue;
             float px, py; propPos(tx, ty, &px, &py);
             if (distf(x, y, px, py) <= r + propR(k)) breakProp(tx, ty, k);
         }
@@ -1017,6 +1047,76 @@ static void spawnMinions(Enemy& e) {
     fxRing(e.x, e.y - 8, 6, 36, 0xd8d060, 0.4f, 3);
 }
 
+static void bossAI(Enemy& e, float dt, float dx, float dy, float dist, float ux, float uy) {
+    const DexE& dp = DEX[e.di];
+    u32 col = TYPE_RGB[dp.t1];
+    if (!e.binit) { e.binit = true; e.bmodeT = frange(3, 6); e.bcd = 1.0f; e.bside = rnd() & 1; }
+    if (!e.fury && e.hp < e.maxHp * 0.5f) {
+        e.fury = true;
+        char b[64]; snprintf(b, sizeof b, "¡%s se ha enfurecido!", pname(e.di)); banner(b, 3.0f);
+        fxRing(e.x, e.y - 8, 8, 150, 0xff4030, 0.7f, 6); gShake = fmaxf(gShake, 0.5f); sfxPlay(SFX_BOSS);
+    }
+    float fm = e.fury ? 0.8f : 1.0f;
+    float spd = e.spd * wxSpeed(dp.t1, dp.t2) * (e.fury ? 1.25f : 1.1f);
+    float base = e.dmg * 0.8f;
+    bool mv = false;
+    int t1 = dp.t1;
+    int pref = (t1 == 1 || t1 == 8 || t1 == 7 || t1 == 12 || t1 == 4) ? 3 : (t1 == 3 || t1 == 10 || t1 == 14 || t1 == 5 || t1 == 16) ? 4 : (t1 == 17 || t1 == 13 || t1 == 2 || t1 == 9) ? 6 : 5;
+    int ranged[4] = {3, 4, 5, 6}, pi = pref - 3;
+    int second = ranged[(pi + 1 + e.di % 3) % 4];
+    int melee2 = ((e.di * 7 + 3) % 2) ? 1 : 2;
+    if (e.bst == 0) {
+        e.bmodeT -= dt;
+        if (e.bmodeT <= 0) { e.bmode ^= 1; e.bmodeT = frange(4, 9); }
+        if (e.bmode == 0) { moveEnemy(e, ux, uy, spd, dt); mv = true; }
+        else {
+            if (dist > 240) moveEnemy(e, ux, uy, spd, dt);
+            else if (dist < 150) moveEnemy(e, -ux, -uy, spd * 0.9f, dt);
+            else moveEnemy(e, e.bside ? -uy : uy, e.bside ? ux : -ux, spd * 0.6f, dt);
+            mv = true;
+        }
+        e.bcd -= dt;
+        if (e.bcd <= 0 && dist < 470) {
+            int a = e.bmode == 0 ? ((rnd() % 100) < 45 ? 0 : melee2) : ((rnd() % 100) < 60 ? pref : second);
+            float ang = atan2f(dy, dx);
+            e.batk = (u8)a; e.bst = 1;
+            switch (a) {
+                case 0: e.bt = 0.85f * fm; hazCircle(e.x, e.y, 96 + e.r, e.bt, base * 1.3f, col); break;
+                case 1: e.bt = 0.75f * fm; e.bdx = cosf(ang); e.bdy = sinf(ang); hazLine(e.x, e.y - 8, ang, 330, e.r * 2 + 16, e.bt, base * 1.2f, col); break;
+                case 2: e.bt = 1.1f * fm; e.bax = P.x; e.bay = P.y; hazCircle(P.x, P.y, 82, e.bt, base * 1.25f, col); break;
+                case 3: {
+                    e.bt = 0.55f * fm; int n = e.fury ? 6 : 4;
+                    for (int i = 0; i < n; i++) hazCircle(P.x + (i ? frange(-90, 90) : 0), P.y + (i ? frange(-70, 70) : 0), 50, 1.05f * fm + i * 0.12f, e.shotDmg * 1.15f, col);
+                    break;
+                }
+                case 4: {
+                    e.bt = 0.6f * fm; int n = e.fury ? 5 : 3;
+                    for (int i = 0; i < n; i++) hazLine(e.x, e.y - 8, ang + (n == 1 ? 0 : ((float)i / (n - 1) - 0.5f) * 0.9f), 400, 26, 1.0f * fm, e.shotDmg * 1.2f, col);
+                    break;
+                }
+                default: e.bt = 0.5f * fm; break;
+            }
+        }
+    } else if (e.bst == 1) {
+        e.bt -= dt;
+        if (e.bt <= 0) {
+            bool chain = e.fury && frand() < 0.35f;
+            e.bcd = chain ? 0.3f : frange(1.3f, 2.0f);
+            float ang = atan2f(dy, dx);
+            e.bst = 0;
+            if (e.batk == 1) { e.bst = 2; e.bt = 0.32f; }
+            else if (e.batk == 2) { e.x = e.bax; e.y = e.bay; fxRing(e.x, e.y - 8, 6, 60, col, 0.3f, 4); gShake = fmaxf(gShake, 0.25f); }
+            else if (e.batk == 5) { int n = e.fury ? 9 : 7; for (int i = 0; i < n; i++) eshot(e.x, e.y - 12, ang + ((float)i / (n - 1) - 0.5f) * 0.9f, 150, e.shotDmg, col, 6); }
+            else if (e.batk == 6) { int n = e.fury ? 18 : 14; for (int i = 0; i < n; i++) eshot(e.x, e.y - 12, i * 6.2832f / n, 120, e.shotDmg, col, 6); }
+        }
+    } else {
+        e.bt -= dt; mv = true;
+        moveEnemy(e, e.bdx, e.bdy, 330 / 0.32f, dt);
+        if (e.bt <= 0) e.bst = 0;
+    }
+    e.moving = mv;
+    if (fabsf(ux) > fabsf(uy)) e.dir = ux > 0 ? 1 : 3; else e.dir = uy > 0 ? 0 : 2;
+}
 static void enemyAI(Enemy& e, float dt) {
     float dx = P.x - e.x, dy = P.y - e.y, dist = sqrtf(dx * dx + dy * dy);
     float ux = dist > 0.01f ? dx / dist : 0, uy = dist > 0.01f ? dy / dist : 0;
@@ -1036,6 +1136,7 @@ static void enemyAI(Enemy& e, float dt) {
         }
         return;
     }
+    if (e.boss && !e.judge) { bossAI(e, dt, dx, dy, dist, ux, uy); return; }
     bool mv = true;
     switch (e.beh) {
         case B_CHASE: case B_TANK: moveEnemy(e, ux, uy, spd, dt); break;
@@ -1338,7 +1439,7 @@ static void updateShots(float dt) {
         if (s.on) {
             int tx = (int)floorf(s.x / TS), ty = (int)floorf(s.y / TS);
             int k = propAt(tx, ty, nullptr);
-            if (k >= PR_ROCK) { float px, py; propPos(tx, ty, &px, &py); if (distf(s.x, s.y, px, py) < propR(k) + s.r) { breakProp(tx, ty, k); s.on = false; } }
+            if (k >= PR_ROCK) { float px, py; propPos(tx, ty, &px, &py); if (distf(s.x, s.y, px, py) < propR(k) + s.r) { if (breakable(k)) breakProp(tx, ty, k); if (k != PR_BIG) s.on = false; } }
         }
     }
 }
@@ -1503,6 +1604,19 @@ static void updatePickups(float dt) {
                     for (int k = 0; k < MAXP; k++) if (gP[k].on && gP[k].kind <= 1) { gP[k].t = 30; }
                     fxText(P.x, P.y - 30, "¡Imán!", 0x80c0ff, 0.5f); sfxPlay(SFX_PICK); break;
                 case 5: sfxPlay(SFX_RARE); itemOffer((int)p.val); break;
+                case 6: {
+                    float bd = 60 + P.level * 14;
+                    fxRing(P.x, P.y - 8, 10, 270, 0xff9a3d, 0.6f, 6); fxRing(P.x, P.y - 8, 6, 180, 0xffe070, 0.45f, 4);
+                    fxText(P.x, P.y - 30, "¡Bomba!", 0xff9a3d, 0.7f); sfxPlay(SFX_BOOM); gShake = fmaxf(gShake, 0.5f);
+                    for (int k = 0; k < MAXE; k++) {
+                        Enemy& o = gE[k]; if (!o.on || o.beh == B_THIEF) continue;
+                        float ex = o.x - P.x, ey = o.y - P.y, ed = sqrtf(ex * ex + ey * ey);
+                        if (ed > 270) continue;
+                        if (ed > 0.01f) { o.kx += ex / ed * 280; o.ky += ey / ed * 280; }
+                        damageEnemyRaw(o, bd);
+                    }
+                    break;
+                }
             }
         }
     }
@@ -1919,6 +2033,42 @@ static void judgeUpdate(float dt) {
     if (gNP == 1 && (P.hp <= 0 || gArenaDead)) { gPS = PS_OVER; sfxPlay(SFX_OVER); }
 }
 
+struct BigP { int tx, ty; float t; bool used; };
+static BigP gBigP[6];
+static const float CHEST_TIME = 3.5f;
+static BigP* bigFind(int tx, int ty, bool make) {
+    for (auto& b : gBigP) if (b.used && b.tx == tx && b.ty == ty) return &b;
+    if (!make) return nullptr;
+    for (auto& b : gBigP) if (!b.used) { b = {tx, ty, 0, true}; return &b; }
+    return nullptr;
+}
+static void bigChestUpdate(float dt) {
+    bool near[6] = {};
+    for (int i = 0; i < gNP; i++) {
+        Player& q = gC[i].p; if (gC[i].dead) continue;
+        int tx0 = (int)floorf(q.x / TS), ty0 = (int)floorf(q.y / TS);
+        for (int ty = ty0 - 2; ty <= ty0 + 2; ty++)
+            for (int tx = tx0 - 2; tx <= tx0 + 2; tx++) {
+                if (propAt(tx, ty, nullptr) != PR_BIG) continue;
+                float px, py; propPos(tx, ty, &px, &py);
+                if (distf(q.x, q.y, px, py - 6) > 46) continue;
+                BigP* b = bigFind(tx, ty, true); if (!b) continue;
+                if (b->t <= 0) sfxPlay(SFX_UI);
+                near[b - gBigP] = true;
+            }
+    }
+    for (int i = 0; i < 6; i++) {
+        BigP& b = gBigP[i]; if (!b.used) continue;
+        if (near[i]) {
+            b.t += dt;
+            if (b.t >= CHEST_TIME) {
+                float px, py; propPos(b.tx, b.ty, &px, &py);
+                fxText(px, py - 30, "¡Abierto!", 0xf2c443, 0.8f);
+                breakProp(b.tx, b.ty, PR_BIG); b.used = false;
+            }
+        } else { b.t -= dt * 1.5f; if (b.t <= 0) b.used = false; }
+    }
+}
 static void eventsUpdate(float dt) {
     if (gArena) {
         gArenaT += dt;
@@ -1933,6 +2083,7 @@ static void eventsUpdate(float dt) {
         else if (gArenaT > 120) riftExit(false, false);
         return;
     }
+    bigChestUpdate(dt);
     bool boss = anyBoss();
     // clima
     if (gWx) {
@@ -2148,7 +2299,7 @@ bool playCoopActive() { return gNP > 1; }
 static void resetWorld(int charIdx) {
     memset(gE, 0, sizeof gE); memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
     memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF); memset(gFx, 0, sizeof gFx);
-    gNBroken = 0; gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
+    memset(gBigP, 0, sizeof gBigP); gNBroken = 0; gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
     memset(gKillsType, 0, sizeof gKillsType); gChests = gEvolves = gRifts = 0;
     gNextBoss = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gTickN = 0;
     gArena = gArenaDead = gPortal = false; gThiefN = 0; gThiefT = frange(120, 240); gLost.on = false; gLostT = frange(150, 210); gRiftChk = 30; gRiftMiss = 0;
@@ -2492,14 +2643,24 @@ static void drawProp(int kind, int tx, int ty, float cx, float cy) {
     float sx = px - cx, sy = py - cy;
     int var = 0; propAt(tx, ty, &var);
     if (kind == PR_TREE) { C2D_DrawEllipseSolid(sx - 12, sy - 4, 0.38f, 24, 8, COL(0, 0, 0, 70)); tileDraw(T.tree[var], sx - T.tree[var].ax, sy - T.tree[var].ay, 0.5f); }
-    else if (kind == PR_ROCK) { C2D_DrawEllipseSolid(sx - 12, sy - 4, 0.38f, 24, 8, COL(0, 0, 0, 70)); tileDraw(T.rock[var], sx - T.rock[var].ax, sy - T.rock[var].ay, 0.5f); }
-    else {
-        bool big = kind == PR_BIG; float w = big ? 22 : 16, h = big ? 16 : 12;
+    else if (kind == PR_ROCK || kind == PR_AROCK) {
+        C2D_DrawEllipseSolid(sx - 12, sy - 4, 0.38f, 24, 8, COL(0, 0, 0, 70));
+        tileDraw(T.rock[var], sx - T.rock[var].ax, sy - T.rock[var].ay, 0.5f);
+    } else {
+        bool big = kind == PR_BIG; float w = big ? 24 : 16, h = big ? 20 : 14;
+        float shk = 0, frac = 0, ox = 0;
+        if (big) { BigP* b = bigFind(tx, ty, false); if (b) { frac = b->t / CHEST_TIME; shk = frac > 0.05f ? sinf(gTime * 50) * 1.5f * frac : 0; } }
+        ox = shk;
         C2D_DrawEllipseSolid(sx - w / 2 - 2, sy - 4, 0.38f, w + 4, 8, COL(0, 0, 0, 70));
-        C2D_DrawRectSolid(sx - w / 2 - 1, sy - h - 1, 0.5f, w + 2, h + 2, COL(70, 40, 10, 255));
-        C2D_DrawRectSolid(sx - w / 2, sy - h, 0.51f, w, h, big ? COL(240, 190, 40, 255) : COL(190, 120, 40, 255));
-        C2D_DrawRectSolid(sx - w / 2, sy - h, 0.52f, w, 4, big ? COL(255, 235, 120, 255) : COL(220, 160, 70, 255));
-        C2D_DrawRectSolid(sx - 2, sy - h / 2 - 1, 0.53f, 4, 5, COL(255, 255, 255, 255));
+        icon(big ? (frac > 0.8f ? IC_BIGCHEST2 : IC_BIGCHEST) : IC_CHEST, sx - 16 + ox, sy - 16 - h / 2, 1.0f, 0xFFFFFFFF, 0.5f);
+        if (big && frac > 0.02f) {
+            float cx2 = sx, cy2 = sy - h / 2, rr = 26; int n = (int)(24 * frac) + 1; float px = cx2, py = cy2 - rr * 0.85f;
+            for (int i = 1; i <= n; i++) {
+                float a2 = -PI_F / 2 + i * 6.2832f / 24, nx = cx2 + cosf(a2) * rr, ny = cy2 + sinf(a2) * rr * 0.85f;
+                C2D_DrawLine(px, py, COL(255, 215, 80, 255), nx, ny, COL(255, 215, 80, 255), 3, 0.9f); px = nx; py = ny;
+            }
+            if (frac > 0.8f) for (int i = 0; i < 3; i++) { float a3 = gTime * 9 + i * 2.1f; C2D_DrawRectSolid(cx2 + cosf(a3) * 14 - 1, cy2 + sinf(a3) * 12 - 1, 0.91f, 3, 3, COL(255, 250, 170, 255)); }
+        }
     }
 }
 
@@ -2515,18 +2676,28 @@ static void edgeArrow(float wx, float wy, float cx, float cy, u32 col) {
 static void drawWeather() {
     float lv = wxLevel();
     if (!gWx || lv <= 0) return;
-    static const u8 TINT[6][4] = {{0}, {255, 190, 90, 18}, {50, 90, 170, 24}, {200, 160, 90, 24}, {210, 230, 255, 20}, {190, 195, 210, 32}};
+    static const u8 TINT[6][4] = {{0}, {255, 190, 70, 40}, {40, 80, 170, 62}, {210, 160, 80, 66}, {200, 225, 255, 50}, {185, 190, 205, 84}};
     C2D_DrawRectSolid(0, 0, 0.7f, TOP_W, TOP_H, COL(TINT[gWx][0], TINT[gWx][1], TINT[gWx][2], (int)(TINT[gWx][3] * lv)));
-    int n = (int)((gWx == 2 ? 46 : gWx == 4 ? 34 : gWx == 3 ? 30 : gWx == 1 ? 10 : 0) * lv);
+    int n = (int)((gWx == 2 ? 70 : gWx == 4 ? 60 : gWx == 3 ? 56 : gWx == 1 ? 22 : 0) * lv);
     float T0 = gMs * 0.001f;
+    if (gWx == 5) {
+        for (int i = 0; i < 5; i++) {
+            float x = fmodf(i * 97 + T0 * (8 + i * 3), TOP_W + 200) - 100, y = 30 + i * 46 + sinf(T0 * 0.5f + i) * 10;
+            C2D_DrawEllipseSolid(x - 90, y - 18, 0.71f, 180, 36, COL(225, 230, 240, (int)(46 * lv)));
+        }
+    }
+    if (gWx == 1) {
+        C2D_DrawRectSolid(0, 0, 0.7f, TOP_W, 22, COL(255, 220, 120, (int)(36 * lv)));
+        C2D_DrawRectSolid(0, TOP_H - 22, 0.7f, TOP_W, 22, COL(255, 150, 40, (int)(34 * lv)));
+    }
     for (int i = 0; i < n; i++) {
         u32 h = hash2(i, 7, 99);
         float sx = (h & 1023) / 1023.0f * TOP_W, sy = ((h >> 10) & 1023) / 1023.0f * TOP_H, ph = ((h >> 20) & 255) / 255.0f;
         float x, y;
-        if (gWx == 2) { x = fmodf(sx - 120 * T0 + 4000, TOP_W); y = fmodf(sy + 520 * T0, TOP_H); C2D_DrawLine(x, y, COL(200, 220, 255, 150), x - 3, y - 9, COL(200, 220, 255, 0), 1, 0.71f); }
-        else if (gWx == 4) { x = fmodf(sx + sinf(T0 + ph * 6) * 14 + 4000, TOP_W); y = fmodf(sy + 55 * T0, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 2, 2, COL(255, 255, 255, 190)); }
-        else if (gWx == 3) { x = fmodf(sx - 420 * T0 + 8000, TOP_W); y = fmodf(sy + 30 * T0, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 8, 1, COL(232, 207, 143, 120)); }
-        else { x = sx; y = fmodf(sy - 20 * T0 + 4000, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 2, 2, COL(255, 241, 176, (int)(60 + 60 * sinf(T0 * 2 + ph * 6)))); }
+        if (gWx == 2) { x = fmodf(sx - 150 * T0 + 4000, TOP_W); y = fmodf(sy + 600 * T0, TOP_H); C2D_DrawLine(x, y, COL(190, 215, 255, 230), x - 4, y - 12, COL(190, 215, 255, 40), 1.5f, 0.71f); }
+        else if (gWx == 4) { x = fmodf(sx + sinf(T0 + ph * 6) * 16 + 4000, TOP_W); y = fmodf(sy + 60 * T0, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 3, 3, COL(255, 255, 255, 230)); }
+        else if (gWx == 3) { x = fmodf(sx - 460 * T0 + 8000, TOP_W); y = fmodf(sy + 30 * T0, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 12, 2, COL(232, 200, 130, 190)); }
+        else { x = sx; y = fmodf(sy - 20 * T0 + 4000, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 3, 3, COL(255, 245, 170, (int)(110 + 100 * sinf(T0 * 2 + ph * 6)))); }
     }
 }
 static void drawEvents(float cx, float cy) {
@@ -2638,13 +2809,19 @@ void playDraw(u64 ms) {
             else if (e.poison > 0) { C2D_PlainImageTint(&tint, COL(190, 90, 220, 255), 0.35f); tinted = true; }
             else if (e.slow > 0) { C2D_PlainImageTint(&tint, COL(120, 200, 255, 255), 0.35f); tinted = true; }
             else if (e.beh == B_THIEF && e.st == 1) { C2D_PlainImageTint(&tint, COL(255, 215, 60, 255), 0.4f); tinted = true; }
-            sprDraw(DEX_NUM[e.di], e.dir, gMs, e.moving, x, y, tinted ? &tint : nullptr, sc);
+            if (e.shiny) {
+                ringDraw(x, y - 10 * sc, e.r + 4 + sinf(gTime * 6) * 2, 2, COL(110, 240, 255, 230), 0.39f);
+                for (int q = 0; q < 3; q++) { float a = gTime * 4 + q * 2.1f; C2D_DrawRectSolid(x + cosf(a) * (e.r + 6), y - 10 * sc + sinf(a) * (e.r + 2), 0.9f, 3, 3, COL(230, 255, 255, 255)); }
+            }
+            if (e.fury) ringDraw(x, y - 10 * sc, e.r + 6 + sinf(gTime * 8) * 2, 2, COL(255, 60, 40, 220), 0.39f);
+            sprDraw(DEX_NUM[e.di], e.dir, gMs, e.moving, x, y, tinted ? &tint : nullptr, sc, e.shiny);
             if (e.shield > 0) ringDraw(x, y - 12 * sc, e.r + 6, 2, COL(120, 180, 255, 220), 0.7f);
             if (e.beh >= B_HEALER && e.beh <= B_SUMMONER && !e.boss) {}
             if (e.boss) {
                 const PokeSpr& s = POKE_SPR[DEX_NUM[e.di]]; float yy = y - s.h * sc - 10;
                 C2D_DrawRectSolid(x - 26, yy, 0.8f, 52, 5, COL(0, 0, 0, 220));
-                C2D_DrawRectSolid(x - 25, yy + 1, 0.85f, 50 * clampf(e.hp / e.maxHp, 0, 1), 3, COL(230, 60, 60, 255));
+                C2D_DrawRectSolid(x - 25, yy + 1, 0.85f, 50 * clampf(e.hp / e.maxHp, 0, 1), 3, e.fury ? COL(255, 130, 40, 255) : COL(230, 60, 60, 255));
+                char hb[24]; snprintf(hb, sizeof hb, "%d", (int)ceilf(fmaxf(e.hp, 0))); text(hb, x, yy - 9, 0.4f, COL(255, 255, 255, 255), true);
             } else if (e.hp < e.maxHp) {
                 float yy = y - 4;
                 C2D_DrawRectSolid(x - 10, yy, 0.8f, 20, 3, COL(0, 0, 0, 170));
@@ -2691,6 +2868,7 @@ void playDraw(u64 ms) {
             case 2: circle(x, y, 6, COL(255, 255, 255, 255), 0.45f); C2D_DrawRectSolid(x - 1.5f, y - 4, 0.47f, 3, 8, COL(230, 50, 80, 255)); C2D_DrawRectSolid(x - 4, y - 1.5f, 0.47f, 8, 3, COL(230, 50, 80, 255)); break;
             case 3: if (p.val >= 10) icon(IC_TICKET10, x - 12, y - 12, 0.75f); else icon(IC_TICKET, x - 8, y - 8, 0.5f); break;
             case 4: circle(x, y, 6, COL(60, 90, 230, 255), 0.45f); circle(x, y, 3, COL(230, 60, 60, 255), 0.46f); break;
+            case 6: icon(IC_BOMB, x - 10, y - 12, 0.62f); break;
             case 5: C2D_DrawRectSolid(x - 7, y - 7, 0.45f, 14, 14, COL(255, 255, 255, 255)); C2D_DrawRectSolid(x - 6, y - 6, 0.46f, 12, 12, COL(255, 120, 200, 255)); C2D_DrawRectSolid(x - 2, y - 2, 0.47f, 4, 4, COL(255, 230, 90, 255)); break;
         }
     }
@@ -2702,8 +2880,22 @@ void playDraw(u64 ms) {
     char b[48];
     C2D_DrawRectSolid(0, 0, 0.8f, TOP_W, 14, COL(0, 0, 0, 120));
     snprintf(b, sizeof b, "Nv %d", P.level); text(b, 4, -2, 0.45f, COL(255, 255, 255, 255));
+    for (int i = 0; i < gNP; i++) {
+        const Player& q = gC[i].p; float by = 2 + i * 13, w = 86, fr = clampf(q.hp / q.maxHp, 0, 1);
+        if (i) C2D_DrawRectSolid(46, by - 2, 0.8f, w + 4, 12, COL(0, 0, 0, 120));
+        C2D_DrawRectSolid(48, by, 0.82f, w, 9, COL(0, 0, 0, 220));
+        C2D_DrawRectSolid(49, by + 1, 0.83f, (w - 2) * fr, 7, i == gLoc ? COL(70, 200, 80, 255) : COL(80, 150, 240, 255));
+        char hb[24]; snprintf(hb, sizeof hb, "%d / %d", (int)ceilf(fmaxf(q.hp, 0)), (int)q.maxHp); text(hb, 48 + w / 2, by - 3, 0.4f, COL(255, 255, 255, 255), true);
+    }
     int sec = (int)gTime; snprintf(b, sizeof b, "%02d:%02d", sec / 60, sec % 60); text(b, bx, -2, 0.45f, COL(255, 255, 255, 255), true);
     snprintf(b, sizeof b, "KO %d", gKills); text(b, TOP_W - 52, -2, 0.45f, COL(255, 230, 120, 255));
     if (gBannerT > 0) text(gBanner, bx, 30, strlen(gBanner) > 30 ? 0.5f : 0.7f, COL(255, 240, 160, 255), true);
-    if (int wk = playWeather(nullptr)) { snprintf(b, sizeof b, "%s", weatherName(wk)); text(b, TOP_W - 4, 14, 0.4f, rgbA(weatherColor(wk), 255)); }
+    if (gWx) {
+        C2D_DrawRectSolid(TOP_W - 96, 15, 0.8f, 92, 14, COL(0, 0, 0, 130));
+        static const int WI[6] = {0, IC_WSUN, IC_WRAIN, IC_WSAND, IC_WSNOW, IC_WFOG};
+        icon(WI[gWx], TOP_W - 98, 8, 0.5f);
+        int left = (int)fmaxf(0, gWxDur - gWxT);
+        snprintf(b, sizeof b, "%s %d:%02d", weatherName(gWx), left / 60, left % 60);
+        text(b, TOP_W - 82, 13, 0.4f, rgbA(weatherColor(gWx), 255));
+    }
 }
