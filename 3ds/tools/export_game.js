@@ -94,6 +94,7 @@ out.push(`#define DEX_N ${dexList.length}`, 'static const DexE DEX[DEX_N] = {');
 const dexIdx = {};
 dexList.forEach((p, i) => { dexIdx[p.dex] = i; });
 for (const p of dexList) {
+  if (p.dex === 373) p.rarity = 4;   // Salamence: épico en la 3DS
   let start = 0;
   try { start = MI[G.Moves.startFor(G.STARTERS.find(x => x.dex === p.dex) || p)] || 0; } catch (e) { /* sin movimiento inicial */ }
   const beh = Math.max(0, BEH.indexOf(G.__beh(p)));

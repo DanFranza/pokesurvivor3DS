@@ -262,5 +262,10 @@
  "¡%s se une a tu colección!": "%s joins your collection!",
  "¡Has llevado a %s a casa! Te lo agradece": "You took %s home! It thanks you",
  "Niveles: %d": "Levels: %d",
- "Poseídos": "Owned"
+ "Poseídos": "Owned",
+ "Orden: Rareza": "Sort: Rarity",
+ "Orden: N.º": "Sort: No.",
+ "Movimientos de %s": "%s’s moves",
+ "L: página 1": "L: page 1",
+ "R: movimientos": "R: moves"
 }

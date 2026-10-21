@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[2]; };   // tr[0] = inglés, tr[1] = francés
-#define LANG_N_STR 626
+#define LANG_N_STR 631
 static const LangStr LANG_STR[LANG_N_STR] = {
   {"+%d Pokémonedas  +%d tickets", {"+%d Pokécoins  +%d tickets", "+%d Pokémonnaies  +%d tickets"}},
   {"+%d tickets · %d", {"+%d tickets · %d", "+%d tickets · %d"}},
@@ -337,6 +337,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Kalos", {"Kalos", "Kalos"}},
   {"Kan", {"Kan", "Kan"}},
   {"Kanto", {"Kanto", "Kanto"}},
+  {"L: página 1", {"L: page 1", "L : page 1"}},
   {"LA SENTENCIA DE ARCEUS", {"ARCEUS' JUDGMENT", "LE JUGEMENT D'ARCEUS"}},
   {"La grieta se cerró…", {"The rift closed…", "La faille s'est refermée…"}},
   {"La grieta se cierra…", {"The rift is closing…", "La faille se referme…"}},
@@ -381,6 +382,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Mordisco rápido en arco corto.", {"A quick bite in a short arc.", "Morsure rapide en arc court."}},
   {"Mov. inicial: %s", {"Start move: %s", "Attaque init. : %s"}},
   {"Movimiento inicial", {"Starting move", "Attaque initiale"}},
+  {"Movimientos de %s", {"%s’s moves", "Attaques de %s"}},
   {"Más tarde", {"Later", "Plus tard"}},
   {"Máx.", {"Max.", "Max."}},
   {"Necesitas 10 tickets", {"You need 10 tickets", "Il faut 10 tickets"}},
@@ -411,6 +413,8 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Onda que persigue sola a su objetivo.", {"A wave that homes in on its target.", "Onde qui poursuit seule sa cible."}},
   {"Onda sonora que sale en todas direcciones.", {"A sound wave that spreads in every direction.", "Onde sonore dans toutes les directions."}},
   {"Onda Ígnea", {"Heat Wave", "Onde Ignée"}},
+  {"Orden: N.º", {"Sort: No.", "Tri : N°"}},
+  {"Orden: Rareza", {"Sort: Rarity", "Tri : Rareté"}},
   {"Otr", {"Oth", "Aut"}},
   {"Otros", {"Other", "Autres"}},
   {"PS %d    Velocidad %d", {"HP %d    Speed %d", "PV %d    Vitesse %d"}},
@@ -451,6 +455,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Púas", {"Spikes", "Picots"}},
   {"Púas Tóxicas", {"Toxic Spikes", "Pics Toxik"}},
   {"Púas venenosas que envenenan mucho al estallar.", {"Poison spikes that badly poison when they burst.", "Picots venimeux qui empoisonnent fort en explosant."}},
+  {"R: movimientos", {"R: moves", "R : attaques"}},
   {"Raro", {"Rare", "Rare"}},
   {"Rayo", {"Thunderbolt", "Tonnerre"}},
   {"Rayo Burbuja", {"Bubble Beam", "Bulles Rayon"}},

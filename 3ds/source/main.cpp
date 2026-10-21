@@ -12,7 +12,7 @@ static touchPosition gTp;
 static bool gTap, gTouching;
 static int gSel;
 static int gPage, gShopPage, gGen = 1, gBanPage;
-static int gDexGen = 1, gDexPage, gDexSel;
+static int gDexGen = 1, gDexPage, gDexSel, gDexTop, gDexSort;
 static int gStartChoice[2], gNStart;
 static int gSelBtn = 3, gSelMove = -1;
 static CardSet gCards;
@@ -273,6 +273,8 @@ static void drawMenuTop(u64 ms) {
 static int dexOfGen(int gen, int* out) {
     int n = 0;
     for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gen) out[n++] = i;
+    if (gDexSort)       // por rareza (la más alta primero), estable
+        for (int i = 1; i < n; i++) { int v = out[i], j = i; while (j > 0 && DEX[out[j - 1]].rarity < DEX[v].rarity) { out[j] = out[j - 1]; j--; } out[j] = v; }
     return n;
 }
 static void drawDex(u64 ms) {
@@ -311,13 +313,35 @@ static void drawDex(u64 ms) {
     }
     if (arrowBtn(6, 204, 50, 30, false, gDexPage > 0)) { gDexPage--; sprFreeAll(); sfxPlay(SFX_UI); }
     if (arrowBtn(264, 204, 50, 30, true, gDexPage < pages - 1)) { gDexPage++; sprFreeAll(); sfxPlay(SFX_UI); }
+    if (button(60, 204, 98, 30, gDexSort ? "Orden: Rareza" : "Orden: N.º", gDexSort ? COL(200, 110, 40, 255) : EDGE, 0.4f)) { gDexSort ^= 1; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
+    if (button(162, 204, 98, 30, "Volver", COL(180, 80, 80, 255), 0.4f)) { gState = ST_MENU; sprFreeAll(); }
     int have = 0;
     for (int i = 0; i < n; i++) have += gSave.owned[list[i]];
     snprintf(gTmp, sizeof gTmp, "%s %d/%d", GACHA_GEN_NAMES[gDexGen - 1], have, n);
-    text(gTmp, 160, 196, 0.36f, COL(170, 200, 255, 255), true);
-    snprintf(gTmp, sizeof gTmp, "%d/%d", gDexPage + 1, pages > 0 ? pages : 1);
-    text(gTmp, 160, 210, 0.36f, COL(170, 200, 255, 255), true);
-    if (button(100, 222, 120, 16, "Volver", COL(180, 80, 80, 255), 0.36f)) { gState = ST_MENU; sprFreeAll(); }
+    char pg[16]; snprintf(pg, sizeof pg, " · %d/%d", gDexPage + 1, pages > 0 ? pages : 1);
+    strncat(gTmp, pg, sizeof gTmp - strlen(gTmp) - 1);
+    text(gTmp, 160, 184 + 12, 0.34f, COL(170, 200, 255, 255), true);
+}
+// Página 2: todos los movimientos que puede aprender (por sus tipos), con el inicial primero.
+static void drawDexMoves(int di) {
+    const DexE& p = DEX[di];
+    panel(8, 28, 384, 196, WHITE, COL(26, 49, 112, 255));
+    snprintf(gTmp, sizeof gTmp, "Movimientos de %s", pname(di));
+    text(gTmp, 200, 30, 0.5f, GOLD, true);
+    int list[40], n = 0; list[n++] = p.start;
+    int ts[2] = {p.t1, p.t2};
+    for (int k = 0; k < 2; k++) {
+        if (ts[k] == 255) continue;
+        const PoolRef& r = POOL_BY_TYPE[ts[k]];
+        for (int i = 0; i < r.n && n < 40; i++) { int m = POOL_ALL[r.off + i], dup = 0; for (int j = 0; j < n; j++) dup |= list[j] == m; if (!dup) list[n++] = m; }
+    }
+    for (int i = 0; i < n && i < 24; i++) {
+        float x = 18 + (i / 12) * 190, y = 52 + (i % 12) * 14;
+        C2D_DrawRectSolid(x, y + 2, 0.3f, 8, 8, typeColor(MOVES[list[i]].type));
+        text(MOVES[list[i]].name, x + 14, y - 3, 0.38f, i == 0 ? GOLD : WHITE);
+        if (i == 0) text("★", x + 176, y - 3, 0.38f, GOLD, true);
+    }
+    text("L: página 1", 20, 212, 0.34f, COL(170, 200, 255, 255));
 }
 static void drawDexTop(u64 ms) {
     topBg();
@@ -326,6 +350,7 @@ static void drawDexTop(u64 ms) {
     bool own = gSave.owned[gDexSel] && sprHas(DEX_NUM[gDexSel]);
     snprintf(gTmp, sizeof gTmp, "Pokédex — %s", GACHA_GEN_NAMES[p.gen - 1]);
     text(gTmp, 200, 2, 0.6f, GOLD, true);
+    if (own && gDexTop == 1) { drawDexMoves(gDexSel); return; }
     panel(14, 28, 160, 196, WHITE, COL(26, 49, 112, 255));
     if (own) {
         bool sh = gSave.shinyOn[gDexSel] && gSave.shiny[gDexSel];
@@ -349,6 +374,7 @@ static void drawDexTop(u64 ms) {
     int dm = p.start;
     snprintf(gTmp, sizeof gTmp, "Mov. inicial: %s", T(MOVES[dm].name)); text(gTmp, 192, 140, 0.42f, typeColorLight(MOVES[dm].type));
     textWrap(MOVES[dm].desc, 192, 160, 188, 0.36f, COL(170, 200, 255, 255));
+    text("R: movimientos", 284, 210, 0.34f, COL(170, 200, 255, 255), true);
     if (gSave.shiny[gDexSel]) text("★ Shiny conseguido", 192, 206, 0.38f, COL(255, 120, 120, 255));
 }
 
@@ -980,6 +1006,7 @@ int main() {
         }
         if (gState == ST_PLAY && !gCoop && (down & KEY_START)) { gState = ST_PAUSE; gAfterPause = true; gSelBtn = 3; gSelMove = -1; gJoy = false; }
         else if (gState == ST_PAUSE && (down & KEY_START)) { gState = ST_PLAY; gAfterPause = false; }
+        if (gState == ST_DEX) { if (down & KEY_R) gDexTop = 1; if (down & KEY_L) gDexTop = 0; }
         if (gState == ST_LOADOUT || gState == ST_PAUSE)
             for (int i = 0; i < 4; i++) if (down & BTN_KEYS[i]) {
                 if (gSelMove >= 0 && gSelMove != i) { playSwapSlots(gSelMove, i); if (gState == ST_LOADOUT) { int t = gOrder[gSelMove]; gOrder[gSelMove] = gOrder[i]; gOrder[i] = t; } gSelMove = -1; }

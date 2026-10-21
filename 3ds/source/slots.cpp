@@ -7,7 +7,7 @@ static float sT;
 static bool sDone = true, sSfx[3];
 
 u32 rarityColor(int r) {
-    static const u32 c[6] = {0x445066, 0x9fb1c9, 0x5fe08a, 0x4fb4ff, 0xc47bff, 0xffcb3d};
+    static const u32 c[6] = {0x445066, 0x9fb1c9, 0x5fe08a, 0x4fb4ff, 0xff9a3d, 0xc47bff};
     return COL((c[r] >> 16) & 255, (c[r] >> 8) & 255, c[r] & 255, 255);
 }
 static const char* rarityName(int r) {

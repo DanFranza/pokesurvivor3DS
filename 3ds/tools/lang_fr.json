@@ -644,5 +644,10 @@
  "¡%s se une a tu colección!": "%s rejoint ta collection !",
  "¡Has llevado a %s a casa! Te lo agradece": "Tu as ramené %s chez lui ! Il te remercie",
  "Niveles: %d": "Niveau : %d",
- "Poseídos": "Possédés"
+ "Poseídos": "Possédés",
+ "Orden: Rareza": "Tri : Rareté",
+ "Orden: N.º": "Tri : N°",
+ "Movimientos de %s": "Attaques de %s",
+ "L: página 1": "L : page 1",
+ "R: movimientos": "R : attaques"
 }
