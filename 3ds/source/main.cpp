@@ -260,53 +260,150 @@ static void doLoadRun() {
 }
 
 // ---------------------------------------------------------------- tienda de Kecleon (menta, cápsulas y las MT del día)
+static const int KEC_PER = 3;
+static int kecPages() { return 4; }   // 1 de objetos + 3 de MT (3+3+2)
+static float gKecFx;                  // destello al comprar
+static u64 gKecFxT;
+
+static void kecRow(float y, const char* name, const char* desc, int price, int owned, int tmMoveType, int cat, bool canLearn, u32 col, int id) {
+    bool sel = gKecSel == id;
+    panel(6, y, 308, 50, sel ? GOLD : EDGE, COL(26, 49, 112, 255));
+    text(name, 14, y + 1, 0.5f, WHITE);
+    float nx = 14 + textW(name, 0.5f) + 6;
+    if (tmMoveType != 255) { typeChip(nx, y + 6, tmMoveType); nx += 60; }
+    if (cat >= 0) text(T(cat == 0 ? "Físico" : cat == 1 ? "Especial" : "Estado"), nx, y + 3, 0.34f, COL(170, 200, 255, 255));
+    textWrap(desc, 14, y + 19, 210, 0.33f, COL(210, 225, 255, 255));
+    if (owned > 0) { snprintf(gTmp, sizeof gTmp, "×%d", owned); text(gTmp, 206, y + 1, 0.4f, COL(255, 255, 160, 255)); }
+    if (canLearn) text(T("Puede aprenderla"), 14, y + 38, 0.3f, COL(120, 255, 140, 255));
+    bool can = gSave.coins >= price;
+    snprintf(gTmp, sizeof gTmp, "%d", price);
+    if (button(228, y + 6, 80, 38, gTmp, can ? col : COL(80, 84, 110, 255), 0.5f, IC_COIN)) {
+        gKecSel = id;
+        bool ok = id >= 100 ? shopBuyItem(id - 100) : shopBuyTm(id);
+        if (ok) { sfxPlay(SFX_LEVEL); gKecFx = 1; gKecFxT = osGetTime(); }
+        else { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); }
+    }
+}
 static void drawKecleon() {
     bgFill();
     headerBar("Kecleon", IC_COIN);
     icon(IC_COIN, 232, 3, 0.5f);
     snprintf(gTmp, sizeof gTmp, "%d", gSave.coins);
     text(gTmp, 252, 1, 0.5f, GOLD);
-    static const u32 bc[3] = {COL(70, 150, 90, 255), COL(70, 110, 190, 255), COL(150, 90, 190, 255)};
-    static const char* const bn[3] = {"Menta", "Cápsula", "Cáp. oculta"};
-    for (int i = 0; i < 3; i++) {
-        float x = 6 + i * 104;
-        panel(x, 30, 102, 62, gKecSel == 100 + i ? GOLD : EDGE, COL(26, 49, 112, 255));
-        text(bn[i], x + 51, 30, 0.4f, WHITE, true);
-        snprintf(gTmp, sizeof gTmp, "En bolsa: %d", gSave.bag[i]);
-        text(gTmp, x + 51, 45, 0.32f, COL(170, 200, 255, 255), true);
-        snprintf(gTmp, sizeof gTmp, "%d", BAG_PRICE[i]);
-        if (button(x + 6, 60, 90, 26, gTmp, gSave.coins >= BAG_PRICE[i] ? bc[i] : COL(80, 84, 110, 255), 0.42f, IC_COIN)) {
-            gKecSel = 100 + i;
-            if (shopBuyItem(i)) sfxPlay(SFX_LEVEL); else { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); }
-        }
-    }
+    int pages = kecPages();
+    if (gKecPage < 0) gKecPage = 0;
+    if (gKecPage >= pages) gKecPage = pages - 1;
     int tm[8], n = tmDaily(tm);
-    text("MT del día", 6, 94, 0.4f, GOLD);
     int di = partner();
-    for (int k = 0; k < n; k++) {
-        float x = 6 + (k % 2) * 158, y = 112 + (k / 2) * 21;
-        int t = tm[k];
-        bool can = gSave.coins >= TM_PRICE[t];
-        snprintf(gTmp, sizeof gTmp, "%s %d", MOVES[TM_MOVE[t]].name, TM_PRICE[t]);
-        if (button(x, y, 154, 19, gTmp, can ? typeColor(MOVES[TM_MOVE[t]].type) : COL(80, 84, 110, 255), 0.3f)) {
-            gKecSel = t;
-            if (shopBuyTm(t)) sfxPlay(SFX_LEVEL); else { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); }
+    if (gKecPage == 0) {
+        static const u32 bc[3] = {COL(70, 150, 90, 255), COL(70, 110, 190, 255), COL(150, 90, 190, 255)};
+        for (int i = 0; i < 3; i++)
+            kecRow(30 + i * 52, BAG_NAME[i], BAG_DESC[i], BAG_PRICE[i], gSave.bag[i], 255, -1, false, bc[i], 100 + i);
+    } else {
+        for (int k = 0; k < KEC_PER; k++) {
+            int idx = (gKecPage - 1) * KEC_PER + k;
+            if (idx >= n) break;
+            int t = tm[idx];
+            const MoveDef& m = MOVES[TM_MOVE[t]];
+            kecRow(30 + k * 52, m.name, m.desc, TM_PRICE[t], gSave.tms[t], m.type, m.cat, monCanLearn(di, t), typeColor(m.type), t);
         }
-        if (gSave.tms[t]) { snprintf(gTmp, sizeof gTmp, "×%d", gSave.tms[t]); text(gTmp, x + 5, y + 2, 0.28f, COL(255, 255, 160, 255)); }
-        if (monCanLearn(di, t)) C2D_DrawRectSolid(x + 148, y + 2, 0.4f, 4, 15, COL(120, 255, 140, 255));
     }
-    text("Barra verde: tu compañero puede aprenderla", 6, 197, 0.3f, COL(120, 255, 140, 255));
-    if (button(220, 204, 94, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
-    if (gMsgT > 0) text(gMsg, 110, 214, 0.38f, COL(255, 120, 120, 255), true);
+    if (arrowBtn(6, 198, 40, 36, false, gKecPage > 0)) { gKecPage--; sfxPlay(SFX_UI); }
+    if (arrowBtn(52, 198, 40, 36, true, gKecPage < pages - 1)) { gKecPage++; sfxPlay(SFX_UI); }
+    snprintf(gTmp, sizeof gTmp, "%s  %d/%d", gKecPage == 0 ? T("Objetos") : T("MT del día"), gKecPage + 1, pages);
+    text(gTmp, 100, 200, 0.42f, GOLD);
+    if (gMsgT > 0) text(gMsg, 100, 218, 0.34f, COL(255, 120, 120, 255));
+    if (button(232, 198, 82, 36, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
 }
-static void drawKecleonTop() {
-    topBg();
-    tileBg();
-    text("Tienda de Kecleon", 200, 4, 0.7f, GOLD, true);
-    textWrap("Menta: cambia la naturaleza de un Pokémon. Cápsula: cambia su habilidad (la oculta necesita la cápsula oculta). Las MT enseñan movimientos que su tipo no le da; se usan en «Pokémon» → Detalles.", 24, 40, 352, 0.42f, WHITE);
-    textWrap("La lista de 8 MT cambia cada día (según la fecha de la consola). Cada MT se gasta al enseñarla.", 24, 130, 352, 0.38f, COL(170, 200, 255, 255));
-    if (gKecSel >= 100) textWrap(BAG_DESC[gKecSel - 100], 24, 170, 352, 0.4f, COL(255, 220, 120, 255));
-    else if (gKecSel >= 0) textWrap(MOVES[TM_MOVE[gKecSel]].desc, 24, 170, 352, 0.4f, COL(255, 220, 120, 255));
+
+// Escena de la tienda: toldo a rayas, estantes, mostrador y dos Kecleon.
+static void drawKecleonTop(u64 now) {
+    // cielo y suelo
+    gradRect(0, 0, TOP_W, 150, 0.02f, COL(120, 190, 250, 255), COL(200, 235, 255, 255));
+    C2D_DrawRectSolid(0, 150, 0.02f, TOP_W, 90, COL(96, 170, 84, 255));
+    for (int i = 0; i < 3; i++) {
+        float cx = fmodf(40 + i * 150 + now * 0.004f, 480) - 40;
+        C2D_DrawRectSolid(cx, 12 + i * 8, 0.03f, 50, 12, COL(255, 255, 255, 230));
+        C2D_DrawRectSolid(cx + 8, 6 + i * 8, 0.03f, 30, 8, COL(255, 255, 255, 230));
+    }
+    // árboles
+    for (int s = 0; s < 2; s++) {
+        float tx = s ? 352 : 10;
+        C2D_DrawRectSolid(tx + 14, 110, 0.04f, 10, 50, COL(110, 70, 40, 255));
+        C2D_DrawRectSolid(tx, 70, 0.05f, 38, 46, COL(50, 130, 60, 255));
+        C2D_DrawRectSolid(tx + 6, 60, 0.05f, 26, 14, COL(60, 150, 70, 255));
+    }
+    // pared de ladrillo y estantes
+    C2D_DrawRectSolid(64, 48, 0.1f, 272, 112, INK);
+    C2D_DrawRectSolid(68, 52, 0.11f, 264, 108, COL(150, 80, 70, 255));
+    for (int r = 0; r < 9; r++) {
+        C2D_DrawRectSolid(68, 52 + r * 12, 0.12f, 264, 1, COL(110, 56, 52, 255));
+        for (int c = (r & 1) * 12; c < 264; c += 24) C2D_DrawRectSolid(68 + c, 52 + r * 12, 0.12f, 1, 12, COL(110, 56, 52, 255));
+    }
+    static const u32 ic[8] = {COL(110, 220, 170, 255), COL(240, 90, 90, 255), COL(240, 210, 80, 255), COL(120, 160, 255, 255),
+                              COL(230, 120, 230, 255), COL(255, 255, 255, 255), COL(255, 150, 60, 255), COL(90, 210, 90, 255)};
+    for (int row = 0; row < 2; row++) {
+        float sy = 92 + row * 38;
+        C2D_DrawRectSolid(76, sy + 12, 0.2f, 248, 5, COL(110, 74, 40, 255));
+        for (int k = 0; k < 8; k++) {
+            float ix = 84 + k * 29;
+            C2D_DrawRectSolid(ix, sy - 2, 0.21f, 14, 14, INK);
+            C2D_DrawRectSolid(ix + 1, sy - 1, 0.22f, 12, 12, ic[(k + row * 3) & 7]);
+        }
+    }
+    // toldo a rayas
+    for (int i = 0; i < 14; i++) {
+        float x = 54 + i * 21.5f;
+        u32 c = (i & 1) ? COL(250, 250, 250, 255) : COL(80, 190, 90, 255);
+        C2D_DrawRectSolid(x, 26, 0.7f, 21.5f, 22, c);
+        C2D_DrawRectSolid(x, 48, 0.7f, 21.5f, 5, (i & 1) ? c : COL(60, 150, 70, 255));
+    }
+    C2D_DrawRectSolid(54, 22, 0.71f, 301, 4, INK);
+    C2D_DrawRectSolid(54, 53, 0.71f, 301, 2, INK);
+
+    // Kecleon: verde y morado (mismo sprite teñido) paseando detrás del mostrador
+    const int KD = 352;
+    if (sprHas(KD)) {
+        float t = now / 1000.0f;
+        for (int k = 0; k < 2; k++) {
+            float ph = t * (k ? 0.5f : 0.4f) + k * 2.5f;
+            float x = (k ? 262 : 138) + sinf(ph) * 40;
+            bool right = cosf(ph) > 0;
+            bool hop = fmodf(t + k * 1.7f, 5.0f) < 0.6f;
+            float y = 176 - (hop ? fabsf(sinf(fmodf(t + k * 1.7f, 5.0f) * 16.0f)) * 10 : 0);
+            C2D_ImageTint tint;
+            if (k) C2D_PlainImageTint(&tint, COL(170, 90, 230, 255), 0.5f);
+            sprDraw(KD, right ? 1 : 3, now, true, x, y, k ? &tint : nullptr, 1.6f);
+        }
+    }
+    // mostrador
+    C2D_DrawRectSolid(44, 168, 0.8f, 312, 34, INK);
+    C2D_DrawRectSolid(48, 170, 0.81f, 304, 28, COL(190, 130, 70, 255));
+    C2D_DrawRectSolid(48, 170, 0.82f, 304, 5, COL(230, 175, 100, 255));
+    C2D_DrawRectSolid(130, 176, 0.83f, 140, 18, INK);
+    C2D_DrawRectSolid(132, 178, 0.84f, 136, 14, COL(40, 60, 120, 255));
+    text("Tienda Kecleon", 200, 174, 0.42f, GOLD, true);
+    // monedas, lámparas y suelo
+    for (int i = 0; i < 4; i++) C2D_DrawRectSolid(60 + i * 8, 162 - (i & 1) * 3, 0.85f, 6, 4, GOLD);
+    C2D_DrawRectSolid(330, 160, 0.85f, 4, 8, INK);
+    C2D_DrawRectSolid(327, 150, 0.86f, 10, 10, (now / 400) & 1 ? COL(255, 240, 150, 255) : COL(255, 210, 90, 255));
+    for (int i = 0; i < 10; i++) C2D_DrawRectSolid(hash2(i, 3, 9) % 390, 208 + hash2(i, 4, 9) % 28, 0.05f, 4, 3, COL(70, 140, 70, 255));
+    // globo de diálogo
+    const char* line = ((now / 5000) & 1) ? "¡Hola! Echa un vistazo, ¿eh?" : "¡Bienvenido a la Tienda Kecleon!";
+    const char* tl = T(line);
+    float bw = textW(tl, 0.42f) + 16;
+    C2D_DrawRectSolid(200 - bw / 2 - 2, 2, 0.85f, bw + 4, 22, INK);
+    C2D_DrawRectSolid(200 - bw / 2, 4, 0.86f, bw, 18, COL(255, 255, 255, 255));
+    text(tl, 200, 3, 0.42f, INK, true);
+    // monedas
+    icon(IC_COIN, 318, 214, 0.5f);
+    snprintf(gTmp, sizeof gTmp, "%d", gSave.coins);
+    text(gTmp, 338, 212, 0.5f, GOLD);
+    if (gKecFx > 0) {
+        float a = 1.0f - (osGetTime() - gKecFxT) / 700.0f;
+        if (a <= 0) gKecFx = 0;
+        else for (int i = 0; i < 6; i++) C2D_DrawRectSolid(150 + i * 20, 120 - (1 - a) * 40 - (i & 1) * 8, 0.95f, 6, 6, COL(255, 240, 120, (u8)(255 * a)));
+    }
 }
 
 // ---------------------------------------------------------------- idioma
@@ -1294,7 +1391,7 @@ int main() {
             case ST_STARTMOVE: drawStartTop(); break;
             case ST_LOADOUT: case ST_PAUSE: drawLoadoutTop(now); break;
             case ST_SHOP: drawShopTop(now); break;
-            case ST_KECLEON: drawKecleonTop(); break;
+            case ST_KECLEON: drawKecleonTop(now); break;
             case ST_GACHA: drawGachaTop(now); break;
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
             case ST_LANG: topBg(); tileBg(); logo(200, 70, 1.3f); break;

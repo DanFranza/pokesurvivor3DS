@@ -31,6 +31,7 @@ u32 typeColorLight(int t, int a = 255);
 void textInit();
 void textFrame();
 void text(const char* s, float x, float y, float sc, u32 col, bool center = false);
+float textW(const char* s, float sc);
 float textH(const char* s, float sc);       // alto de una línea (para centrar en vertical)
 void textWrap(const char* s, float x, float y, float w, float sc, u32 col);
 
