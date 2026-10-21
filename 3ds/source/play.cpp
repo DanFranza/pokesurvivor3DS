@@ -96,6 +96,7 @@ struct Ctx {
     int statTaken[9];
     int pend;                       // niveles por elegir (cooperativo: la partida no se pausa)
     bool dead, shiny;
+    MonStat ms; int abil;           // estadísticas con naturaleza · habilidad
     bool bondWait, adead;           // vínculo por decidir (pausa) · caído dentro de la grieta
 };
 static int gTickN;
@@ -353,8 +354,9 @@ static int liquidKind() { return TILESET_LIQUID[gSet]; }
 static const DexE& pdex() { return DEX[P.di]; }
 static float atkBase(const MoveDef& d) {
     const DexE& p = pdex();
-    float a = P.atkMul * (P.buffAtkT > 0 ? 1 + P.buffAtk : 1) * p.atk;
-    float fit = d.cat == 0 ? p.pa / p.atk : d.cat == 1 ? p.sa / p.atk : 1;
+    const MonStat& m = gCur->ms;
+    float a = P.atkMul * (P.buffAtkT > 0 ? 1 + P.buffAtk : 1) * m.atk;
+    float fit = d.cat == 0 ? m.pa / m.atk : d.cat == 1 ? m.sa / m.atk : 1;
     if (d.cat != 2 && p.t2 == 255 && d.type == p.t1) fit *= 1.2f;
     return a * fit;
 }
@@ -562,12 +564,38 @@ static void damageEnemyRaw(Enemy& e, float dmg) {
     if (e.hp <= 0) killEnemy(e);
 }
 
+// Habilidad del jugador: términos {op,a,k} de gamedata (los sin términos dan +8% a los movimientos de su tipo).
+static float abilOut(const Enemy& e, int type, int cat) {
+    if (gCur->abil < 0) return 1;
+    const AbilE& A = ABIL[gCur->abil];
+    const DexE& p = pdex();
+    float m = 1;
+    float hf = P.hp / P.maxHp;
+    if (A.nt == 0 || A.plus) { if (type == p.t1) m *= 1.08f; }
+    for (int i = 0; i < A.nt; i++) {
+        const AbTerm& t = A.t[i];
+        switch (t.op) {
+            case AO_OUT_TYPE: if (type == t.a) m *= t.k; break;
+            case AO_OUT_PINCH: if (hf < 1.0f / 3) m *= t.k; break;
+            case AO_OUT_HIGH: if (hf > 0.25f) m *= t.k; break;
+            case AO_OUT_CAT: if (cat == t.a) m *= t.k; break;
+            case AO_OUT_ALL: m *= t.k; break;
+            case AO_OUT_HALFCAT: if (cat != 2) m *= t.k; break;
+            case AO_OUT_STAB: if (type == p.t1 || type == p.t2) m *= t.k; break;
+            case AO_OUT_BOSS: if (e.boss) m *= t.k; break;
+            case AO_OUT_ELOW: if (e.hp < e.maxHp * 0.5f) m *= t.k; break;
+            case AO_OUT_ETYPE: if (DEX[e.di].t1 == t.a || DEX[e.di].t2 == t.a) m *= t.k; break;
+            case AO_OUT_WX: if (gWx == t.a) m *= t.k; break;
+        }
+    }
+    return m;
+}
 static void hitEnemy(Enemy& e, float dmg, int type, int cat, float burn, float poison, float slow, float knock, float dx, float dy, int mid) {
     const DexE& p = DEX[e.di];
     float tm = typeMult(type, p.t1, p.t2);
     float g = cat == 2 ? 1 : guardMul(cat == 1 ? p.sd : p.df);
     bool crit = frand() < P.crit;
-    float d = dmg * tm * g * (crit ? 1.5f : 1) * wxMult(type);
+    float d = dmg * tm * g * (crit ? 1.5f : 1) * wxMult(type) * abilOut(e, type, cat);
     for (int b = 0; b < 4; b++) if (gMoves[b].id == mid) gMoves[b].dealt += d;
     knock *= e.boss ? 0.25f : 1;
     float L = sqrtf(dx * dx + dy * dy);
@@ -955,7 +983,14 @@ static void eshot(float x, float y, float a, float sp, float dmg, u32 col, float
 
 static void hurtPlayer(float dmg, int cat, int srcDi, bool tru = false) {
     if (P.invuln > 0 || P.hp <= 0) return;
-    float g = srcDi >= 0 && !tru ? guardMul(cat == 1 ? pdex().sd : pdex().df) : 1;
+    float g = srcDi >= 0 && !tru ? guardMul(cat == 1 ? gCur->ms.sd : gCur->ms.df) : 1;
+    if (!tru && gCur->abil >= 0) {
+        const AbilE& A = ABIL[gCur->abil];
+        for (int i = 0; i < A.nt; i++) {
+            const AbTerm& t = A.t[i];
+            if (t.op == AO_IN_ALL || (t.op == AO_IN_CAT && cat == t.a) || (t.op == AO_IN_FULL && P.hp >= P.maxHp * 0.95f)) g *= t.k;
+        }
+    }
     float red = tru ? 0 : clampf(P.dmgReduce + (P.buffDefT > 0 ? P.buffDef : 0), 0, 0.8f);
     float d = dmg * g * (1 - red);
     P.hp -= d; P.invuln = 0.55f; P.flash = 0.2f;
@@ -2319,7 +2354,7 @@ static void resetWorld(int charIdx) {
     gChar = charIdx; gSet = charIdx % 3;
 }
 // jugador nuevo: estadísticas de su Pokémon + sus mejoras permanentes
-static void ctxInit(int ci, int di, const u8* perm, const int* startMoves, int nStart, bool shiny) {
+static void ctxInit(int ci, int di, const u8* perm, const int* startMoves, int nStart, bool shiny, int nat, int abil) {
     Sc sc(ci);
     memset(gCur, 0, sizeof(Ctx));
     gActive = -1; gBondAskN = -1; gItem = gItemNew = -1; gSashT = -999;
@@ -2333,6 +2368,23 @@ static void ctxInit(int ci, int di, const u8* perm, const int* startMoves, int n
     P.xpMul = 1 + lv[PU_XP] * 0.05f; P.coinMul = 1 + lv[PU_COINS] * 0.08f; P.crit = lv[PU_CRIT] * 0.03f;
     P.level = 1; P.xpNeed = xpFor(1); P.rerolls = 0; P.dir = 0;
     gRerollsLeft = 1 + lv[PU_REROLL];
+    gCur->ms = monStats(di, nat); gCur->abil = abil;
+    P.spd = gCur->ms.spd * 0.9f;
+    if (abil >= 0) {
+        const AbilE& A = ABIL[abil];
+        for (int i = 0; i < A.nt; i++) {
+            const AbTerm& t = A.t[i];
+            switch (t.op) {
+                case AO_HP: P.maxHp *= t.k; P.hp = P.maxHp; break;
+                case AO_SPEED: P.spdMul *= t.k; break;
+                case AO_REGEN: P.regen += P.maxHp * t.k; break;
+                case AO_CRIT: P.crit += t.k; break;
+                case AO_MAGNET: P.magnet *= t.k; break;
+                case AO_COINS: P.coinMul *= t.k; break;
+                case AO_CD: P.cdMul *= t.k; break;
+            }
+        }
+    }
     for (int b = 0; b < 4; b++) { gMoves[b].id = -1; gMoves[b].cd = 0; gMoves[b].grp = 0; }
     for (int i = 0; i < nStart && i < 4; i++) slotPlace(startMoves[i]);
     gAimX = 0; gAimY = 1; gTarget = -1;
@@ -2347,7 +2399,8 @@ void playReset(int charIdx, const int* startMoves, int nStart) {
     gNP = 1; gLoc = 0; gCur = &gC[0]; gCi = 0; gMovesL = gC[0].moves;
     memset(gC, 0, sizeof gC);
     resetWorld(charIdx);
-    ctxInit(0, charIdx, gSave.pupg[charIdx], startMoves, nStart, gSave.shinyOn[charIdx] && gSave.shiny[charIdx]);
+    u8 perm[NPERM]; for (int i = 0; i < NPERM; i++) perm[i] = (u8)permLvOf(charIdx, i);
+    ctxInit(0, charIdx, perm, startMoves, nStart, gSave.shinyOn[charIdx] && gSave.shiny[charIdx], monNature(charIdx), monAbil(charIdx));
     finishReset();
 }
 // cooperativo: el anfitrión (0) define personaje/mundo; todo se genera con la misma semilla en las dos consolas
@@ -2358,7 +2411,7 @@ void playResetCoop(int me, const CoopHello* h, u32 seed) {
     resetWorld(h[0].di);
     for (int i = 0; i < 2; i++) {
         int sm[2] = {h[i].start[0], h[i].start[1]};
-        ctxInit(i, h[i].di, h[i].perm, sm, h[i].nStart, h[i].shiny != 0);
+        ctxInit(i, h[i].di, h[i].perm, sm, h[i].nStart, h[i].shiny != 0, h[i].nat < NNAT ? h[i].nat : 0, h[i].abil < NABIL ? h[i].abil : -1);
     }
     { Sc sc(0); finishReset(); }
     gC[1].p.x = gC[0].p.x + 26; gC[1].p.y = gC[0].p.y;
@@ -2411,6 +2464,10 @@ void playBuildCards(CardSet& cs) {
             for (int i = 0; i < r.n; i++) { int mid = POOL_ALL[r.off + i]; if (seen[mid] || ownsMove(mid) || gSave.bannedMove[mid]) continue; seen[mid] = true; if (n < 150) c[n++] = {0, mid, 6}; }
         };
         addPool(0); addPool(p.t1); if (p.t2 != 255) addPool(p.t2);
+        if (gNP == 1) {     // MT enseñadas (en cooperativo no: las dos consolas deben ver las mismas cartas)
+            int tg[NTM], nt = monTaughtMoves(P.di, tg);
+            for (int i = 0; i < nt; i++) { int mid = tg[i]; if (seen[mid] || ownsMove(mid) || gSave.bannedMove[mid]) continue; seen[mid] = true; if (n < 150) c[n++] = {0, mid, 6}; }
+        }
     }
     int waitStat[9] = {}; int forced[4], nf = 0;
     for (int b = 0; b < 4; b++) if (gMoves[b].id >= 0 && gMoves[b].lvl < 5) c[n++] = {1, b, 9};

@@ -40,11 +40,11 @@ void iconsLoad();
 void icon(int ic, float x, float y, float sc = 0.5f, u32 tint = 0xFFFFFFFF, float z = 0.85f);   // sc 0.5 = 16 px
 
 // ---------- idioma (core.cpp + include/lang.h generado) ----------
-enum { LANG_ES, LANG_EN, LANG_FR, LANG_N };
+enum { LANG_ES, LANG_EN, LANG_FR, LANG_IT, LANG_PT, LANG_ZHS, LANG_ZHT, LANG_N };
 const char* pname(int di);                      // nombre del Pokémon (fila de DEX) en el idioma activo
 const char* T(const char* es);                  // traduce un texto en español al idioma activo (si no lo conoce, lo devuelve igual)
 const char* typeName(int t);
-const char* const LANG_NAMES[LANG_N] = {"Español", "English", "Français"};
+const char* const LANG_NAMES[LANG_N] = {"Español", "English", "Français", "Italiano", "Português", "Chinese (Simpl.)", "Chinese (Trad.)"};
 // Todo formato de snprintf pasa por T(): las cadenas de printf se traducen solas.
 #define snprintf(b, n, f, ...) snprintf(b, n, T(f), ##__VA_ARGS__)
 
@@ -63,10 +63,11 @@ void tileDraw(const TCell& c, float x, float y, float z, const C2D_ImageTint* ti
 
 // ---------- guardado y progreso permanente (core.cpp) ----------
 struct MSlot { u8 def, tier, param, claimed; int prog; };   // una misión activa (def = índice en las plantillas)
+#define NPERM_OLD 14                            // las mejoras guardadas antes de «Segundo movimiento inicial»
 struct Save {
     u32 magic;
     int coins, t1, t10, best, bestLevel, runs, kills;
-    u8 perm[NPERM];
+    u8 perm[NPERM_OLD];
     u8 owned[DEX_N];
     u8 bannedMove[NMOVES];
     int pity[10];
@@ -82,8 +83,17 @@ struct Save {
     u8 legends[DEX_N];                          // legendarios vencidos en una grieta
     int stat[8];                                // SB_*: estadísticas para los logros
     u8 items[16];                               // objetos equipables encontrados
-    u8 pupg[DEX_N][NPERM];                      // mejoras de CADA Pokémon (perm[] es el formato antiguo)
+    u8 pupg[DEX_N][NPERM_OLD];                      // mejoras de CADA Pokémon (perm[] es el formato antiguo)
     u8 pupgMig;                                 // 1 = perm[] ya pasado al compañero
+    // --- añadido con la Tienda Kecleon (siempre al final: las partidas antiguas siguen valiendo) ---
+    u32 seed;                                   // semilla de la cuenta: de ella salen la naturaleza y la habilidad de cada Pokémon
+    u8 pstart2[DEX_N];                          // mejora «Segundo movimiento inicial» (0/1)
+    u8 startMove2[DEX_N];                       // el segundo movimiento inicial elegido (0 = al azar)
+    u8 pnat[DEX_N];                             // naturaleza cambiada con Menta (id + 1)
+    u8 pabil[DEX_N];                            // habilidad elegida con Cápsula (casilla + 1)
+    u64 ptm[DEX_N];                             // MT enseñadas (bit i = MT i)
+    u16 bag[3];                                 // Mochila: Menta, Cápsula Habilidad, Cápsula Habilidad Oculta
+    u16 tms[NTM];                               // MT sin usar
 };
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
@@ -92,8 +102,34 @@ void saveWrite();
 int permCost(int id, int lvl);
 float permFloat(int id);                        // helper de lectura de niveles
 int permLv(int id);                             // nivel de una mejora del compañero actual (lastChar)
-static inline int permLvOf(int di, int id) { return gSave.pupg[di][id]; }
-enum { PU_HP, PU_ATK, PU_SPD, PU_CD, PU_DEF, PU_REGEN, PU_MAGNET, PU_XP, PU_COINS, PU_MOVES, PU_CRIT, PU_REROLL, PU_BAN, PU_START };
+int permLvOf(int di, int id);
+void permSetLv(int di, int id, int v);
+enum { PU_HP, PU_ATK, PU_SPD, PU_CD, PU_DEF, PU_REGEN, PU_MAGNET, PU_XP, PU_COINS, PU_MOVES, PU_CRIT, PU_REROLL, PU_BAN, PU_START, PU_START2 };
+
+// ---------- Pokémon: naturaleza, habilidad y MT (mons.cpp) ----------
+struct MonStat { float pa, sa, atk, df, sd, spd; };
+MonStat monStats(int di, int nat);                // estadísticas con la naturaleza aplicada (±10 %)
+int langNameIdx();                                // columna de los nombres [es,en,fr,it,zh-Hans,zh-Hant] del idioma activo
+void textSetLang();
+const char* natureName(int n);
+const char* abilName(int a);
+int monNature(int di);                            // naturaleza actual (la de la cuenta o la cambiada con Menta)
+int monAbilSlot(int di);                          // casilla actual: 0 habilidad 1 · 1 habilidad 2 · 2 oculta
+int monAbil(int di);                              // índice en ABIL (-1 = ninguna)
+int monAbilChoices(int di, int* slots, bool hidden);   // casillas a las que puede cambiar
+void abilDesc(int a, int di, char* out, int n);
+bool monCanLearn(int di, int tm);
+u64 monLearnable(int di);
+bool monTeach(int di, int tm);
+int monTaughtMoves(int di, int* out);             // movimientos (índice en MOVES) de sus MT enseñadas
+int tmDaily(int* out);                            // las 8 MT de hoy (índices de TM)
+int shopDate();                                   // AAAAMMDD según el reloj de la consola
+enum { BAG_MINT, BAG_CAP, BAG_CAPH };
+extern const int BAG_PRICE[3];
+extern const char* const BAG_NAME[3];
+extern const char* const BAG_DESC[3];
+bool shopBuyItem(int id);
+bool shopBuyTm(int tm);
 
 // ---------- gacha (core.cpp) ----------
 struct PullResult { int dex; int rarity; bool isNew; int refund; bool shiny; };
@@ -167,7 +203,7 @@ void playReset(int charIdx, const int* startMoves, int nStart);
 
 // ---------- cooperativo local (play.cpp + coop.cpp) ----------
 struct CoopIn { s8 jx, jy; u8 btn; u16 cmd; };    // entrada de un jugador en un paso; cmd: 0x8000|kind<<8|arg (carta) · 0x4000|toma (objeto)
-struct CoopHello { s16 di; u8 shiny, nStart; s16 start[2]; u8 perm[NPERM]; };
+struct CoopHello { s16 di; u8 shiny, nStart; s16 start[2]; u8 perm[NPERM]; u8 nat; s16 abil; };
 void playResetCoop(int me, const CoopHello* h, u32 seed);
 void playCoopTick(float dt, const CoopIn* in);   // paso fijo (1/30 s), idéntico en las dos consolas
 void playCoopFrame(float dt);                    // efectos visuales (por fotograma)

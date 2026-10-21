@@ -16,8 +16,10 @@ sb.window = sb;
 vm.createContext(sb);
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const load = (f, patch) => vm.runInContext(patch ? patch(read(f)) : read(f), sb, { filename: f });
-for (const f of ['js/core/util.js', 'js/core/i18n.js', 'js/data/lang-en.js', 'js/core/settings.js', 'js/data/pokedex.js', 'js/data/sprites-meta.js',
-                 'js/data/types.js', 'js/data/starters.js', 'js/data/items.js', 'js/data/upgrades.js']) load(f);
+for (const f of ['js/core/util.js', 'js/core/locales.js', 'js/core/i18n.js', 'js/data/lang-en.js', 'js/core/settings.js', 'js/data/pokedex.js', 'js/data/sprites-meta.js',
+                 'js/data/types.js', 'js/data/starters.js', 'js/data/items.js', 'js/data/upgrades.js', 'js/data/natures.js', 'js/data/abilities.js',
+                 'js/data/tms.js']) load(f);
+load('js/data/ability-fx.js');
 load('js/data/moves.js', t => t.replace('G.Moves = {', 'G.__evoMods = EVO_MODS; G.Moves = {'));
 load('js/data/enemies.js', s => s.replace('function behaviorOf(p) {', 'G.__beh = p => behaviorOf(p); G.__summon = SUMMON; function behaviorOf(p) {'));
 
@@ -133,6 +135,92 @@ out.push('struct PermUp { const char* name; const char* unit; unsigned char max;
 out.push(`#define NPERM ${UPG.length}`, 'static const PermUp PERM[NPERM] = {' +
   UPG.map(u => `{${S(u.name)},${S(u.unit)},${u.max},${u.base},${u.grow}}`).join(',') + '};');
 out.push('static const char* PERM_IDS[NPERM] = {' + UPG.map(u => S(u.id)).join(',') + '};');
+
+// ---- naturalezas
+{
+  const NS = ['pa', 'sa', 'df', 'sd', 'spd'];
+  out.push('', '// nombres: [es, en, fr, it, zh-Hans, zh-Hant]', 'enum { NS_PA, NS_SA, NS_DF, NS_SD, NS_SPD };',
+    'struct NatureE { const char* n[6]; signed char up, down; };', `#define NNAT ${G.NATURES.length}`, 'static const NatureE NATURES[NNAT] = {');
+  for (const n of G.NATURES) out.push(`  {{${n.n.map(S).join(',')}},${n.up ? NS.indexOf(n.up) : -1},${n.down ? NS.indexOf(n.down) : -1}},`);
+  out.push('};');
+}
+
+// ---- habilidades: efectos propios de la 3DS (los que no están usan la pasiva genérica de su tipo)
+{
+  const AOPS = ['OUT_TYPE', 'OUT_PINCH', 'OUT_CAT', 'OUT_ALL', 'OUT_HALFCAT', 'OUT_STAB', 'OUT_KIND', 'OUT_BOSS', 'OUT_ELOW', 'OUT_ETYPE', 'OUT_WX',
+    'OUT_DEFEAT', 'OUT_HIGH', 'IN_ALL', 'IN_TYPE', 'IN_CAT', 'IN_FULL', 'IN_SE', 'IN_WONDER', 'ABSORB', 'SPEED', 'SPEED_WX', 'REGEN', 'REGEN_WX',
+    'CRIT', 'CRITMUL', 'MAGNET', 'COINS', 'DODGE', 'DODGE_WX', 'CD', 'HP', 'SUMMON', 'MOXIE', 'STURDY'];
+  const o = (op, a, k) => ({ op: AOPS.indexOf(op), a: a == null ? 0 : a, k: k == null ? 0 : k });
+  const ty = t => T[t];
+  const PH = 0, SP = 1;
+  const pinch = t => [o('OUT_PINCH', ty(t), 1.35)], boost = (t, k = 1.2) => [o('OUT_TYPE', ty(t), k)];
+  const absorb = t => [o('ABSORB', ty(t))], rush = w => [o('SPEED_WX', w, 1.5)];
+  const inT = (t, k) => o('IN_TYPE', ty(t), k), inC = (c, k) => [o('IN_CAT', c, k)], inA = k => [o('IN_ALL', 0, k)];
+  const moxie = [o('MOXIE', 0, 0.005)], magnet = k => [o('MAGNET', 0, k)], dodge = p => [o('DODGE', 0, p)];
+  const MAP = {
+    overgrow: pinch('grass'), blaze: pinch('fire'), torrent: pinch('water'), swarm: pinch('bug'),
+    steelworker: boost('steel'), 'steely-spirit': boost('steel'), 'dragons-maw': boost('dragon'), transistor: boost('electric'),
+    'water-bubble': [o('OUT_TYPE', ty('water'), 1.4), inT('fire', 0.5)],
+    'huge-power': [o('OUT_CAT', PH, 1.5)], 'pure-power': [o('OUT_CAT', PH, 1.5)],
+    guts: [o('OUT_HALFCAT', PH, 1.3)], adaptability: [o('OUT_STAB', 0, 1.25)], protean: [o('OUT_ALL', 0, 1.12)], libero: [o('OUT_ALL', 0, 1.12)],
+    'tough-claws': [o('OUT_KIND', KINDS.indexOf('melee'), 1.25), o('OUT_KIND', KINDS.indexOf('dash'), 1.25)], reckless: [o('OUT_KIND', KINDS.indexOf('dash'), 1.25)],
+    sniper: [o('CRITMUL', 0, 2)], 'super-luck': [o('CRIT', 0, 0.1)], 'compound-eyes': [o('CRIT', 0, 0.06)],
+    moxie, 'chilling-neigh': moxie, 'grim-neigh': moxie, 'beast-boost': moxie,
+    'swift-swim': rush(2), chlorophyll: rush(1), 'sand-rush': rush(3), 'slush-rush': rush(4), 'run-away': [o('SPEED', 0, 1.08)],
+    drought: [o('SUMMON', 1)], 'orichalcum-pulse': [o('SUMMON', 1)], drizzle: [o('SUMMON', 2)], 'sand-stream': [o('SUMMON', 3)], 'snow-warning': [o('SUMMON', 4)],
+    'rain-dish': [o('REGEN_WX', 2, 0.015)], 'ice-body': [o('REGEN_WX', 4, 0.015)],
+    'dry-skin': [o('ABSORB', ty('water')), inT('fire', 1.25), o('REGEN_WX', 2, 0.012)],
+    levitate: [inT('ground', 0.3)], 'thick-fat': [inT('fire', 0.6), inT('ice', 0.6)], heatproof: [inT('fire', 0.5)],
+    'water-absorb': absorb('water'), 'storm-drain': absorb('water'), 'volt-absorb': absorb('electric'), 'lightning-rod': absorb('electric'),
+    'motor-drive': absorb('electric'), 'flash-fire': absorb('fire'), 'well-baked-body': absorb('fire'), 'sap-sipper': absorb('grass'), 'earth-eater': absorb('ground'),
+    multiscale: [o('IN_FULL', 0, 0.5)], 'shadow-shield': [o('IN_FULL', 0, 0.5)],
+    filter: [o('IN_SE', 0, 0.75)], 'solid-rock': [o('IN_SE', 0, 0.75)], 'prism-armor': [o('IN_SE', 0, 0.75)],
+    'fur-coat': inC(PH, 0.6), fluffy: inC(PH, 0.7), 'ice-scales': inC(SP, 0.6),
+    'shell-armor': inA(0.92), 'battle-armor': inA(0.92), pressure: inA(0.92), intimidate: inC(PH, 0.88),
+    sturdy: [o('STURDY')], regenerator: [o('REGEN', 0, 0.006)],
+    pickup: [o('COINS', 0, 1.15)], 'honey-gather': [o('COINS', 0, 1.15)],
+    truant: [o('CD', 0, 1.6), o('OUT_ALL', 0, 1.35)], defeatist: [o('OUT_DEFEAT', 0, 1)], 'wonder-guard': [o('IN_WONDER')],
+    schooling: [o('HP', 0, 1.25), o('OUT_HIGH', 0, 1.5)], plus: [o('OUT_CAT', SP, 1.1)], minus: [o('OUT_CAT', SP, 1.1)],
+    'no-guard': [o('OUT_ALL', 0, 1.15), o('IN_ALL', 0, 1.1)],
+    'keen-eye': [o('CRIT', 0, 0.05)], frisk: magnet(1.2), 'magnet-pull': magnet(1.2), 'sticky-hold': magnet(1.2), illuminate: magnet(1.1),
+    'sand-veil': [o('DODGE_WX', 3, 0.15)], 'snow-cloak': [o('DODGE_WX', 4, 0.15)], unnerve: inA(0.94), telepathy: dodge(0.08),
+    anticipation: dodge(0.06), forewarn: dodge(0.06), overcoat: inC(SP, 0.95), 'natural-cure': [o('REGEN', 0, 0.003)], healer: [o('REGEN', 0, 0.003)],
+    'mold-breaker': [o('OUT_BOSS', 0, 1.12)], soundproof: inC(SP, 0.9), 'big-pecks': inC(PH, 0.92), unaware: inA(0.92), 'friend-guard': inA(0.94),
+    analytic: [o('OUT_ELOW', 0, 1.15)], 'hyper-cutter': [o('OUT_CAT', PH, 1.06)], bulletproof: inC(SP, 0.85), protosynthesis: [o('OUT_WX', 1, 1.2)],
+    justified: [o('OUT_ETYPE', ty('dark'), 1.15)]
+  };
+  const PLUS = new Set(['keen-eye', 'frisk', 'magnet-pull', 'sticky-hold', 'illuminate', 'sand-veil', 'snow-cloak', 'unnerve', 'telepathy', 'anticipation', 'forewarn',
+    'overcoat', 'natural-cure', 'healer', 'mold-breaker', 'soundproof', 'big-pecks', 'unaware', 'friend-guard', 'analytic', 'hyper-cutter', 'bulletproof', 'protosynthesis', 'justified']);
+  const ids = Object.keys(G.ABIL).sort();
+  const AI = Object.fromEntries(ids.map((id, i) => [id, i + 1]));
+  for (const id of Object.keys(MAP)) if (!AI[id]) console.warn('habilidad desconocida', id);
+  out.push('', 'enum { ' + AOPS.map((k, i) => 'AO_' + k + '=' + i).join(',') + ' };',
+    'struct AbTerm { unsigned char op; signed char a; float k; };',
+    'struct AbilE { const char* n[6]; const char* desc; unsigned char nt, plus; AbTerm t[3]; };',
+    `#define NABIL ${ids.length}`, 'static const AbilE ABIL[NABIL] = {');
+  for (const id of ids) {
+    const m = MAP[id], fx = G.AbilityFX.FX[id];
+    if (m && m.length > 3) console.warn('demasiados términos', id);
+    const ts = (m || []).map(x => `{${x.op},${x.a},${f(x.k)}}`);
+    out.push(`  {{${G.ABIL[id].map(S).join(',')}},${m ? S(fx && fx.d || '') : '""'},${ts.length},${PLUS.has(id) ? 1 : 0},{${ts.join(',')}}},  // ${id}`);
+  }
+  out.push('};');
+  out.push('static const char* GENERIC_DESC[NTYPES] = {' + TYPES.map(t => S(G.AbilityFX.of('x', { types: [t] }).d)).join(',') + '};');
+  out.push('// [habilidad 1, habilidad 2, oculta]: índice en ABIL + 1 (0 = no tiene)',
+    'static const unsigned short DEX_ABIL[DEX_N][3] = {' + dexList.map(p => { const a = G.DEX_ABIL[p.dex] || [0, 0, 0]; return '{' + [0, 1, 2].map(i => (a[i] ? AI[a[i]] || 0 : 0)).join(',') + '}'; }).join(',') + '};');
+}
+
+// ---- MT de la Tienda Kecleon
+{
+  const tms = Object.keys(G.TM_MOVES).sort();
+  out.push('', `#define NTM ${tms.length}`, 'static const short TM_MOVE[NTM] = {' + tms.map(id => (MI[id] == null ? -1 : MI[id])).join(',') + '};   // índice en MOVES (-1 = no está en la 3DS)');
+  out.push('static const short TM_PRICE[NTM] = {' + tms.map(id => G.TM_PRICE[id] || 400).join(',') + '};');
+  out.push('static const char* TM_ID[NTM] = {' + tms.map(S).join(',') + '};');
+  const set = {};
+  for (const id of tms) for (const d of G.TM_MOVES[id]) (set[d] = set[d] || []).push(tms.indexOf(id));
+  out.push('// bit i = el Pokémon aprende la MT i', 'static const unsigned long long TM_MASK[DEX_N] = {' + dexList.map(p => (set[p.dex] || []).reduce((a, i) => a | (1n << BigInt(i)), 0n) + 'ull').join(',') + '};');
+  const miss = tms.filter(id => MI[id] == null); if (miss.length) console.warn('MT sin movimiento en la 3DS:', miss.join(' '));
+}
 
 fs.writeFileSync(path.join(ROOT, '3ds/include/gamedata.h'), out.join('\n') + '\n');
 console.log(`OK: ${ids.length} movimientos, ${dexList.length} Pokémon, ${TYPES.length} tipos`);

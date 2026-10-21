@@ -54,9 +54,25 @@ const char* typeName(int t) {
 // ---------------------------------------------------------------- texto
 static C2D_TextBuf gTxt;
 static C2D_Font gFont;
+static C2D_Font gFontLatin, gFontCjk;
+static int gFontCjkLang = -1;
+// Chino: tipografía del sistema (la Pixelify Sans sólo tiene alfabeto latino).
+void textSetLang() {
+    int l = gSave.lang;
+    if (l == LANG_ZHS || l == LANG_ZHT) {
+        if (gFontCjkLang != l) {
+            if (gFontCjk) C2D_FontFree(gFontCjk);
+            gFontCjk = C2D_FontLoadSystem(l == LANG_ZHS ? CFG_REGION_CHN : CFG_REGION_TWN);
+            gFontCjkLang = l;
+        }
+        gFont = gFontCjk ? gFontCjk : gFontLatin;
+    } else gFont = gFontLatin;
+}
 void textInit() {
     gTxt = C2D_TextBufNew(8192);
-    gFont = C2D_FontLoad("romfs:/pixel.bcfnt");   // Pixelify Sans, la misma tipografía de la versión web
+    gFontLatin = C2D_FontLoad("romfs:/pixel.bcfnt");   // Pixelify Sans, la misma tipografía de la versión web
+    gFont = gFontLatin;
+    textSetLang();
 }
 void textFrame() { C2D_TextBufClear(gTxt); }
 void text(const char* s, float x, float y, float sc, u32 col, bool center) {
@@ -185,13 +201,16 @@ void saveLoad() {
     }
     if (!gSave.pupgMig) {   // las mejoras antiguas eran de toda la cuenta: pasan al compañero actual (como en la web)
         int d = (gSave.lastChar >= 0 && gSave.lastChar < DEX_N && gSave.owned[gSave.lastChar]) ? gSave.lastChar : STARTERS_IDX[0];
-        for (int i = 0; i < NPERM; i++) gSave.pupg[d][i] = gSave.perm[i];
+        for (int i = 0; i < NPERM_OLD; i++) gSave.pupg[d][i] = gSave.perm[i];
         gSave.pupgMig = 1;
     }
     for (int d = 0; d < DEX_N; d++)
-        for (int i = 0; i < NPERM; i++) if (gSave.pupg[d][i] > PERM[i].max) gSave.pupg[d][i] = PERM[i].max;
+        for (int i = 0; i < NPERM; i++) if (permLvOf(d, i) > PERM[i].max) permSetLv(d, i, PERM[i].max);
+    if (!gSave.seed) { gSave.seed = (u32)osGetTime() * 2654435761u + 0x9E3779B9u; if (!gSave.seed) gSave.seed = 1; saveWrite(); }
 }
-int permLv(int id) { int d = gSave.lastChar; return gSave.pupg[(d >= 0 && d < DEX_N) ? d : 0][id]; }
+int permLvOf(int di, int id) { return id < NPERM_OLD ? gSave.pupg[di][id] : gSave.pstart2[di]; }
+void permSetLv(int di, int id, int v) { if (id < NPERM_OLD) gSave.pupg[di][id] = (u8)v; else gSave.pstart2[di] = (u8)v; }
+int permLv(int id) { int d = gSave.lastChar; return permLvOf((d >= 0 && d < DEX_N) ? d : 0, id); }
 void saveWrite() {
     mkdir("sdmc:/3ds", 0777);
     FILE* f = fopen(SAVE_PATH, "wb");

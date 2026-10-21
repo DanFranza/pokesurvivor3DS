@@ -24,7 +24,8 @@ Para oír la música en consola real hace falta `sdmc:/3ds/dspfirm.cdc` (DSP1); 
 - Ataques evolucionados (solo + coop): con el ataque al nivel máx. y su mejora requerida ya elegida en la partida, aparece una carta dorada que lo evoluciona (nuevo nombre y estadísticas).
 - Progresión permanente: mejoras, gacha de 9 generaciones con garantía, colección de Pokémon, vetos y movimiento inicial.
 - Música (aldea, bosque, jefe) y efectos sintetizados por software.
-- Idiomas: español, inglés y francés (selección al inicio). Pokédex por regiones, gacha con máquina tragaperras, probabilidades y brillantes (1 %), misiones diarias y semanales.
+- Idiomas: español, inglés, francés, italiano, portugués (BR) y chino simplificado/tradicional (selección al inicio; el chino usa la fuente del sistema). Textos de `js/lang/*.js` vía `tools/export_lang.js`.
+- Tienda de Kecleon (menta, cápsulas de habilidad y 8 MT diarias según la fecha de la consola), naturaleza y habilidad por Pokémon (Pokémon → Detalles: menta, cápsulas y MT), «Segundo movimiento inicial» y cooperativo con espectador del compañero. Habilidades: subconjunto de efectos (`AbTerm` en `gamedata.h`); las demás dan +8 % con su tipo. Sin probar en consola real. Pokédex por regiones, gacha con máquina tragaperras, probabilidades y brillantes (1 %), misiones diarias y semanales.
 - Eventos: ladrón de monedas (Meowth; Gholdengo con ticket ×10) grieta con arena de legendario y Pokémon perdido (llévalo a la marca verde; también en cooperativo).
 - Pantalla táctil: joystick flotante; sólo dispara el ataque activo (o grupo fusionado) y X/Y/B/A lo cambian (START = pausa/ordenar).
 - Vínculo/fusión tras vencer a un legendario en la grieta (fusiona 2 ataques o añade uno a un grupo; se disparan a la vez).

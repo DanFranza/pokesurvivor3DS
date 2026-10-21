@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -12,6 +12,10 @@ static touchPosition gTp;
 static bool gTap, gTouching;
 static int gSel;
 static int gPage, gShopPage, gGen = 1, gBanPage;
+static bool gPick2;
+static int gKecPage, gKecSel = -1;
+static int partner();
+static int gMonMode, gMonPage;   // detalles del Pokémon: 0 = acciones · 1 = menta · 2 = habilidad · 3 = MT
 static int gDexGen = 1, gDexPage, gDexSel, gDexTop, gDexSort;
 static int gStartChoice[2], gNStart;
 static int gSelBtn = 3, gSelMove = -1;
@@ -183,7 +187,17 @@ static int poolFor(int di, int* out) {
         const PoolRef& r = POOL_BY_TYPE[ts[k]];
         for (int i = 0; i < r.n; i++) { int m = POOL_ALL[r.off + i]; if (!seen[m] && !gSave.bannedMove[m]) { seen[m] = true; out[n++] = m; } }
     }
+    int tg[NTM], nt = monTaughtMoves(di, tg);
+    for (int i = 0; i < nt; i++) if (!seen[tg[i]] && !gSave.bannedMove[tg[i]]) { seen[tg[i]] = true; out[n++] = tg[i]; }
     return n;
+}
+// Segundo movimiento elegido (Mejoras → Segundo movimiento inicial, necesita Repertorio), o -1 = al azar.
+static int pick2Of(int di, int first) {
+    int m = gSave.startMove2[di] - 1;
+    if (m < 0 || m == first || m >= NMOVES || !permLvOf(di, PU_START2) || !permLvOf(di, PU_MOVES) || MOVES[m].kind == MK_ORBIT) return -1;
+    int pool[NMOVES], np = poolFor(di, pool);
+    for (int i = 0; i < np; i++) if (pool[i] == m) return m;
+    return -1;
 }
 static int defaultStart(int di) {
     if (gSave.startMove[di] && permLv(PU_START) > 0) return gSave.startMove[di] - 1;
@@ -196,7 +210,9 @@ static int gOrder[4] = {0, 1, 2, 3};
 static void prepareLoadout() {
     int n = 1;
     gStartChoice[1] = -1;
-    if (permLv(PU_MOVES) > 0) {
+    int p2 = permLv(PU_MOVES) > 0 ? pick2Of(gSel, gStartChoice[0]) : -1;
+    if (p2 >= 0) { gStartChoice[1] = p2; n = 2; }
+    else if (permLv(PU_MOVES) > 0) {
         int pool[NMOVES];
         int np = poolFor(gSel, pool);
         for (int tries = 0; tries < 30 && np; tries++) {
@@ -214,7 +230,8 @@ static void beginRun() {
         CoopHello h; memset(&h, 0, sizeof h);
         h.di = gSel; h.shiny = gSave.shinyOn[gSel] && gSave.shiny[gSel]; h.nStart = gNStart;
         h.start[0] = gStartChoice[0]; h.start[1] = gStartChoice[1];
-        memcpy(h.perm, gSave.pupg[gSel], sizeof h.perm);
+        for (int i = 0; i < NPERM; i++) h.perm[i] = (u8)permLvOf(gSel, i);
+        h.nat = (u8)monNature(gSel); h.abil = (s16)monAbil(gSel);
         coopHelloSet(h);
         gCoopErr = 0;
         gState = ST_COOPWAIT;
@@ -242,17 +259,67 @@ static void doLoadRun() {
     gState = ST_PLAY;
 }
 
+// ---------------------------------------------------------------- tienda de Kecleon (menta, cápsulas y las MT del día)
+static void drawKecleon() {
+    bgFill();
+    headerBar("Kecleon", IC_COIN);
+    icon(IC_COIN, 232, 3, 0.5f);
+    snprintf(gTmp, sizeof gTmp, "%d", gSave.coins);
+    text(gTmp, 252, 1, 0.5f, GOLD);
+    static const u32 bc[3] = {COL(70, 150, 90, 255), COL(70, 110, 190, 255), COL(150, 90, 190, 255)};
+    static const char* const bn[3] = {"Menta", "Cápsula", "Cáp. oculta"};
+    for (int i = 0; i < 3; i++) {
+        float x = 6 + i * 104;
+        panel(x, 30, 102, 62, gKecSel == 100 + i ? GOLD : EDGE, COL(26, 49, 112, 255));
+        text(bn[i], x + 51, 30, 0.4f, WHITE, true);
+        snprintf(gTmp, sizeof gTmp, "En bolsa: %d", gSave.bag[i]);
+        text(gTmp, x + 51, 45, 0.32f, COL(170, 200, 255, 255), true);
+        snprintf(gTmp, sizeof gTmp, "%d", BAG_PRICE[i]);
+        if (button(x + 6, 60, 90, 26, gTmp, gSave.coins >= BAG_PRICE[i] ? bc[i] : COL(80, 84, 110, 255), 0.42f, IC_COIN)) {
+            gKecSel = 100 + i;
+            if (shopBuyItem(i)) sfxPlay(SFX_LEVEL); else { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); }
+        }
+    }
+    int tm[8], n = tmDaily(tm);
+    text("MT del día", 6, 94, 0.4f, GOLD);
+    int di = partner();
+    for (int k = 0; k < n; k++) {
+        float x = 6 + (k % 2) * 158, y = 112 + (k / 2) * 21;
+        int t = tm[k];
+        bool can = gSave.coins >= TM_PRICE[t];
+        snprintf(gTmp, sizeof gTmp, "%s %d", MOVES[TM_MOVE[t]].name, TM_PRICE[t]);
+        if (button(x, y, 154, 19, gTmp, can ? typeColor(MOVES[TM_MOVE[t]].type) : COL(80, 84, 110, 255), 0.3f)) {
+            gKecSel = t;
+            if (shopBuyTm(t)) sfxPlay(SFX_LEVEL); else { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); }
+        }
+        if (gSave.tms[t]) { snprintf(gTmp, sizeof gTmp, "×%d", gSave.tms[t]); text(gTmp, x + 5, y + 2, 0.28f, COL(255, 255, 160, 255)); }
+        if (monCanLearn(di, t)) C2D_DrawRectSolid(x + 148, y + 2, 0.4f, 4, 15, COL(120, 255, 140, 255));
+    }
+    text("Barra verde: tu compañero puede aprenderla", 6, 197, 0.3f, COL(120, 255, 140, 255));
+    if (button(220, 204, 94, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
+    if (gMsgT > 0) text(gMsg, 110, 214, 0.38f, COL(255, 120, 120, 255), true);
+}
+static void drawKecleonTop() {
+    topBg();
+    tileBg();
+    text("Tienda de Kecleon", 200, 4, 0.7f, GOLD, true);
+    textWrap("Menta: cambia la naturaleza de un Pokémon. Cápsula: cambia su habilidad (la oculta necesita la cápsula oculta). Las MT enseñan movimientos que su tipo no le da; se usan en «Pokémon» → Detalles.", 24, 40, 352, 0.42f, WHITE);
+    textWrap("La lista de 8 MT cambia cada día (según la fecha de la consola). Cada MT se gasta al enseñarla.", 24, 130, 352, 0.38f, COL(170, 200, 255, 255));
+    if (gKecSel >= 100) textWrap(BAG_DESC[gKecSel - 100], 24, 170, 352, 0.4f, COL(255, 220, 120, 255));
+    else if (gKecSel >= 0) textWrap(MOVES[TM_MOVE[gKecSel]].desc, 24, 170, 352, 0.4f, COL(255, 220, 120, 255));
+}
+
 // ---------------------------------------------------------------- idioma
 static void drawLang() {
     bgFill();
     text("Idioma · Language · Langue", 160, 14, 0.6f, COL(255, 220, 90, 255), true);
-    static const u32 cols[LANG_N] = {COL(200, 60, 60, 255), COL(60, 100, 200, 255), COL(60, 140, 200, 255)};
+    static const u32 cols[LANG_N] = {COL(200, 60, 60, 255), COL(60, 100, 200, 255), COL(60, 140, 200, 255), COL(60, 150, 90, 255), COL(60, 150, 70, 255), COL(190, 60, 60, 255), COL(150, 80, 170, 255)};
     for (int i = 0; i < LANG_N; i++) {
-        float y = 58 + i * 52;
+        float x = 12 + (i & 1) * 152, y = 36 + (i >> 1) * 44;
         bool cur = gSave.langSet && gSave.lang == i;
-        C2D_DrawRectSolid(40, y - 2, 0.05f, 240, 44, cur ? COL(255, 255, 255, 255) : COL(10, 20, 50, 255));
-        if (button(42, y, 236, 40, LANG_NAMES[i], cols[i], 0.7f)) {
-            gSave.lang = (u8)i; gSave.langSet = 1; saveWrite(); sfxPlay(SFX_UI);
+        C2D_DrawRectSolid(x - 2, y - 2, 0.05f, 148, 40, cur ? COL(255, 255, 255, 255) : COL(10, 20, 50, 255));
+        if (button(x, y, 144, 36, LANG_NAMES[i], cols[i], 0.5f)) {
+            gSave.lang = (u8)i; gSave.langSet = 1; textSetLang(); saveWrite(); sfxPlay(SFX_UI);
             gState = ST_MENU;
         }
     }
@@ -269,7 +336,7 @@ static int partner() {
 static void startRun() {                       // «Jugar»: sale con el compañero elegido en «Pokémon»
     gSel = partner();
     gStartChoice[0] = defaultStart(gSel);
-    if (permLv(PU_START) > 0) { gState = ST_STARTMOVE; gBanPage = 0; }
+    if (permLv(PU_START) > 0 || (permLv(PU_START2) > 0 && permLv(PU_MOVES) > 0)) { gState = ST_STARTMOVE; gBanPage = 0; gPick2 = false; }
     else { prepareLoadout(); gState = ST_LOADOUT; }
     sfxPlay(SFX_UI);
 }
@@ -287,9 +354,10 @@ static void drawMenu() {
     if (button(210, 38, 90, 56, "Coop", COL(40, 160, 170, 255), 0.6f, IC_FRIENDS)) { if (coopOpen()) { gState = ST_COOP; gJoining = false; sfxPlay(SFX_UI); } else msg("No se pudo iniciar la red local"); }
     if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.55f, IC_BOOK)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.55f, IC_UP)) { shopEnter(); gState = ST_SHOP; sfxPlay(SFX_UI); }
-    if (button(20, 150, 136, 40, "Gacha", COL(150, 80, 200, 255), 0.55f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
-    if (button(164, 150, 136, 40, "Misiones", COL(60, 150, 90, 255), 0.55f, IC_MEDAL3)) { missionsRefresh(); gState = ST_MISSIONS; sfxPlay(SFX_UI); }
-    if (missionClaimable()) { C2D_DrawCircleSolid(294, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(294, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 294, 145, 0.45f, WHITE, true); }
+    if (button(20, 150, 92, 40, "Gacha", COL(150, 80, 200, 255), 0.45f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
+    if (button(118, 150, 92, 40, "Misiones", COL(60, 150, 90, 255), 0.42f, IC_MEDAL3)) { missionsRefresh(); gState = ST_MISSIONS; sfxPlay(SFX_UI); }
+    if (button(216, 150, 84, 40, "Kecleon", COL(110, 170, 70, 255), 0.4f, IC_COIN)) { gKecPage = 0; gState = ST_KECLEON; sfxPlay(SFX_UI); }
+    if (missionClaimable()) { C2D_DrawCircleSolid(202, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(202, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 202, 145, 0.45f, WHITE, true); }
     bool ban = permLv(PU_BAN) > 0;
     if (ban && button(20, 198, 88, 24, "Vetar", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; }
     if (button(ban ? 114 : 20, 198, ban ? 98 : 190, 24, "Logros", COL(200, 140, 40, 255), 0.42f, IC_TROPHY)) { achCheck(); gState = ST_ACH; gAchCat = 0; gAchPage = 0; sfxPlay(SFX_UI); }
@@ -321,8 +389,10 @@ static int dexOfGen(int gen, int* out) {
         for (int i = 1; i < n; i++) { int v = out[i], j = i; while (j > 0 && DEX[out[j - 1]].rarity < DEX[v].rarity) { out[j] = out[j - 1]; j--; } out[j] = v; }
     return n;
 }
+static void drawMonBottom(int di);
 static void drawDex(u64 ms) {
     bgFill();
+    if (gDexTop == 1 && gSave.owned[gDexSel] && sprHas(DEX_NUM[gDexSel])) { drawMonBottom(gDexSel); return; }
     static const char* ab[9] = {"Kan", "Joh", "Hoe", "Sin", "Tes", "Kal", "Alo", "Gal", "Pal"};
     for (int g = 1; g <= 9; g++) {
         float x = 4 + (g - 1) * 34;
@@ -348,13 +418,14 @@ static void drawDex(u64 ms) {
         if (tapIn(x, y, 50, 44)) { gDexSel = di; sfxPlay(SFX_UI); }
     }
     bool own = gSave.owned[gDexSel] && sprHas(DEX_NUM[gDexSel]);
-    if (own && button(6, 168, 150, 26, validPartner(gDexSel) && gSave.lastChar == gDexSel ? "Compañero actual" : "Elegir compañero", GOLD_BTN, 0.42f)) {
+    if (own && button(6, 168, 100, 26, validPartner(gDexSel) && gSave.lastChar == gDexSel ? "Compañero actual" : "Elegir compañero", GOLD_BTN, 0.34f)) {
         gSave.lastChar = gDexSel; saveWrite(); sfxPlay(SFX_LEVEL);
     }
     if (own && gSave.shiny[gDexSel]) {
         bool on = gSave.shinyOn[gDexSel];
-        if (button(164, 168, 150, 26, on ? "Aspecto: Shiny ★" : "Aspecto: Normal", on ? COL(200, 70, 90, 255) : EDGE, 0.42f)) { gSave.shinyOn[gDexSel] ^= 1; saveWrite(); sprFreeAll(); sfxPlay(SFX_UI); }
+        if (button(110, 168, 100, 26, on ? "Aspecto: Shiny ★" : "Aspecto: Normal", on ? COL(200, 70, 90, 255) : EDGE, 0.34f)) { gSave.shinyOn[gDexSel] ^= 1; saveWrite(); sprFreeAll(); sfxPlay(SFX_UI); }
     }
+    if (own && button(214, 168, 100, 26, "Detalles", COL(90, 110, 190, 255), 0.4f)) { gDexTop = 1; gMonMode = 0; gMonPage = 0; sfxPlay(SFX_UI); }
     if (arrowBtn(6, 204, 50, 30, false, gDexPage > 0)) { gDexPage--; sprFreeAll(); sfxPlay(SFX_UI); }
     if (arrowBtn(264, 204, 50, 30, true, gDexPage < pages - 1)) { gDexPage++; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(60, 204, 98, 30, gDexSort ? "Orden: Rareza" : "Orden: N.º", gDexSort ? COL(200, 110, 40, 255) : EDGE, 0.4f)) { gDexSort ^= 1; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
@@ -366,26 +437,98 @@ static void drawDex(u64 ms) {
     strncat(gTmp, pg, sizeof gTmp - strlen(gTmp) - 1);
     text(gTmp, 160, 184 + 12, 0.34f, COL(170, 200, 255, 255), true);
 }
-// Página 2: todos los movimientos que puede aprender (por sus tipos), con el inicial primero.
+// Página 2: naturaleza, habilidad y todos los movimientos que puede aprender (por sus tipos y MT), con el inicial primero.
 static void drawDexMoves(int di) {
     const DexE& p = DEX[di];
     panel(8, 28, 384, 196, WHITE, COL(26, 49, 112, 255));
     snprintf(gTmp, sizeof gTmp, "Movimientos de %s", pname(di));
-    text(gTmp, 200, 30, 0.5f, GOLD, true);
-    int list[40], n = 0; list[n++] = p.start;
+    text(gTmp, 200, 28, 0.5f, GOLD, true);
+    const NatureE& nt = NATURES[monNature(di)];
+    static const char* SN[5] = {"Ataque", "Atq.Esp", "Defensa", "Def.Esp", "Velocidad"};
+    char nb[96];
+    if (nt.up >= 0) snprintf(nb, sizeof nb, "Naturaleza: %s (+%s −%s)", natureName(monNature(di)), T(SN[nt.up]), T(SN[nt.down]));
+    else snprintf(nb, sizeof nb, "Naturaleza: %s", natureName(monNature(di)));
+    text(nb, 18, 46, 0.4f, WHITE);
+    int ab = monAbil(di);
+    snprintf(gTmp, sizeof gTmp, "Habilidad: %s", abilName(ab));
+    text(gTmp, 18, 60, 0.4f, GOLD);
+    char dsc[200]; abilDesc(ab, di, dsc, sizeof dsc);
+    textWrap(dsc, 18, 74, 360, 0.34f, COL(170, 200, 255, 255));
+    int list[60], n = 0; list[n++] = p.start;
     int ts[2] = {p.t1, p.t2};
     for (int k = 0; k < 2; k++) {
         if (ts[k] == 255) continue;
         const PoolRef& r = POOL_BY_TYPE[ts[k]];
         for (int i = 0; i < r.n && n < 40; i++) { int m = POOL_ALL[r.off + i], dup = 0; for (int j = 0; j < n; j++) dup |= list[j] == m; if (!dup) list[n++] = m; }
     }
-    for (int i = 0; i < n && i < 24; i++) {
-        float x = 18 + (i / 12) * 190, y = 52 + (i % 12) * 14;
-        C2D_DrawRectSolid(x, y + 2, 0.3f, 8, 8, typeColor(MOVES[list[i]].type));
-        text(MOVES[list[i]].name, x + 14, y - 3, 0.38f, i == 0 ? GOLD : WHITE);
-        if (i == 0) text("★", x + 176, y - 3, 0.38f, GOLD, true);
+    int nNat = n, tg[NTM], nT = monTaughtMoves(di, tg);
+    for (int i = 0; i < nT && n < 60; i++) list[n++] = tg[i];
+    for (int i = 0; i < n && i < 20; i++) {
+        float x = 18 + (i / 10) * 190, y = 104 + (i % 10) * 11;
+        C2D_DrawRectSolid(x, y + 2, 0.3f, 7, 7, typeColor(MOVES[list[i]].type));
+        text(MOVES[list[i]].name, x + 11, y - 3, 0.32f, i == 0 ? GOLD : i >= nNat ? COL(140, 230, 160, 255) : WHITE);
     }
     text("L: página 1", 20, 212, 0.34f, COL(170, 200, 255, 255));
+}
+// Pantalla táctil de los detalles: menta (naturaleza), cápsulas (habilidad) y MT (movimientos extra).
+static void drawMonBottom(int di) {
+    bgFill();
+    headerBar("Detalles", IC_BOOK);
+    snprintf(gTmp, sizeof gTmp, "%s", pname(di));
+    text(gTmp, 160, 28, 0.5f, WHITE, true);
+    if (button(214, 204, 100, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) { if (gMonMode) gMonMode = 0; else gDexTop = 0; return; }
+    if (gMonMode == 0) {
+        snprintf(gTmp, sizeof gTmp, "Menta ×%d", gSave.bag[BAG_MINT]);
+        if (button(10, 56, 300, 30, gTmp, COL(70, 150, 90, 255), 0.5f)) { if (gSave.bag[BAG_MINT]) { gMonMode = 1; sfxPlay(SFX_UI); } else msg("No tienes Mentas: cómpralas a Kecleon"); }
+        snprintf(gTmp, sizeof gTmp, "Cápsula habilidad ×%d  ·  oculta ×%d", gSave.bag[BAG_CAP], gSave.bag[BAG_CAPH]);
+        if (button(10, 92, 300, 30, gTmp, COL(150, 90, 190, 255), 0.42f)) {
+            int s[3];
+            if ((gSave.bag[BAG_CAP] || gSave.bag[BAG_CAPH]) && monAbilChoices(di, s, gSave.bag[BAG_CAPH] > 0)) { gMonMode = 2; sfxPlay(SFX_UI); }
+            else msg("Sin cápsulas o sin habilidades que elegir");
+        }
+        int tm = 0; for (int i = 0; i < NTM; i++) tm += gSave.tms[i] && monCanLearn(di, i);
+        snprintf(gTmp, sizeof gTmp, "Enseñar una MT (%d disponibles)", tm);
+        if (button(10, 128, 300, 30, gTmp, COL(200, 130, 50, 255), 0.45f)) { if (tm) { gMonMode = 3; gMonPage = 0; sfxPlay(SFX_UI); } else msg("Ninguna MT que pueda aprender"); }
+        text("Consíguelas en la tienda de Kecleon.", 160, 168, 0.36f, COL(170, 200, 255, 255), true);
+    } else if (gMonMode == 1) {
+        text("Elige la nueva naturaleza", 160, 44, 0.42f, GOLD, true);
+        for (int i = 0; i < NNAT; i++) {
+            float x = 6 + (i % 5) * 62, y = 60 + (i / 5) * 28;
+            if (button(x, y, 60, 26, natureName(i), i == monNature(di) ? COL(120, 120, 60, 255) : EDGE, 0.32f) && i != monNature(di)) {
+                if (gSave.bag[BAG_MINT]) { gSave.bag[BAG_MINT]--; gSave.pnat[di] = (u8)(i + 1); saveWrite(); gMonMode = 0; sfxPlay(SFX_LEVEL); }
+            }
+        }
+    } else if (gMonMode == 2) {
+        text("Elige la nueva habilidad", 160, 44, 0.42f, GOLD, true);
+        int s[3], n = monAbilChoices(di, s, gSave.bag[BAG_CAPH] > 0);
+        for (int k = 0; k < n; k++) {
+            float y = 62 + k * 44;
+            int a = (int)DEX_ABIL[di][s[k]] - 1;
+            bool hid = s[k] == 2;
+            snprintf(gTmp, sizeof gTmp, "%s%s", abilName(a), hid ? " (oculta)" : "");
+            if (button(10, y, 300, 38, gTmp, hid ? COL(150, 90, 190, 255) : COL(70, 110, 190, 255), 0.45f)) {
+                int b = hid ? BAG_CAPH : (gSave.bag[BAG_CAP] ? BAG_CAP : BAG_CAPH);
+                if (gSave.bag[b]) { gSave.bag[b]--; gSave.pabil[di] = (u8)(s[k] + 1); saveWrite(); gMonMode = 0; sfxPlay(SFX_LEVEL); }
+            }
+        }
+    } else {
+        text("Elige la MT a enseñar", 160, 44, 0.42f, GOLD, true);
+        int l[NTM], n = 0;
+        for (int i = 0; i < NTM; i++) if (gSave.tms[i] && monCanLearn(di, i)) l[n++] = i;
+        int pages = (n + 7) / 8;
+        if (gMonPage >= pages) gMonPage = pages ? pages - 1 : 0;
+        for (int k = 0; k < 8; k++) {
+            int idx = gMonPage * 8 + k;
+            if (idx >= n) break;
+            int t = l[idx];
+            float x = 6 + (k % 2) * 158, y = 60 + (k / 2) * 34;
+            snprintf(gTmp, sizeof gTmp, "%s ×%d", MOVES[TM_MOVE[t]].name, gSave.tms[t]);
+            if (button(x, y, 154, 30, gTmp, typeColor(MOVES[TM_MOVE[t]].type), 0.36f) && monTeach(di, t)) { sfxPlay(SFX_LEVEL); msg("¡Movimiento aprendido!"); }
+        }
+        if (arrowBtn(6, 204, 50, 30, false, gMonPage > 0)) gMonPage--;
+        if (arrowBtn(60, 204, 50, 30, true, gMonPage < pages - 1)) gMonPage++;
+    }
+    if (gMsgT > 0) text(gMsg, 160, 190, 0.38f, COL(255, 120, 120, 255), true);
 }
 static void drawDexTop(u64 ms) {
     topBg();
@@ -424,7 +567,10 @@ static void drawDexTop(u64 ms) {
 
 static void drawStartMove() {
     bgFill();
-    text("Elige tu movimiento inicial", 160, 0, 0.55f, COL(255, 230, 120, 255), true);
+    bool has1 = permLv(PU_START) > 0, has2 = permLv(PU_START2) > 0 && permLv(PU_MOVES) > 0;
+    if (!has1) gPick2 = true;
+    if (!has2) gPick2 = false;
+    text(gPick2 ? "Elige tu segundo movimiento" : "Elige tu movimiento inicial", 160, 0, 0.55f, COL(255, 230, 120, 255), true);
     int pool[NMOVES];
     int np = poolFor(gSel, pool);
     int pages = (np + 9) / 10;
@@ -435,10 +581,16 @@ static void drawStartMove() {
         if (idx >= np) break;
         int m = pool[idx];
         float x = 6 + (k % 2) * 158, y = 22 + (k / 2) * 34;
-        panel(x, y, 154, 30, typeColor(MOVES[m].type), m == gStartChoice[0] ? COL(50, 70, 130, 255) : PANEL);
-        text(MOVES[m].name, x + 6, y + 4, 0.45f, WHITE);
-        if (tapIn(x, y, 154, 30)) { gStartChoice[0] = m; gSave.startMove[gSel] = (u8)(m + 1); sfxPlay(SFX_UI); }
+        bool on = gPick2 ? m == gSave.startMove2[gSel] - 1 : m == gStartChoice[0];
+        panel(x, y, 154, 30, typeColor(MOVES[m].type), on ? COL(50, 70, 130, 255) : PANEL);
+        text(MOVES[m].name, x + 6, y + 4, 0.45f, m == gStartChoice[0] && gPick2 ? COL(120, 125, 150, 255) : WHITE);
+        if (tapIn(x, y, 154, 30)) {
+            if (!gPick2) { gStartChoice[0] = m; gSave.startMove[gSel] = (u8)(m + 1); sfxPlay(SFX_UI); }
+            else if (m != gStartChoice[0]) { gSave.startMove2[gSel] = gSave.startMove2[gSel] == m + 1 ? 0 : (u8)(m + 1); saveWrite(); sfxPlay(SFX_UI); }
+        }
     }
+    if (has1 && has2 && button(116, 168, 196, 26, gPick2 ? "Cambiar el primero" : "Cambiar el segundo", COL(90, 110, 190, 255), 0.42f)) gPick2 = !gPick2;
+    if (gPick2) text(gSave.startMove2[gSel] ? "Toca de nuevo para dejarlo al azar" : "Segundo ataque: al azar", 6, 170, 0.34f, COL(170, 200, 255, 255));
     if (arrowBtn(6, 204, 50, 30, false, gBanPage > 0)) { gBanPage--; sfxPlay(SFX_UI); }
     if (arrowBtn(60, 204, 50, 30, true, gBanPage < pages - 1)) { gBanPage++; sfxPlay(SFX_UI); }
     if (button(116, 204, 90, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
@@ -618,9 +770,9 @@ static void drawOver() {
 }
 
 // ---------------------------------------------------------------- mejoras permanentes
-static const u8 PERM_ICON[NPERM] = {IC_HEART, IC_FIST, IC_BOOT, IC_CLOCK, IC_SHIELD, IC_SPROUT, IC_MAGNET, IC_BOOK, IC_COIN, IC_CARDS, IC_STAR, IC_UP, IC_BAN, IC_CURSOR};
+static const u8 PERM_ICON[NPERM] = {IC_HEART, IC_FIST, IC_BOOT, IC_CLOCK, IC_SHIELD, IC_SPROUT, IC_MAGNET, IC_BOOK, IC_COIN, IC_CARDS, IC_STAR, IC_UP, IC_BAN, IC_CURSOR, IC_CURSOR};
 static int gUpgList[DEX_N], gUpgN, gUpgI;
-static int pokeLevels(int di) { int t = 0; for (int i = 0; i < NPERM; i++) t += gSave.pupg[di][i]; return t; }
+static int pokeLevels(int di) { int t = 0; for (int i = 0; i < NPERM; i++) t += permLvOf(di, i); return t; }
 // Cada Pokémon tiene sus mejoras: el compañero va primero, luego los que ya tienen niveles.
 static void shopEnter() {
     gUpgN = ownedList(gUpgList);
@@ -654,19 +806,22 @@ static void drawShop() {
         int i = gShopPage * 3 + k;
         if (i >= NPERM) break;
         float y = 55 + k * 49;
-        int lv = gSave.pupg[di][i];
+        int lv = permLvOf(di, i);
+        bool locked = i == PU_START2 && !permLvOf(di, PU_MOVES);   // el segundo movimiento inicial necesita Repertorio
         bool maxed = lv >= PERM[i].max;
         int cost = maxed ? 0 : permCost(i, lv);
-        bool can = !maxed && gSave.coins >= cost;
+        bool can = !maxed && !locked && gSave.coins >= cost;
         panel(6, y, 308, 47, maxed ? COL(90, 200, 120, 255) : EDGE, COL(26, 49, 112, 255));
         icon(PERM_ICON[i], 9, y + 7, 1.0f);
         text(PERM[i].name, 46, y + 2, 0.5f, WHITE);
         textWrap(PERM[i].unit, 46, y + 20, 170, 0.36f, COL(190, 215, 255, 255));
         char b[16];
-        if (maxed) snprintf(b, sizeof b, "Máx.");
+        if (locked) snprintf(b, sizeof b, "Bloq.");
+        else if (maxed) snprintf(b, sizeof b, "Máx.");
         else snprintf(b, sizeof b, "%d", cost);
-        if (button(226, y + 5, 82, 26, b, maxed ? COL(70, 130, 90, 255) : can ? GOLD_BTN : COL(80, 84, 110, 255), 0.46f, maxed ? -1 : IC_COIN) && !maxed) {
-            if (can) { gSave.coins -= cost; gSave.pupg[di][i]++; saveWrite(); sfxPlay(SFX_LEVEL); }
+        if (button(226, y + 5, 82, 26, b, maxed ? COL(70, 130, 90, 255) : locked ? COL(60, 64, 90, 255) : can ? GOLD_BTN : COL(80, 84, 110, 255), 0.46f, maxed ? -1 : IC_COIN) && !maxed) {
+            if (locked) { msg("Necesita Repertorio"); sfxPlay(SFX_HURT); }
+            else if (can) { gSave.coins -= cost; permSetLv(di, i, lv + 1); saveWrite(); sfxPlay(SFX_LEVEL); }
             else { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); }
         }
         int mx = PERM[i].max, pw = mx > 8 ? 6 : mx > 5 ? 8 : 12, tw = mx * (pw + 2) - 2;
@@ -1024,6 +1179,7 @@ int main() {
     textInit();
     iconsLoad();
     saveLoad();
+    textSetLang();
     missionsRefresh();
     audioInit();
     musicPlay(MUS_MENU);
@@ -1132,6 +1288,7 @@ int main() {
             case ST_STARTMOVE: drawStartTop(); break;
             case ST_LOADOUT: case ST_PAUSE: drawLoadoutTop(now); break;
             case ST_SHOP: drawShopTop(now); break;
+            case ST_KECLEON: drawKecleonTop(); break;
             case ST_GACHA: drawGachaTop(now); break;
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
             case ST_LANG: topBg(); tileBg(); logo(200, 70, 1.3f); break;
@@ -1153,6 +1310,7 @@ int main() {
             case ST_STARTMOVE: drawStartMove(); break;
             case ST_LOADOUT: case ST_PAUSE: drawLoadoutBottom(); break;
             case ST_SHOP: drawShop(); break;
+            case ST_KECLEON: drawKecleon(); break;
             case ST_GACHA: drawGacha(); break;
             case ST_BAN: drawBan(); break;
             case ST_LANG: drawLang(); break;
