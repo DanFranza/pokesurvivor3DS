@@ -139,6 +139,35 @@ static const MoveDef MOVES[NMOVES] = {
   {"Tajo Umbrío","Cortes en giro que alcanzan a todo lo que te rodea.",15,18,0,0,{1,11,0,3,0,0,0,0,62,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},{{{{1,0,1.4}},1,"+40% daño"},{{{8,0,1.25}},1,"+25% radio"},{{{3,1,1}},1,"+1 vuelta"},{{{0,0,0.75},{1,0,1.3}},2,"-25% recarga y +30% daño"}}},  // night-slash
 };
 
+static const short EVO_NEED[NMOVES] = {0,2,-1,-1,-1,-1,1,3,5,0,1,2,1,-1,1,3,5,0,1,4,3,3,1,6,1,1,2,1,1,3,2,5,1,1,3,5,1,3,1,2,1,3,1,3,1,-1,1,5,1,4,1,2,5,1,3,1,5,3,1,3,4,2,2,1,6,1,2,2,5,1,5,3,1,2,4,3,5,0,1,2,3,1,5,0,4,1,3,1,2,4,1,3,6,1,1,0,5,1,4,1,4,1,2};
+static const char* EVO_NAME[NMOVES] = {"Derribo","Velocidad Extrema","","","","","Llamarada","Sofoco","Fuego Sagrado","Erupción","Escaldar","Surf","Hidrocañón","","Latigazo","Lluevehojas","Danza Pétalo","Planta Feroz","Trueno","Campo Eléctrico","Electrocañón","Psicocarga","Premonición","Vasta Fuerza","Bomba Lodo","Tierra Viva","Vendaval","Pájaro Osado","Gigaimpacto","Alboroto","Puya Nociva","Gas Venenoso","Terremoto","Tijera X","Red Viscosa","Enjambre","Roca Afilada","Trampa Rocas","Ventisca","Viento Hielo","A Bocajarro","Onda Certera","Puño Sombra","Golpe Fantasma","Cometa Draco","","Fuerza Lunar","Campo de Niebla","Cabeza de Hierro","Rayo Metálico","Triturar","Alarido","Pesadilla","Ataque Óseo","Psicocolmillo","Fisura","Lanza Mugre","Alud","Bomba Imán","Infierno","Doble Equipo","Acróbata","Envite Ígneo","Acua Cola","Poltergeist","Rayo Prisma","Triataque","Golpe Calor","Salmuera","Mazazo","Gigadrenado","Cuchilla Solar","Voltio Cruel","Chispa","Psicoonda","Resplandor","Onda Tóxica","Fuerza Equina","Taladradora","Huracán","Ataque Aéreo","Megacuerno","Sanguijuela","Testarazo","Tormenta de Diamantes","Rayo Meteórico","Carámbano","Frío Polar","Patada Salto Alta","Puño Incremento","Megapuño","Garra Umbría","Golpe Umbrío","Pulso Dragón","Carga Dragón","Dracoflecha","Luz Lunar","Choque Anímico","Encanto","Metaláser","Cuerpo Pesado","Juego Sucio","Lariat Oscuro"};
+struct EvoMod { UpMod m[6]; unsigned char n; const char* text; };
+static const EvoMod EVO_MODS[23] = {
+  {{{1,0,1.8},{3,1,2},{5,1,2},{7,0,1.3},{4,0,1.1}},5,"×1,8 daño, +2 proyectiles, +2 perforación y más grandes"},  // projectile
+  {{{1,0,1.9},{8,0,1.3},{9,0,9}},3,"×1,9 daño, más alcance y golpea en 360°"},  // melee
+  {{{1,0,1.8},{11,0,1.5},{8,0,1.2},{0,0,0.85}},4,"×1,8 daño, rayo un 50% más grueso y más largo"},  // beam
+  {{{3,1,2},{1,0,1.7},{8,0,1.15}},3,"+2 orbes, ×1,7 daño y más radio"},  // orbit
+  {{{3,1,6},{1,0,1.6},{5,1,1}},3,"+6 proyectiles, ×1,6 daño y +1 perforación"},  // nova
+  {{{1,0,1.8},{8,0,1.35}},2,"×1,8 daño y un 35% más de radio"},  // aura
+  {{},0,""},  // buff
+  {{{1,0,1.8},{3,1,1},{8,0,1.2},{7,0,1.2}},4,"×1,8 daño, +1 bumerán y más alcance"},  // boomerang
+  {{{1,0,1.7},{3,1,3},{8,0,1.2}},3,"×1,7 daño y +3 saltos"},  // chain
+  {{{1,0,1.8},{3,1,2},{8,0,1.25}},3,"×1,8 daño, +2 minas y explosión más grande"},  // mine
+  {{{1,0,1.7},{3,1,2},{8,0,1.2}},3,"×1,7 daño, +2 meteoros y más radio"},  // meteor
+  {{{1,0,1.8},{3,1,1},{13,0,0.8}},3,"×1,8 daño, +1 a la vez y dispara más rápido"},  // turret
+  {{{1,0,1.9},{8,0,1.25},{0,0,0.8}},3,"×1,9 daño, más distancia y menos recarga"},  // dash
+  {{{1,0,1.8},{8,0,1.25},{12,0,1.3}},3,"×1,8 daño, charcos más grandes y duraderos"},  // trail
+  {{{1,0,1.7},{3,1,4},{5,1,1}},3,"×1,7 daño, +4 disparos y +1 perforación"},  // cone
+  {{{1,0,1.8},{3,1,2},{7,0,1.3},{4,0,1.2}},4,"×1,8 daño, +2 proyectiles y más grandes"},  // homing
+  {{{1,0,1.8},{19,1,2},{3,1,1},{4,0,1.3}},4,"×1,8 daño, +2 rebotes y +1 proyectil"},  // bounce
+  {{{1,0,1.8},{11,0,1.5},{17,0,0.7}},3,"×1,8 daño, rayo un 50% más grueso y carga más rápido"},  // charge
+  {{{1,0,1.8},{3,1,1},{8,0,1.2}},3,"×1,8 daño, +1 vuelta y más radio"},  // spin
+  {{{1,0,1.8},{3,1,3},{8,0,1.25}},3,"×1,8 daño, +3 ondas y ondas más grandes"},  // quake
+  {{{1,0,1.8},{8,0,1.3},{18,0,1.4}},3,"×1,8 daño, más radio y atrae más fuerte"},  // vortex
+  {{{1,0,1.8},{8,0,1.25},{10,0,1.4}},3,"×1,8 daño, más radio y empuja más"},  // shove
+  {{{1,0,1.8},{8,0,1.3},{21,0,1.4}},3,"×1,8 daño, más radio y aturde más rato"},  // stun
+};
+
 static const short POOL_ALL[] = {0,1,2,3,4,5,28,29,60,65,66,6,7,8,9,59,62,67,10,11,12,13,63,68,18,19,20,72,73,14,15,16,17,69,70,71,38,39,57,86,87,40,41,88,89,90,24,30,31,56,76,25,32,53,55,77,78,26,27,61,79,80,21,22,23,54,74,75,33,34,35,81,82,36,37,83,84,85,42,43,64,91,92,44,45,93,94,95,50,51,52,101,102,48,49,58,99,100,46,47,96,97,98};
 struct PoolRef { short off, n; };
 static const PoolRef POOL_BY_TYPE[NTYPES] = {{0,11},{11,7},{18,6},{24,5},{29,7},{36,5},{41,5},{46,5},{51,6},{57,5},{62,6},{68,5},{73,5},{78,5},{83,5},{88,5},{93,5},{98,5}};

@@ -232,7 +232,17 @@ void moveRecompute(MoveInst& m) {
             else m.v[k] = v;
         }
     }
+    if (m.evo) {
+        const EvoMod& e = EVO_MODS[d.kind];
+        for (int i = 0; i < e.n; i++) {
+            int k = e.m[i].key; float v = e.m[i].v;
+            if (e.m[i].op == 1) m.v[k] += v;
+            else if (e.m[i].op == 0 && m.v[k] != 0) m.v[k] *= v;
+            else m.v[k] = v;
+        }
+    }
 }
+const char* moveName(const MoveInst& m) { return m.evo ? EVO_NAME[m.id] : MOVES[m.id].name; }
 
 // ---------------------------------------------------------------- efectos
 static Fx* newFx(u8 kind, float life) {
@@ -359,7 +369,7 @@ static void slotPlace(int mid) {
     for (int k = 0; k < 4; k++) {
         int b = order[k];
         if (gMoves[b].id < 0) {
-            gMoves[b].id = mid; gMoves[b].lvl = 1; gMoves[b].grp = ++gGrpN; gMoves[b].cd = 0.3f; gMoves[b].dealt = 0; moveRecompute(gMoves[b]);
+            gMoves[b].id = mid; gMoves[b].lvl = 1; gMoves[b].evo = false; gMoves[b].grp = ++gGrpN; gMoves[b].cd = 0.3f; gMoves[b].dealt = 0; moveRecompute(gMoves[b]);
             if (gActive < 0 || gMoves[gActive].id < 0) gActive = b;
             return;
         }
@@ -740,7 +750,7 @@ static bool castMove(int b) {
             else if (st == ST_DEF) { P.buffDef = amt; P.buffDefT = dur; }
             else if (st == ST_REGEN) healPlayer(P.maxHp * 0.25f);
             fxRing(P.x, P.y, 28, 6, rgb, 0.4f, 3);
-            fxText(P.x, P.y - 30, MOVES[m.id].name, rgb, 0.45f);
+            fxText(P.x, P.y - 30, moveName(m), rgb, 0.45f);
             sfxPlay(SFX_PICK);
             break;
         }
@@ -2402,14 +2412,28 @@ void playBuildCards(CardSet& cs) {
         };
         addPool(0); addPool(p.t1); if (p.t2 != 255) addPool(p.t2);
     }
+    int waitStat[9] = {}; int forced[4], nf = 0;
     for (int b = 0; b < 4; b++) if (gMoves[b].id >= 0 && gMoves[b].lvl < 5) c[n++] = {1, b, 9};
+    for (int b = 0; b < 4; b++) {
+        const MoveInst& m = gMoves[b];
+        if (m.id < 0 || m.evo || m.lvl < 5 || EVO_NEED[m.id] < 0 || !EVO_MODS[MOVES[m.id].kind].n) continue;
+        if (gStatTaken[EVO_NEED[m.id]] > 0) forced[nf++] = b; else waitStat[EVO_NEED[m.id]] = b + 1;
+    }
     for (int s = 0; s < 9; s++) {
         if (s == 1 && gStatTaken[1] >= 40) continue; if (s == 2 && gStatTaken[2] >= 8) continue; if (s == 3 && gStatTaken[3] >= 10) continue;
         if (s == 4 && gStatTaken[4] >= 12) continue; if (s == 6 && gStatTaken[6] >= 6) continue; if (s == 7 && gStatTaken[7] >= 8) continue;
-        c[n++] = {2, s, nMoves() < 4 ? 2 : 4};
+        c[n++] = {2, s, waitStat[s] ? 14 : nMoves() < 4 ? 2 : 4};
     }
     cs.n = 0;
-    for (int pick = 0; pick < 3 && n > 0; pick++) {
+    for (int pick = 0; pick < 3 && (n > 0 || pick < nf); pick++) {
+        if (pick < nf) {
+            Card& cd = cs.c[cs.n++]; memset(&cd, 0, sizeof cd);
+            const MoveInst& m = gMoves[forced[pick]];
+            cd.kind = 3; cd.arg = forced[pick];
+            snprintf(cd.title, sizeof cd.title, "%s -> %s", T(MOVES[m.id].name), T(EVO_NAME[m.id]));
+            snprintf(cd.desc, sizeof cd.desc, "%s", T(EVO_MODS[MOVES[m.id].kind].text)); cd.col = 0xffd23f;
+            continue;
+        }
         int tot = 0; for (int i = 0; i < n; i++) tot += c[i].w;
         int x = (int)(rnd() % (u32)tot), idx = 0;
         for (; idx < n - 1; idx++) { x -= c[idx].w; if (x < 0) break; }
@@ -2423,6 +2447,7 @@ void playBuildCards(CardSet& cs) {
             snprintf(cd.title, sizeof cd.title, "%s  Nv %d → %d", T(d.name), m.lvl, m.lvl + 1); snprintf(cd.desc, sizeof cd.desc, "%s", T(d.ups[m.lvl - 1].text)); cd.col = TYPE_RGB[d.type];
         } else {
             snprintf(cd.title, sizeof cd.title, "%s", T(STAT_NAME[cd.arg])); snprintf(cd.desc, sizeof cd.desc, "%s", T(STAT_DESC[cd.arg])); cd.col = 0x8fa3c4;
+            if (waitStat[cd.arg]) { snprintf(cd.desc, sizeof cd.desc, T("Evoluciona %s"), T(MOVES[gMoves[waitStat[cd.arg] - 1].id].name)); cd.col = 0xffd23f; }
         }
         c[idx] = c[--n];
     }
@@ -2434,7 +2459,11 @@ bool playReroll(CardSet& cs) {
 }
 void playApplyCard(const Card& c) {
     if (c.kind == 0) slotPlace(c.arg);
-    else if (c.kind == 1) { MoveInst& m = gMoves[c.arg]; if (m.lvl < 5) { m.lvl++; moveRecompute(m); if (m.lvl == 5) gEvolves++; } }
+    else if (c.kind == 1) { MoveInst& m = gMoves[c.arg]; if (m.lvl < 5) { m.lvl++; moveRecompute(m); } }
+    else if (c.kind == 3) {
+        MoveInst& m = gMoves[c.arg]; m.evo = true; moveRecompute(m); gEvolves++;
+        fxRing(P.x, P.y - 8, 8, 120, 0xffd23f, 0.8f, 6); fxBurst(P.x, P.y - 14, 0xffe14d, 40, 240); sfxPlay(SFX_RARE);
+    }
     else {
         gStatTaken[c.arg]++;
         switch (c.arg) {

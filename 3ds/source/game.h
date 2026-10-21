@@ -148,8 +148,10 @@ struct MoveInst {
     float cd;                                    // cuenta atrás
     float v[NK_];                                // valores con mejoras aplicadas
     float dealt;
+    bool evo;                                    // evolucionado (nombre y potencia nuevos)
 };
 void moveRecompute(MoveInst& m);
+const char* moveName(const MoveInst& m);
 float typeMult(int atkType, int t1, int t2);
 const char* effLabel(float m);
 

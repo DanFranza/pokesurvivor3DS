@@ -17,7 +17,8 @@ vm.createContext(sb);
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const load = (f, patch) => vm.runInContext(patch ? patch(read(f)) : read(f), sb, { filename: f });
 for (const f of ['js/core/util.js', 'js/core/i18n.js', 'js/data/lang-en.js', 'js/core/settings.js', 'js/data/pokedex.js', 'js/data/sprites-meta.js',
-                 'js/data/moves.js', 'js/data/types.js', 'js/data/starters.js', 'js/data/items.js', 'js/data/upgrades.js']) load(f);
+                 'js/data/types.js', 'js/data/starters.js', 'js/data/items.js', 'js/data/upgrades.js']) load(f);
+load('js/data/moves.js', t => t.replace('G.Moves = {', 'G.__evoMods = EVO_MODS; G.Moves = {'));
 load('js/data/enemies.js', s => s.replace('function behaviorOf(p) {', 'G.__beh = p => behaviorOf(p); G.__summon = SUMMON; function behaviorOf(p) {'));
 
 const TYPES = Object.keys(G.Types.CHART);
@@ -73,6 +74,24 @@ for (const id of ids) {
 out.push('};', '');
 const unknownKinds = ids.filter(id => KINDS.indexOf(G.Moves.BY_ID[id].kind) < 0);
 if (unknownKinds.length) console.warn('tipos de movimiento desconocidos', unknownKinds);
+
+// ---- evolución de movimientos (web: G.Moves.EVO / EVO_MODS)
+{
+  const NEED = ['hp', 'atk', 'spd', 'cd', 'def', 'rgn', 'mag', 'xp'];
+  const EVO = G.Moves.EVO;
+  out.push('static const short EVO_NEED[NMOVES] = {' + ids.map(id => EVO[id] ? NEED.indexOf(EVO[id][1]) : -1).join(',') + '};');
+  out.push('static const char* EVO_NAME[NMOVES] = {' + ids.map(id => S(EVO[id] ? EVO[id][0] : '')).join(',') + '};');
+  const EM = G.__evoMods;
+  out.push('struct EvoMod { UpMod m[6]; unsigned char n; const char* text; };');
+  out.push('static const EvoMod EVO_MODS[' + KINDS.length + '] = {');
+  for (const k of KINDS) {
+    const e = EM[k];
+    if (!e) { out.push('  {{},0,""},  // ' + k); continue; }
+    const ms = Object.entries(e.m).filter(([kk]) => KEYS.includes(kk)).map(([kk, val]) => `{${KEYS.indexOf(kk)},${ADD.includes(kk) ? 1 : (MULT.includes(kk) ? 0 : 2)},${f(val)}}`);
+    out.push(`  {{${ms.join(',')}},${ms.length},${S(e.t)}},  // ${k}`);
+  }
+  out.push('};', '');
+}
 
 // ---- pools de movimientos por tipo
 const POOL = G.Moves.POOL;

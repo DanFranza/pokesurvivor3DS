@@ -464,7 +464,7 @@ static void drawLoadoutBottom() {
         panel(x, y, 72, 64, i == gSelMove ? COL(255, 255, 255, 255) : c);
         text(BTN_NAMES[i], x + 5, y + 1, 0.6f, c);
         if (has) {
-            textWrap(MOVES[gMoves[i].id].name, x + 6, y + 26, 62, 0.36f, WHITE);
+            textWrap(moveName(gMoves[i]), x + 6, y + 26, 62, 0.36f, WHITE);
             snprintf(gTmp, sizeof gTmp, "Nv %d", gMoves[i].lvl);
             text(gTmp, x + 66, y + 1, 0.4f, COL(255, 230, 120, 255), true);
         } else text("vacío", x + 36, y + 24, 0.4f, COL(120, 140, 190, 255), true);
@@ -477,7 +477,7 @@ static void drawLoadoutBottom() {
     }
     if (gMoves[gSelBtn].id >= 0) {
         const MoveDef& d = MOVES[gMoves[gSelBtn].id];
-        text(d.name, 160, 94, 0.55f, typeColorLight(d.type), true);
+        text(moveName(gMoves[gSelBtn]), 160, 94, 0.55f, typeColorLight(d.type), true);
         textWrap(d.desc, 20, 118, 280, 0.42f, WHITE);
         snprintf(gTmp, sizeof gTmp, "Recarga %.1f s · %s", gMoves[gSelBtn].v[K_CD], T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
         text(gTmp, 160, 160, 0.4f, COL(170, 200, 255, 255), true);
@@ -503,7 +503,7 @@ static void drawLoadoutTop(u64 ms) {
         C2D_DrawRectSolid(150, y, 0.2f, 240, 38, typeColorDark(d.type));
         C2D_DrawRectSolid(152, y + 2, 0.25f, 236, 34, COL(14, 26, 50, 255));
         text(BTN_NAMES[i], 158, y + 6, 0.55f, typeColorLight(d.type));
-        text(d.name, 184, y + 2, 0.5f, WHITE);
+        text(moveName(gMoves[i]), 184, y + 2, 0.5f, WHITE);
         snprintf(gTmp, sizeof gTmp, "Nv %d · %s", gMoves[i].lvl, T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
         text(gTmp, 184, y + 20, 0.36f, COL(170, 200, 255, 255));
     }
@@ -557,7 +557,7 @@ static void drawPlayBottom() {
         float rdy = 1 - playCdFrac(i);
         C2D_DrawRectSolid(x + 3, y + 43, 0.3f, 66 * clampf(rdy, 0, 1), 4, rdy >= 1 ? COL(255, 255, 255, 255) : c);
         text(BTN_NAMES[i], x + 5, y, 0.6f, c);
-        textWrap(MOVES[gMoves[i].id].name, x + 6, y + 22, 62, 0.34f, WHITE);
+        textWrap(moveName(gMoves[i]), x + 6, y + 22, 62, 0.34f, WHITE);
         snprintf(b, sizeof b, "Nv%d", gMoves[i].lvl);
         text(b, x + 66, y + 2, 0.34f, COL(255, 230, 120, 255), true);
         if (tapIn(x, y, 72, 50)) playFireButton(i);
@@ -816,7 +816,7 @@ static void drawBond() {
         u32 edge = gBondSel[i] ? GOLD : (loose ? WHITE : COL(255, 120, 200, 255));
         panel(x, y, 150, 52, edge, loose ? typeColorDark(MOVES[gMoves[i].id].type) : COL(40, 40, 70, 255));
         text(BTN_NAMES[i], x + 6, y + 2, 0.6f, typeColor(MOVES[gMoves[i].id].type));
-        textWrap(MOVES[gMoves[i].id].name, x + 34, y + 6, 112, 0.42f, loose ? WHITE : COL(150, 150, 180, 255));
+        textWrap(moveName(gMoves[i]), x + 34, y + 6, 112, 0.42f, loose ? WHITE : COL(150, 150, 180, 255));
         if (!loose) text("+", x + 134, y + 30, 0.5f, COL(255, 140, 220, 255));
     }
     bool ok = sel == need;
