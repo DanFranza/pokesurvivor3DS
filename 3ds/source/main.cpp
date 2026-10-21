@@ -34,7 +34,50 @@ static float gAcc, gStall;
 static u8 gCoopBtn;
 
 static void msg(const char* s) { snprintf(gMsg, sizeof gMsg, "%s", s); gMsgT = 2.2f; }
-static bool tapIn(float x, float y, float w, float h) { return gTap && inRect(gTp.px, gTp.py, x, y, w, h); }
+// Navegación con botones: cada zona táctil se registra al dibujarse; la cruceta mueve el foco y A pulsa.
+struct FocR { float x, y, w, h; };
+static FocR gFoc[96], gFocPrev[96];
+static int gFocN, gFocPrevN, gFocIdx = -1;
+static bool gFocShow, gFocOn, gFocAct, gBotScene;
+static u64 gFocMs;
+static bool tapIn(float x, float y, float w, float h) {
+    bool hit = gTap && inRect(gTp.px, gTp.py, x, y, w, h);
+    if (!gBotScene || !gFocOn || gFocN >= 96) return hit;
+    int i = gFocN++;
+    gFoc[i] = {x, y, w, h};
+    if (gFocShow && i == gFocIdx) {
+        int a = 120 + (int)(110 * (0.5f + 0.5f * sinf(gFocMs * 0.012f)));
+        u32 c = COL(255, 235, 90, 255), f = COL(255, 235, 90, 40);
+        C2D_DrawRectSolid(x, y, 0.95f, w, h, f);
+        C2D_DrawRectSolid(x - 2, y - 2, 0.96f, w + 4, 3, c);
+        C2D_DrawRectSolid(x - 2, y + h - 1, 0.96f, w + 4, 3, c);
+        C2D_DrawRectSolid(x - 2, y - 2, 0.96f, 3, h + 4, c);
+        C2D_DrawRectSolid(x + w - 1, y - 2, 0.96f, 3, h + 4, c);
+        C2D_DrawRectSolid(x + 1, y + 1, 0.97f, w - 2, 1, COL(255, 255, 255, a));
+        C2D_DrawRectSolid(x + 1, y + h - 2, 0.97f, w - 2, 1, COL(255, 255, 255, a));
+        if (gFocAct) { gFocAct = false; return true; }
+    }
+    return hit;
+}
+static void focusMove(u32 down) {
+    int dx = (down & KEY_DRIGHT) ? 1 : (down & KEY_DLEFT) ? -1 : 0, dy = (down & KEY_DDOWN) ? 1 : (down & KEY_DUP) ? -1 : 0;
+    if (!dx && !dy) return;
+    gFocShow = true;
+    if (gFocPrevN <= 0) return;
+    if (gFocIdx < 0 || gFocIdx >= gFocPrevN) { gFocIdx = 0; return; }
+    const FocR& a = gFocPrev[gFocIdx];
+    float ax = a.x + a.w / 2, ay = a.y + a.h / 2, best = 1e9f;
+    int bi = -1;
+    for (int i = 0; i < gFocPrevN; i++) {
+        if (i == gFocIdx) continue;
+        float bx = gFocPrev[i].x + gFocPrev[i].w / 2 - ax, by = gFocPrev[i].y + gFocPrev[i].h / 2 - ay;
+        float pri = dx ? bx * dx : by * dy, per = dx ? fabsf(by) : fabsf(bx);
+        if (pri < 4) continue;
+        float sc = pri + per * 2.5f;
+        if (sc < best) { best = sc; bi = i; }
+    }
+    if (bi >= 0) gFocIdx = bi;
+}
 static u32 shade(u32 c, float k) {
     int r = (int)((c & 255) * k), g = (int)(((c >> 8) & 255) * k), b = (int)(((c >> 16) & 255) * k);
     return COL(r > 255 ? 255 : r, g > 255 ? 255 : g, b > 255 ? 255 : b, c >> 24);
@@ -998,6 +1041,18 @@ int main() {
         float dt = clampf((now - last) / 1000.0f, 0.0f, 0.05f);
         last = now;
         if (gMsgT > 0) gMsgT -= dt;
+        {
+            static int prevSt = -1;
+            if (prevSt != (int)gState) { gFocIdx = -1; gFocShow = false; prevSt = (int)gState; }
+            gFocMs = now;
+            gFocOn = !(gState == ST_PLAY && !(gCoop && coopOverlay()));
+            if (gTap) gFocShow = false;
+            bool padKeys = gState == ST_LOADOUT || gState == ST_PAUSE;
+            if (gFocOn) focusMove(down);
+            gFocAct = gFocOn && gFocShow && (down & (padKeys ? KEY_SELECT : KEY_A));
+            gFocN = 0;
+            gBotScene = false;
+        }
 
         if (gState == ST_MENU) {
             if (down & KEY_START) quit = true;
@@ -1088,6 +1143,7 @@ int main() {
             case ST_OVER: topBg(); text(gRun.won ? "¡Victoria!" : "Fin de la partida", 200, 100, 0.9f, WHITE, true); break;
         }
         C2D_SceneBegin(bot);
+        gBotScene = true;
         switch (gState) {
             case ST_MENU: drawMenu(); break;
             case ST_DEX: drawDex(now); break;
@@ -1114,6 +1170,9 @@ int main() {
             case ST_OVER: drawOver(); break;
         }
         C3D_FrameEnd(0);
+        memcpy(gFocPrev, gFoc, sizeof(FocR) * gFocN);
+        gFocPrevN = gFocN;
+        if (gFocIdx >= gFocN) gFocIdx = gFocN - 1;
 
         if (gState == ST_LOADING) { doLoadRun(); last = osGetTime(); }
         if (gState == ST_COOP && gJoining && coopMode() == CN_OFF) { coopScanStep(); last = osGetTime(); }
