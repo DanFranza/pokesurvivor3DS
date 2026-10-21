@@ -766,7 +766,8 @@ static bool castMove(int b) {
                 Enemy& e = gE[cur]; done[nd++] = e.id;
                 float tx = e.x, ty = e.y - 8;
                 fxBolt(fx, fy, tx, ty, rgb);
-                hitMove(e, dmg * k, d.type, d.cat, v, tx - fx, ty - fy, m.id);
+                bool hexed = !strcmp(d.name, "Infortunio") && (e.burn > 0 || e.poison > 0 || e.slow > 0);
+                hitMove(e, dmg * k * (hexed ? 1.7f : 1.0f), d.type, d.cat, v, tx - fx, ty - fy, m.id);
                 k *= 0.85f; fx = tx; fy = ty;
                 cur = nearestEnemy(tx, e.y, v[K_RADIUS] > 0 ? v[K_RADIUS] : 120, done, nd);
             }
