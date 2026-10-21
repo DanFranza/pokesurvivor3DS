@@ -1,0 +1,7 @@
+build/
+*.3dsx
+*.elf
+*.smdh
+gfx/*.png
+include/sprites.h
+romfs/gfx/
