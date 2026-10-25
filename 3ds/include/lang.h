@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[6]; };   // en, fr, it, pt-BR, zh-Hans, zh-Hant
-#define LANG_N_STR 2152
+#define LANG_N_STR 2150
 static const LangStr LANG_STR[LANG_N_STR] = {
   {"\nEND ", {"", "", "", "", "", ""}},
   {" (oculta)", {" (hidden)", " (cachée)", " (hidden)", " (hidden)", " (hidden)", " (hidden)"}},
@@ -139,7 +139,6 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"1 ticket", {"1 ticket", "1 ticket", "1 ticket", "1 ticket", "1 ticket", "1 ticket"}},
   {"1 ticket ×10", {"1 ×10 ticket", "1 ticket ×10", "1 ×10 ticket", "1 ×10 ticket", "1 ×10 ticket", "1 ×10 ticket"}},
   {"10 tickets", {"10 tickets", "10 tickets", "10 tickets", "10 tickets", "10 tickets", "10 tickets"}},
-  {"2): al azar si no eliges ninguno", {"2): random if you pick none", "2) : au hasard si tu n'en choisis aucune", "2): random if you pick none", "2): random if you pick none", "2): random if you pick none", "2): random if you pick none"}},
   {"A Bocajarro", {"Close Combat", "Close Combat", "Zuffa", "Close Combat", "近身战", "近身戰"}},
   {"Abalorio Debacle", {"", "", "", "", "", ""}},
   {"Abandonar", {"Give up", "Abandonner", "Give up", "Give up", "Give up", "Give up"}},
@@ -1849,7 +1848,6 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Tirar ×10", {"Pull ×10", "Tirer ×10", "Pull ×10", "Pull ×10", "Pull ×10", "Pull ×10"}},
   {"Toca dos botones para intercambiarlos", {"Tap two buttons to swap them", "Touche deux boutons pour les échanger", "Tap two buttons to swap them", "Tap two buttons to swap them", "Tap two buttons to swap them", "Tap two buttons to swap them"}},
   {"Toca el que quieras llevar", {"Tap the one you want to hold", "Touche celui que tu veux porter", "Tap the one you want to hold", "Tap the one you want to hold", "Tap the one you want to hold", "Tap the one you want to hold"}},
-  {"Toca un ataque marcado para quitarlo", {"Tap a marked move to remove it", "Touche une attaque marquée pour la retirer", "Tap a marked move to remove it", "Tap a marked move to remove it", "Tap a marked move to remove it", "Tap a marked move to remove it"}},
   {"Todo acierta: +15 % de daño hecho, pero recibe un 10 % más.", {"Never misses: +15% damage dealt, but takes 10% more.", "Tout touche : +15 % de dégâts infligés, mais subit 10 % de plus.", "Tutto va a segno: +15% di danni inflitti, ma ne subisce il 10% in più.", "Tudo acerta: +15% de dano causado, mas recebe 10% a mais.", "攻击必中：造成的伤害+15%，但受到的伤害+10%。", "攻擊必中：造成的傷害+15%，但受到的傷害+10%。"}},
   {"Todo tiene su precio, amigo.", {"Everything has a price, friend.", "Tout a un prix, mon ami.", "Tutto ha un prezzo, amico.", "Tudo tem seu preço, amigo.", "Everything has a price, friend.", "Everything has a price, friend."}},
   {"Todos los legendarios", {"All legendaries", "Tous les légendaires", "All legendaries", "All legendaries", "All legendaries", "All legendaries"}},

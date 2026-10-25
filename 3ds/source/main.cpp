@@ -973,7 +973,6 @@ static void drawStartMove() {
             saveWrite();
         }
     }
-    if (two) text(second >= 0 ? "Toca un ataque marcado para quitarlo" : "2): al azar si no eliges ninguno", 160, 172, 0.38f, COL(170, 200, 255, 255), true);
     if (arrowBtn(6, 204, 50, 30, false, gBanPage > 0)) { gBanPage--; sfxPlay(SFX_UI); }
     if (arrowBtn(60, 204, 50, 30, true, gBanPage < pages - 1)) { gBanPage++; sfxPlay(SFX_UI); }
     if (button(116, 204, 90, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
