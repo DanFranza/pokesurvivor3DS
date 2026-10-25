@@ -186,10 +186,10 @@ static int poolFor(int di, int* out) {
     for (int k = 0; k < 2; k++) {
         if (ts[k] == 255) continue;
         const PoolRef& r = POOL_BY_TYPE[ts[k]];
-        for (int i = 0; i < r.n; i++) { int m = POOL_ALL[r.off + i]; if (!seen[m] && !gSave.bannedMove[m]) { seen[m] = true; out[n++] = m; } }
+        for (int i = 0; i < r.n; i++) { int m = POOL_ALL[r.off + i]; if (!seen[m] && !moveBanned(di, m)) { seen[m] = true; out[n++] = m; } }
     }
     int tg[NTM], nt = monTaughtMoves(di, tg);
-    for (int i = 0; i < nt; i++) if (!seen[tg[i]] && !gSave.bannedMove[tg[i]]) { seen[tg[i]] = true; out[n++] = tg[i]; }
+    for (int i = 0; i < nt; i++) if (!seen[tg[i]] && !moveBanned(di, tg[i])) { seen[tg[i]] = true; out[n++] = tg[i]; }
     return n;
 }
 // Segundo movimiento elegido (Mejoras → Segundo movimiento inicial, necesita Repertorio), o -1 = al azar.
@@ -799,8 +799,8 @@ static void drawMonBottom(int di) {
         int tm = 0; for (int i = 0; i < NTM; i++) tm += gSave.tms[i] && monCanLearn(di, i);
         snprintf(gTmp, sizeof gTmp, "Enseñar una MT (%d disponibles)", tm);
         if (button(10, 128, 300, 30, gTmp, COL(200, 130, 50, 255), 0.45f)) { if (tm) { gMonMode = 3; gMonPage = 0; sfxPlay(SFX_UI); } else msg("Ninguna MT que pueda aprender"); }
-        if (permLv(PU_BAN) > 0 && button(10, 164, 300, 26, "Vetar movimientos", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; sfxPlay(SFX_UI); }
-        else if (permLv(PU_BAN) <= 0) text("Consíguelas en la tienda de Kecleon.", 160, 168, 0.36f, COL(170, 200, 255, 255), true);
+        if (permLvOf(gDexSel, PU_BAN) > 0 && button(10, 164, 300, 26, "Vetar movimientos", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; sfxPlay(SFX_UI); }
+        else if (permLvOf(gDexSel, PU_BAN) <= 0) text("Consíguelas en la tienda de Kecleon.", 160, 168, 0.36f, COL(170, 200, 255, 255), true);
     } else if (gMonMode == 1) {
         text("Elige la nueva naturaleza", 160, 44, 0.42f, GOLD, true);
         for (int i = 0; i < NNAT; i++) {
@@ -1481,21 +1481,25 @@ static void drawGachaTop(u64 ms) {
 // ---------------------------------------------------------------- vetar movimientos
 static void drawBan() {
     bgFill();
+    int di = gDexSel, cap = permLvOf(di, PU_BAN);
+    if (cap > 3) cap = 3;
     int used = 0;
-    for (int i = 0; i < NMOVES; i++) used += gSave.bannedMove[i];
-    snprintf(gTmp, sizeof gTmp, "Vetar movimientos %d/%d", used, permLv(PU_BAN));
+    for (int k = 0; k < 3; k++) used += gSave.pban[di][k] != 0;
+    snprintf(gTmp, sizeof gTmp, "Vetar movimientos %d/%d", used, cap);
     headerBar(gTmp, IC_BAN);
     int pages = (NMOVES + 11) / 12;
     for (int k = 0; k < 12; k++) {
         int m = gBanPage * 12 + k;
         if (m >= NMOVES) break;
         float x = 6 + (k % 2) * 158, y = 30 + (k / 2) * 28;
-        panel(x, y, 154, 26, gSave.bannedMove[m] ? COL(230, 60, 60, 255) : typeColor(MOVES[m].type));
+        panel(x, y, 154, 26, moveBanned(di, m) ? COL(230, 60, 60, 255) : typeColor(MOVES[m].type));
         text(MOVES[m].name, x + 6, y + 2, 0.4f, WHITE);
-        if (gSave.bannedMove[m]) icon(IC_BAN, x + 126, y - 2, 0.75f);
+        if (moveBanned(di, m)) icon(IC_BAN, x + 126, y - 2, 0.75f);
         if (tapIn(x, y, 154, 26)) {
-            if (gSave.bannedMove[m]) gSave.bannedMove[m] = 0;
-            else if (used < permLv(PU_BAN)) gSave.bannedMove[m] = 1;
+            int slot = -1;
+            for (int k = 0; k < 3; k++) if (gSave.pban[di][k] == m + 1) slot = k;
+            if (slot >= 0) gSave.pban[di][slot] = 0;
+            else if (used < cap) { for (int k = 0; k < 3; k++) if (!gSave.pban[di][k]) { gSave.pban[di][k] = (u16)(m + 1); break; } }
             else msg("Sin vetos libres");
             saveWrite();
         }

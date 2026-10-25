@@ -2552,12 +2552,12 @@ void playBuildCards(CardSet& cs) {
         static bool seen[NMOVES]; memset(seen, 0, sizeof seen);
         auto addPool = [&](int t) {
             const PoolRef& r = POOL_BY_TYPE[t];
-            for (int i = 0; i < r.n; i++) { int mid = POOL_ALL[r.off + i]; if (seen[mid] || ownsMove(mid) || gSave.bannedMove[mid]) continue; seen[mid] = true; if (n < 150) c[n++] = {0, mid, 6}; }
+            for (int i = 0; i < r.n; i++) { int mid = POOL_ALL[r.off + i]; if (seen[mid] || ownsMove(mid) || moveBanned(P.di, mid)) continue; seen[mid] = true; if (n < 150) c[n++] = {0, mid, 6}; }
         };
         addPool(0); addPool(p.t1); if (p.t2 != 255) addPool(p.t2);
         if (gNP == 1) {     // MT enseñadas (en cooperativo no: las dos consolas deben ver las mismas cartas)
             int tg[NTM], nt = monTaughtMoves(P.di, tg);
-            for (int i = 0; i < nt; i++) { int mid = tg[i]; if (seen[mid] || ownsMove(mid) || gSave.bannedMove[mid]) continue; seen[mid] = true; if (n < 150) c[n++] = {0, mid, 6}; }
+            for (int i = 0; i < nt; i++) { int mid = tg[i]; if (seen[mid] || ownsMove(mid) || moveBanned(P.di, mid)) continue; seen[mid] = true; if (n < 150) c[n++] = {0, mid, 6}; }
         }
     }
     int waitStat[9] = {}; int forced[4], nf = 0;
