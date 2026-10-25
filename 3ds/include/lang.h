@@ -1,11 +1,11 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[6]; };   // en, fr, it, pt-BR, zh-Hans, zh-Hant
-#define LANG_N_STR 2095
+#define LANG_N_STR 2101
 static const LangStr LANG_STR[LANG_N_STR] = {
   {" (oculta)", {"", "", "", "", "", ""}},
   {"+%d Pokémonedas  +%d tickets", {"+%d Pokécoins  +%d tickets", "+%d Pokémonnaies  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets"}},
-  {"+%d tickets · %d", {"+%d tickets · %d", "+%d tickets · %d", "+%d tickets · %d", "+%d tickets · %d", "+%d tickets · %d", "+%d tickets · %d"}},
+  {"+%d tickets", {"", "", "", "", "", ""}},
   {"+0.2 vida/s", {"+0.2 HP/s", "+0.2 PV/s", "+0.2 PS/s", "+0.2 de vida/s", "每秒恢复 0.2 生命值", "每秒恢復 0.2 生命值"}},
   {"+0.9 de vida por segundo.", {"+0.9 HP per second.", "+0.9 PV par seconde.", "+0.9 HP per second.", "+0.9 HP per second.", "+0.9 HP per second.", "+0.9 HP per second."}},
   {"+1 a la vez", {"+1 at a time", "+1 à la fois", "+1 alla volta", "+1 ao mesmo tempo", "同时存在数量 +1", "同時存在數量 +1"}},
@@ -1280,6 +1280,12 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Onda que persigue sola a su objetivo.", {"A wave that homes in on its target.", "Onde qui poursuit seule sa cible.", "Un'onda che insegue da sola il bersaglio.", "Uma onda que persegue o alvo sozinha.", "自动追踪目标的波动。", "自動追蹤目標的波動。"}},
   {"Onda sonora que sale en todas direcciones.", {"A sound wave that spreads in every direction.", "Onde sonore dans toutes les directions.", "Un'onda sonora che si espande in tutte le direzioni.", "Uma onda sonora que se espalha em todas as direções.", "向四面八方扩散的声波。", "向四面八方擴散的聲波。"}},
   {"Onda Ígnea", {"Heat Wave", "Onde Ignée", "Ondacalda", "Heat Wave", "热风", "熱風"}},
+  {"Orbe Concentración", {"Focus Orb", "Orbe Concentration", "Sfera Concentrazione", "Orbe Concentração", "Focus Orb", "Focus Orb"}},
+  {"Orbe Lentitud", {"Slow Orb", "Orbe Lenteur", "Sfera Lentezza", "Orbe Lentidão", "Slow Orb", "Slow Orb"}},
+  {"Orbe Luz", {"Light Orb", "Orbe Lumière", "Sfera Luce", "Orbe Luz", "Light Orb", "Light Orb"}},
+  {"Orbe Soplo", {"Blast Orb", "Orbe Souffle", "Sfera Soffio", "Orbe Sopro", "Blast Orb", "Blast Orb"}},
+  {"Orbe Sueño", {"Sleep Orb", "Orbe Sommeil", "Sfera Sonno", "Orbe Sono", "Sleep Orb", "Sleep Orb"}},
+  {"Orbe Veloz", {"Quick Orb", "Orbe Rapide", "Sfera Rapidità", "Orbe Veloz", "Quick Orb", "Quick Orb"}},
   {"Orden: N.º", {"Sort: No.", "Tri : N°", "Sort: No.", "Sort: No.", "Sort: No.", "Sort: No."}},
   {"Orden: Rareza", {"Sort: Rarity", "Tri : Rareté", "Sort: Rarity", "Sort: Rarity", "Sort: Rarity", "Sort: Rarity"}},
   {"Orichalcum Pulse", {"", "", "", "", "", ""}},

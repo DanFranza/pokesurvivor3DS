@@ -301,5 +301,11 @@
  "No tienes ninguno: cómpralos a Kecleon": "You have none: buy some from Kecleon",
  "Enseña a un Pokémon un movimiento que su tipo no le da. Cada MT se gasta al enseñarla.": "Teaches a Pokémon a move its type doesn't give it. Each TM is used up when taught.",
  "Usa aquí lo que compras a Kecleon: elige un objeto y luego un Pokémon.": "Use what you buy from Kecleon here: pick an item, then a Pokémon.",
- "MT": "TM"
+ "MT": "TM",
+ "Orbe Sueño": "Sleep Orb",
+ "Orbe Lentitud": "Slow Orb",
+ "Orbe Soplo": "Blast Orb",
+ "Orbe Concentración": "Focus Orb",
+ "Orbe Luz": "Light Orb",
+ "Orbe Veloz": "Quick Orb"
 }

@@ -802,5 +802,11 @@
  "No tienes ninguno: cómpralos a Kecleon": "Tu n'en as pas : achètes-en chez Kecleon",
  "Enseña a un Pokémon un movimiento que su tipo no le da. Cada MT se gasta al enseñarla.": "Apprend à un Pokémon une capacité que son type ne lui donne pas. Chaque CT est consommée.",
  "Usa aquí lo que compras a Kecleon: elige un objeto y luego un Pokémon.": "Utilise ici ce que tu achètes à Kecleon : choisis un objet puis un Pokémon.",
- "MT": "CT"
+ "MT": "CT",
+ "Orbe Sueño": "Orbe Sommeil",
+ "Orbe Lentitud": "Orbe Lenteur",
+ "Orbe Soplo": "Orbe Souffle",
+ "Orbe Concentración": "Orbe Concentration",
+ "Orbe Luz": "Orbe Lumière",
+ "Orbe Veloz": "Orbe Rapide"
 }

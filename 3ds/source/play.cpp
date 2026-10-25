@@ -139,6 +139,12 @@ static char gBanner[80];
 static int gKills, gBossesDown, gCoins, gT1, gT10, gNextId, gChar, gSet, gNextBoss;
 static int gKillsType[18], gChests, gEvolves, gRifts;
 static float gCamX, gCamY;
+// orbes de donjon: hasta 2 distintos, 3 de cada uno (R = casilla 1, L = casilla 2)
+enum { OB_SLEEP, OB_SLOW, OB_BLOW, OB_FOCUS, OB_LIGHT, OB_QUICK, OB_N };
+static const char* const ORB_NAME[OB_N] = {"Orbe Sueño", "Orbe Lentitud", "Orbe Soplo", "Orbe Concentración", "Orbe Luz", "Orbe Veloz"};
+static const u32 ORB_RGB[OB_N] = {0x8f7bff, 0x4fd0ff, 0x6fe08a, 0xff5a4f, 0xffe55a, 0xffa23d};
+static int gOrbT[2] = {-1, -1}, gOrbN[2];
+static float gOrbFocusT, gOrbLightT, gVW = 400, gVH = 240, gZoom = 1;
 static Def gCast[6][8]; static int gNCast[6];
 static Def gBossDef[5];
 // eventos: ladrón de monedas y grieta (arena del legendario)
@@ -190,7 +196,7 @@ static bool wxHurts(int t1, int t2) {
 static float wxSpeed(int t1, int t2) { return gWx == 4 && !(t1 == 5 || t2 == 5) ? 1 - 0.1f * wxLevel() : 1; }
 static float gTargetD;
 static u8 gBroken[512][2]; static int gNBroken;
-static bool gLiqGrid[14][18];
+static bool gLiqGrid[18][24];
 static int gTierNow;
 static u64 gMs;
 
@@ -471,11 +477,18 @@ void playPreloadSprites() {
 
 // ---------------------------------------------------------------- recogidas
 static int itemRoll() { int i; do i = rnd() % 11; while (i == gItem); return i; }
+static void dropPick(u8 kind, float x, float y, float val);
+static void orbDrop(float x, float y, float chance);
 static void dropPick(u8 kind, float x, float y, float val) {
     for (int i = 0; i < MAXP; i++)
         if (!gP[i].on) { gP[i] = {true, kind, x, y, val, 0}; return; }
     if (kind == 0) { P.xp += val * P.xpMul; }
     else if (kind == 1) gCoins += (int)val;
+}
+
+static void orbDrop(float x, float y, float chance) {
+    if (gNP > 1 || frand() >= chance) return;
+    dropPick(7, x + frange(-8, 8), y - 4, (float)(rnd() % OB_N));
 }
 
 // ---------------------------------------------------------------- enemigos
@@ -544,6 +557,7 @@ static void killEnemy(Enemy& e) {
         dropPick(5, e.x - 26, e.y - 10, (float)itemRoll());
         for (int i = 0; i < 12; i++) dropPick(1, e.x + frange(-24, 24), e.y + frange(-18, 18), 3);
         if (frand() < 1.0f / 3) dropPick(3, e.x, e.y - 10, 10);   // ticket ×10 (como en la web)
+        orbDrop(e.x + 24, e.y - 6, 1.0f); orbDrop(e.x - 12, e.y + 8, 0.4f);
         dropPick(2, e.x + 14, e.y, 1);
         gShake = 0.5f;
     } else {
@@ -552,6 +566,7 @@ static void killEnemy(Enemy& e) {
         else if (r < 0.115f) dropPick(2, e.x, e.y, 1);
         else if (r < 0.12f) dropPick(4, e.x, e.y, 1);
         else if (r < 0.126f) dropPick(6, e.x, e.y, 1);
+        else if (r < 0.138f) orbDrop(e.x, e.y, 1.0f);
     }
 }
 
@@ -594,7 +609,7 @@ static void hitEnemy(Enemy& e, float dmg, int type, int cat, float burn, float p
     const DexE& p = DEX[e.di];
     float tm = typeMult(type, p.t1, p.t2);
     float g = cat == 2 ? 1 : guardMul(cat == 1 ? p.sd : p.df);
-    bool crit = frand() < P.crit;
+    bool crit = frand() < P.crit + (gOrbFocusT > 0 ? 0.6f : 0);
     float d = dmg * tm * g * (crit ? 1.5f : 1) * wxMult(type) * abilOut(e, type, cat);
     for (int b = 0; b < 4; b++) if (gMoves[b].id == mid) gMoves[b].dealt += d;
     knock *= e.boss ? 0.25f : 1;
@@ -602,7 +617,7 @@ static void hitEnemy(Enemy& e, float dmg, int type, int cat, float burn, float p
     if (L > 0.01f && knock > 0) { e.kx += dx / L * knock; e.ky += dy / L * knock; }
     if (burn > 0) { e.burn = fminf(8, e.burn + burn); e.burnT = 3; }
     if (poison > 0) { e.poison = fminf(8, e.poison + poison); e.poiT = 4; }
-    if (slow > 0) { e.slow = fmaxf(e.slow, clampf(slow, 0, 0.85f)); e.slowT = 1.2f; }
+    if (slow > 0) { e.slow = fmaxf(e.slow, clampf(slow, 0, 0.85f)); e.slowT = fmaxf(e.slowT, 1.2f); }
     int num = (int)(d + 0.5f);
     char b[12]; snprintf(b, sizeof b, "%d", num);
     const char* lab = effLabel(tm);
@@ -942,6 +957,7 @@ static void breakProp(int tx, int ty, int kind) {
         for (int i = 0; i < n; i++) dropPick(1, x + frange(-14, 14), y + frange(-10, 10), 3);
         dropPick(frand() < 0.5f ? 2 : 4, x, y, 1);
         if (frand() < 0.08f) dropPick(5, x + 12, y - 8, (float)itemRoll());
+        orbDrop(x - 10, y - 6, 0.35f);
         dropPick(0, x, y, 20);
         fxRing(x, y - 8, 6, 46, 0xf2c443, 0.45f, 4);
     } else if (kind == PR_BIG) {
@@ -951,6 +967,7 @@ static void breakProp(int tx, int ty, int kind) {
         for (int i = 0; i < tk; i++) dropPick(3, x + frange(-16, 16), y + frange(-10, 10), 1);
         if (frand() < 0.15f) dropPick(3, x, y - 10, 10);
         if (frand() < 0.5f) dropPick(5, x + 14, y - 10, (float)itemRoll());
+        orbDrop(x - 14, y - 8, 0.6f);
         dropPick(0, x, y, xpFor(P.level));
         fxRing(x, y - 8, 6, 80, 0xf2c443, 0.6f, 5);
         shake(0.3f);
@@ -1628,6 +1645,39 @@ void playItemChoose(bool takeNew) {
     gItemNew = -1; if (gNP == 1) gPS = PS_RUN;
 }
 
+static bool orbCanTake(int t) {
+    for (int i = 0; i < 2; i++) if (gOrbT[i] == t && gOrbN[i] < 3) return true;
+    for (int i = 0; i < 2; i++) if (gOrbT[i] < 0) return true;
+    return false;
+}
+static void orbTake(int t) {
+    int s = -1;
+    for (int i = 0; i < 2; i++) if (gOrbT[i] == t) s = i;
+    if (s < 0) for (int i = 0; i < 2; i++) if (gOrbT[i] < 0) { s = i; gOrbT[i] = t; gOrbN[i] = 0; break; }
+    if (s < 0) return;
+    gOrbN[s]++;
+    fxText(P.x, P.y - 30, T(ORB_NAME[t]), ORB_RGB[t], 0.5f); sfxPlay(SFX_RARE);
+}
+static void orbUse(int s) {
+    int t = gOrbT[s];
+    if (t < 0 || gOrbN[s] <= 0) return;
+    gOrbN[s]--; if (gOrbN[s] <= 0) gOrbT[s] = -1;
+    fxRing(P.x, P.y - 8, 8, 280, ORB_RGB[t], 0.6f, 6);
+    fxText(P.x, P.y - 34, T(ORB_NAME[t]), ORB_RGB[t], 0.6f);
+    sfxPlay(SFX_RARE);
+    if (t == OB_FOCUS) { gOrbFocusT = 15; return; }
+    if (t == OB_LIGHT) { gOrbLightT = 25; return; }
+    if (t == OB_QUICK) { P.buffSpd = fmaxf(P.buffSpd, 0.6f); P.buffSpdT = fmaxf(P.buffSpdT, 12); return; }
+    for (int k = 0; k < MAXE; k++) {
+        Enemy& o = gE[k]; if (!o.on) continue;
+        float ex = o.x - P.x, ey = o.y - P.y, ed = sqrtf(ex * ex + ey * ey);
+        if (ed > 300) continue;
+        float f = (o.legend || o.judge) ? 0.15f : o.boss ? 0.3f : 1.0f;
+        if (t == OB_SLEEP) o.stun = fmaxf(o.stun, 6 * f);
+        else if (t == OB_SLOW) { o.slow = fmaxf(o.slow, 0.75f * (f < 1 ? f + 0.15f : 1)); o.slowT = fmaxf(o.slowT, 8 * f); }
+        else if (ed > 0.01f) { o.kx += ex / ed * 520 * f; o.ky += ey / ed * 520 * f; }
+    }
+}
 static void updatePickups(float dt) {
     for (int i = 0; i < MAXP; i++) {
         Pick& p = gP[i]; if (!p.on) continue;
@@ -1635,6 +1685,7 @@ static void updatePickups(float dt) {
         Sc sc(nearPlayer(p.x, p.y));
         float dx = P.x - p.x, dy = P.y - p.y, d = sqrtf(dx * dx + dy * dy);
         bool vac = p.kind == 4;
+        if (p.kind == 7 && !orbCanTake((int)p.val)) continue;
         if (d < P.magnet * (vac ? 0.5f : 1) || p.t > 25) {
             float sp = 160 + (P.magnet - d) * 3;
             if (d > 1) { p.x += dx / d * sp * dt; p.y += dy / d * sp * dt; }
@@ -1650,6 +1701,7 @@ static void updatePickups(float dt) {
                     for (int k = 0; k < MAXP; k++) if (gP[k].on && gP[k].kind <= 1) { gP[k].t = 30; }
                     fxText(P.x, P.y - 30, "¡Imán!", 0x80c0ff, 0.5f); sfxPlay(SFX_PICK); break;
                 case 5: sfxPlay(SFX_RARE); itemOffer((int)p.val); break;
+                case 7: orbTake((int)p.val); break;
                 case 6: {
                     float bd = 60 + P.level * 14;
                     fxRing(P.x, P.y - 8, 10, 270, 0xff9a3d, 0.6f, 6); fxRing(P.x, P.y - 8, 6, 180, 0xffe070, 0.45f, 4);
@@ -2239,6 +2291,14 @@ void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
     }
 
     biomeStep();
+    if (gNP == 1) {
+        if (down & KEY_R) orbUse(0);
+        if (down & KEY_L) orbUse(1);
+        if (gOrbFocusT > 0) gOrbFocusT -= dt;
+        if (gOrbLightT > 0) gOrbLightT -= dt;
+        gZoom += ((gOrbLightT > 0 ? 0.7f : 1.0f) - gZoom) * clampf(dt * 4, 0, 1);
+        gVW = TOP_W / gZoom; gVH = TOP_H / gZoom;
+    }
 
     updatePlayer(dt, jx / 100.0f, jy / 100.0f);
     updateMoves(dt, down);
@@ -2396,6 +2456,7 @@ static void finishReset() {
     banner(TILESET_NAMES[gSet], 3.0f);
 }
 void playReset(int charIdx, const int* startMoves, int nStart) {
+    gOrbT[0] = gOrbT[1] = -1; gOrbN[0] = gOrbN[1] = 0; gOrbFocusT = gOrbLightT = 0; gZoom = 1; gVW = TOP_W; gVH = TOP_H;
     gNP = 1; gLoc = 0; gCur = &gC[0]; gCi = 0; gMovesL = gC[0].moves;
     memset(gC, 0, sizeof gC);
     resetWorld(charIdx);
@@ -2700,14 +2761,14 @@ static void drawShot(Shot& s, float cx, float cy) {
 static void drawWorldTiles(float cx, float cy) {
     const TileSet& T = TILESETS[gSet];
     int tx0 = (int)floorf(cx / TS) - 1, ty0 = (int)floorf(cy / TS) - 1;
-    int cols = 15, rows = 10;
+    int cols = (int)(gVW / TS) + 3, rows = (int)(gVH / TS) + 3;
     for (int j = 0; j < rows; j++) for (int i = 0; i < cols; i++) gLiqGrid[j][i] = liquidTile(tx0 + i, ty0 + j);
     int liqAnim = (int)(gMs / 500) & 1;
     for (int j = 1; j < rows; j++) {
         for (int i = 1; i < cols; i++) {
             int tx = tx0 + i, ty = ty0 + j;
             float sx = tx * TS - cx, sy = ty * TS - cy;
-            if (sx < -TS || sx > TOP_W || sy < -TS || sy > TOP_H) continue;
+            if (sx < -TS || sx > gVW || sy < -TS || sy > gVH) continue;
             u32 h = hash2(tx, ty, wseed());
             if (gLiqGrid[j][i]) {
                 tileDraw(T.liquid[((h >> 4) + liqAnim) & 1], sx, sy, 0.1f);
@@ -2753,38 +2814,38 @@ static void drawProp(int kind, int tx, int ty, float cx, float cy) {
 
 static void edgeArrow(float wx, float wy, float cx, float cy, u32 col) {
     float sx = wx - cx, sy = wy - cy;
-    if (sx > 0 && sx < TOP_W && sy > 14 && sy < TOP_H) return;
-    float dx = sx - TOP_W / 2, dy = sy - TOP_H / 2, l = sqrtf(dx * dx + dy * dy);
+    if (sx > 0 && sx < gVW && sy > 14 && sy < gVH) return;
+    float dx = sx - gVW / 2, dy = sy - gVH / 2, l = sqrtf(dx * dx + dy * dy);
     if (l < 1) return;
-    float t = fminf((TOP_W / 2 - 14) / fmaxf(fabsf(dx), 0.01f), (TOP_H / 2 - 24) / fmaxf(fabsf(dy), 0.01f));
-    float ux = dx / l, uy = dy / l, ax = TOP_W / 2 + dx * t, ay = TOP_H / 2 + dy * t;
+    float t = fminf((gVW / 2 - 14) / fmaxf(fabsf(dx), 0.01f), (gVH / 2 - 24) / fmaxf(fabsf(dy), 0.01f));
+    float ux = dx / l, uy = dy / l, ax = gVW / 2 + dx * t, ay = gVH / 2 + dy * t;
     C2D_DrawTriangle(ax + ux * 9, ay + uy * 9, col, ax - uy * 6 - ux * 5, ay + ux * 6 - uy * 5, col, ax + uy * 6 - ux * 5, ay - ux * 6 - uy * 5, col, 0.78f);
 }
 static void drawWeather() {
     float lv = wxLevel();
     if (!gWx || lv <= 0) return;
     static const u8 TINT[6][4] = {{0}, {255, 190, 70, 40}, {40, 80, 170, 62}, {210, 160, 80, 66}, {200, 225, 255, 50}, {185, 190, 205, 84}};
-    C2D_DrawRectSolid(0, 0, 0.7f, TOP_W, TOP_H, COL(TINT[gWx][0], TINT[gWx][1], TINT[gWx][2], (int)(TINT[gWx][3] * lv)));
+    C2D_DrawRectSolid(0, 0, 0.7f, gVW, gVH, COL(TINT[gWx][0], TINT[gWx][1], TINT[gWx][2], (int)(TINT[gWx][3] * lv)));
     int n = (int)((gWx == 2 ? 70 : gWx == 4 ? 60 : gWx == 3 ? 56 : gWx == 1 ? 22 : 0) * lv);
     float T0 = gMs * 0.001f;
     if (gWx == 5) {
         for (int i = 0; i < 5; i++) {
-            float x = fmodf(i * 97 + T0 * (8 + i * 3), TOP_W + 200) - 100, y = 30 + i * 46 + sinf(T0 * 0.5f + i) * 10;
+            float x = fmodf(i * 97 + T0 * (8 + i * 3), gVW + 200) - 100, y = 30 + i * 46 + sinf(T0 * 0.5f + i) * 10;
             C2D_DrawEllipseSolid(x - 90, y - 18, 0.71f, 180, 36, COL(225, 230, 240, (int)(46 * lv)));
         }
     }
     if (gWx == 1) {
-        C2D_DrawRectSolid(0, 0, 0.7f, TOP_W, 22, COL(255, 220, 120, (int)(36 * lv)));
-        C2D_DrawRectSolid(0, TOP_H - 22, 0.7f, TOP_W, 22, COL(255, 150, 40, (int)(34 * lv)));
+        C2D_DrawRectSolid(0, 0, 0.7f, gVW, 22, COL(255, 220, 120, (int)(36 * lv)));
+        C2D_DrawRectSolid(0, gVH - 22, 0.7f, gVW, 22, COL(255, 150, 40, (int)(34 * lv)));
     }
     for (int i = 0; i < n; i++) {
         u32 h = hash2(i, 7, 99);
-        float sx = (h & 1023) / 1023.0f * TOP_W, sy = ((h >> 10) & 1023) / 1023.0f * TOP_H, ph = ((h >> 20) & 255) / 255.0f;
+        float sx = (h & 1023) / 1023.0f * gVW, sy = ((h >> 10) & 1023) / 1023.0f * gVH, ph = ((h >> 20) & 255) / 255.0f;
         float x, y;
-        if (gWx == 2) { x = fmodf(sx - 150 * T0 + 4000, TOP_W); y = fmodf(sy + 600 * T0, TOP_H); C2D_DrawLine(x, y, COL(190, 215, 255, 230), x - 4, y - 12, COL(190, 215, 255, 40), 1.5f, 0.71f); }
-        else if (gWx == 4) { x = fmodf(sx + sinf(T0 + ph * 6) * 16 + 4000, TOP_W); y = fmodf(sy + 60 * T0, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 3, 3, COL(255, 255, 255, 230)); }
-        else if (gWx == 3) { x = fmodf(sx - 460 * T0 + 8000, TOP_W); y = fmodf(sy + 30 * T0, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 12, 2, COL(232, 200, 130, 190)); }
-        else { x = sx; y = fmodf(sy - 20 * T0 + 4000, TOP_H); C2D_DrawRectSolid(x, y, 0.71f, 3, 3, COL(255, 245, 170, (int)(110 + 100 * sinf(T0 * 2 + ph * 6)))); }
+        if (gWx == 2) { x = fmodf(sx - 150 * T0 + 4000, gVW); y = fmodf(sy + 600 * T0, gVH); C2D_DrawLine(x, y, COL(190, 215, 255, 230), x - 4, y - 12, COL(190, 215, 255, 40), 1.5f, 0.71f); }
+        else if (gWx == 4) { x = fmodf(sx + sinf(T0 + ph * 6) * 16 + 4000, gVW); y = fmodf(sy + 60 * T0, gVH); C2D_DrawRectSolid(x, y, 0.71f, 3, 3, COL(255, 255, 255, 230)); }
+        else if (gWx == 3) { x = fmodf(sx - 460 * T0 + 8000, gVW); y = fmodf(sy + 30 * T0, gVH); C2D_DrawRectSolid(x, y, 0.71f, 12, 2, COL(232, 200, 130, 190)); }
+        else { x = sx; y = fmodf(sy - 20 * T0 + 4000, gVH); C2D_DrawRectSolid(x, y, 0.71f, 3, 3, COL(255, 245, 170, (int)(110 + 100 * sinf(T0 * 2 + ph * 6)))); }
     }
 }
 static void drawEvents(float cx, float cy) {
@@ -2817,12 +2878,12 @@ static void drawEvents(float cx, float cy) {
     if (!gArena) return;
     float aL = gArenaX - ARENA_H - cx, aR = gArenaX + ARENA_H - cx, aT = gArenaY - ARENA_H - cy, aB = gArenaY + ARENA_H - cy;
     u32 dark = COL(12, 0, 28, 235);
-    if (aT > 0) C2D_DrawRectSolid(0, 0, 0.75f, TOP_W, fminf(aT, TOP_H), dark);
-    if (aB < TOP_H) C2D_DrawRectSolid(0, fmaxf(aB, 0), 0.75f, TOP_W, TOP_H - fmaxf(aB, 0), dark);
-    float y0 = fmaxf(aT, 0), y1 = fminf(aB, TOP_H);
+    if (aT > 0) C2D_DrawRectSolid(0, 0, 0.75f, gVW, fminf(aT, gVH), dark);
+    if (aB < gVH) C2D_DrawRectSolid(0, fmaxf(aB, 0), 0.75f, gVW, gVH - fmaxf(aB, 0), dark);
+    float y0 = fmaxf(aT, 0), y1 = fminf(aB, gVH);
     if (y1 > y0) {
-        if (aL > 0) C2D_DrawRectSolid(0, y0, 0.75f, fminf(aL, TOP_W), y1 - y0, dark);
-        if (aR < TOP_W) C2D_DrawRectSolid(fmaxf(aR, 0), y0, 0.75f, TOP_W - fmaxf(aR, 0), y1 - y0, dark);
+        if (aL > 0) C2D_DrawRectSolid(0, y0, 0.75f, fminf(aL, gVW), y1 - y0, dark);
+        if (aR < gVW) C2D_DrawRectSolid(fmaxf(aR, 0), y0, 0.75f, gVW - fmaxf(aR, 0), y1 - y0, dark);
     }
     u32 pc = gJ ? COL(255, 220, 90, 255) : COL(190, 90, 255, 255);
     C2D_DrawRectSolid(aL - 2, aT - 2, 0.76f, aR - aL + 4, 3, pc); C2D_DrawRectSolid(aL - 2, aB - 1, 0.76f, aR - aL + 4, 3, pc);
@@ -2834,17 +2895,17 @@ static void drawEvents(float cx, float cy) {
         ringDraw(ax, ay - 12, 30 + 3 * sinf(gMs * 0.006f), 3, COL(255, 220, 90, 200), 0.49f);
         sprDraw(493, gJDir, gMs, gJMoving, ax, ay, nullptr, 1.5f);
         if (gJ == 1) {
-            C2D_DrawRectSolid(0, 0, 0.77f, TOP_W, TOP_H, COL(0, 0, 0, (int)(160 * (1 - gJT / 3.2f))));
-            text("LA SENTENCIA DE ARCEUS", TOP_W / 2 - 78, TOP_H / 2 - 50, 0.7f, COL(255, 230, 120, 255));
+            C2D_DrawRectSolid(0, 0, 0.77f, gVW, gVH, COL(0, 0, 0, (int)(160 * (1 - gJT / 3.2f))));
+            text("LA SENTENCIA DE ARCEUS", gVW / 2 - 78, gVH / 2 - 50, 0.7f, COL(255, 230, 120, 255));
         } else {
             edgeArrow(gJX, gJY, cx, cy, COL(255, 220, 90, 255));
             char jb[40]; snprintf(jb, sizeof jb, "Sentencia: %d legendarios", gJDowns);
-            text(jb, TOP_W - 150, 12, 0.5f, COL(255, 230, 140, 255));
+            text(jb, gVW - 150, 12, 0.5f, COL(255, 230, 140, 255));
         }
         return;
     }
     char b[24]; snprintf(b, sizeof b, "%d s", (int)fmaxf(0, 120 - gArenaT));
-    if (gArenaEnd <= 0) text(b, TOP_W - 40, 12, 0.5f, COL(220, 170, 255, 255));
+    if (gArenaEnd <= 0) text(b, gVW - 40, 12, 0.5f, COL(220, 170, 255, 255));
 }
 
 void playDraw(u64 ms) {
@@ -2852,15 +2913,16 @@ void playDraw(u64 ms) {
     float shx = gShake > 0 ? vfrange(-1, 1) * gShake * 6 : 0, shy = gShake > 0 ? vfrange(-1, 1) * gShake * 6 : 0;
     int camI = gNP > 1 && gC[gLoc].dead ? (gLoc ^ 1) : gLoc;
     const Player& CP = gC[camI].p;
-    float cx = floorf(CP.x - TOP_W / 2 + shx), cy = floorf(CP.y - 10 - TOP_H / 2 + shy);
+    float cx = floorf(CP.x - gVW / 2 + shx), cy = floorf(CP.y - 10 - gVH / 2 + shy);
     gCamX = cx; gCamY = cy;
-    C2D_DrawRectSolid(0, 0, 0, TOP_W, TOP_H, rgbA(TILESET_FLOOR_RGBA[gSet] >> 8, 255));
+    if (gZoom < 0.999f) C2D_ViewScale(gZoom, gZoom);
+    C2D_DrawRectSolid(0, 0, 0, gVW, gVH, rgbA(TILESET_FLOOR_RGBA[gSet] >> 8, 255));
     drawWorldTiles(cx, cy);
     drawFieldsGround(cx, cy);
 
     // objetos ordenados por y
     int n = 0;
-    int tx0 = (int)floorf(cx / TS) - 1, tx1 = (int)floorf((cx + TOP_W) / TS) + 1, ty0 = (int)floorf(cy / TS) - 1, ty1 = (int)floorf((cy + TOP_H) / TS) + 3;
+    int tx0 = (int)floorf(cx / TS) - 1, tx1 = (int)floorf((cx + gVW) / TS) + 1, ty0 = (int)floorf(cy / TS) - 1, ty1 = (int)floorf((cy + gVH) / TS) + 3;
     for (int ty = ty0; ty <= ty1 && n < 250; ty++)
         for (int tx = tx0; tx <= tx1 && n < 250; tx++) {
             int k = propAt(tx, ty, nullptr);
@@ -2877,7 +2939,7 @@ void playDraw(u64 ms) {
             ptx[np] = (short)tx; pty[np] = (short)ty;
             gDI[n++] = {py, (u8)(10 + k), (short)np}; np++;
         }
-    for (int i = 0; i < MAXE && n < 296; i++) if (gE[i].on && fabsf(gE[i].x - CP.x) < 280 && fabsf(gE[i].y - CP.y) < 200) gDI[n++] = {gE[i].y, 1, (short)i};
+    for (int i = 0; i < MAXE && n < 296; i++) if (gE[i].on && fabsf(gE[i].x - CP.x) < gVW / 2 + 80 && fabsf(gE[i].y - CP.y) < gVH / 2 + 80) gDI[n++] = {gE[i].y, 1, (short)i};
     for (int i = 0; i < gNP; i++) if (!gC[i].dead) gDI[n++] = {gC[i].p.y, 2, (short)i};
     qsort(gDI, n, sizeof(DrawItem), diCmp);
     for (int i = 0; i < n; i++) {
@@ -2948,7 +3010,7 @@ void playDraw(u64 ms) {
     for (int i = 0; i < MAXP; i++) {
         Pick& p = gP[i]; if (!p.on) continue;
         float x = p.x - cx, y = p.y - cy - 4 + sinf(p.t * 5) * 1.5f;
-        if (x < -10 || x > TOP_W + 10 || y < -10 || y > TOP_H + 10) continue;
+        if (x < -10 || x > gVW + 10 || y < -10 || y > gVH + 10) continue;
         switch (p.kind) {
             case 0: circle(x, y, 4.5f, COL(20, 60, 120, 255), 0.45f); circle(x, y, 3.5f, COL(90, 200, 255, 255), 0.46f); circle(x - 1, y - 1, 1.2f, COL(255, 255, 255, 255), 0.47f); break;
             case 1: circle(x, y, 5, COL(120, 80, 0, 255), 0.45f); circle(x, y, 4, COL(255, 210, 50, 255), 0.46f); break;
@@ -2956,13 +3018,23 @@ void playDraw(u64 ms) {
             case 3: if (p.val >= 10) icon(IC_TICKET10, x - 12, y - 12, 0.75f); else icon(IC_TICKET, x - 8, y - 8, 0.5f); break;
             case 4: circle(x, y, 6, COL(60, 90, 230, 255), 0.45f); circle(x, y, 3, COL(230, 60, 60, 255), 0.46f); break;
             case 6: icon(IC_BOMB, x - 10, y - 12, 0.62f); break;
+            case 7: { u32 c = ORB_RGB[(int)p.val % OB_N]; circle(x, y, 7, rgbA(darken(c, 0.4f), 255), 0.45f); circle(x, y, 5.5f, rgbA(c, 255), 0.46f); circle(x - 2, y - 2, 1.8f, COL(255, 255, 255, 230), 0.47f); ringDraw(x, y, 8 + sinf(p.t * 6) * 1.5f, 1, rgbA(c, 160), 0.44f); break; }
             case 5: C2D_DrawRectSolid(x - 7, y - 7, 0.45f, 14, 14, COL(255, 255, 255, 255)); C2D_DrawRectSolid(x - 6, y - 6, 0.46f, 12, 12, COL(255, 120, 200, 255)); C2D_DrawRectSolid(x - 2, y - 2, 0.47f, 4, 4, COL(255, 230, 90, 255)); break;
         }
     }
     drawFx(cx, cy, true);
     drawEvents(cx, cy);
 
+    C2D_ViewReset();
     // HUD superior mínimo
+    for (int i = 0; i < 2; i++) if (gNP == 1 && gOrbT[i] >= 0) {
+        char b[32];
+        float ox = 4 + i * 96, oy = TOP_H - 16;
+        C2D_DrawRectSolid(ox, oy, 0.8f, 92, 14, COL(0, 0, 0, 140));
+        circle(ox + 8, oy + 7, 5, rgbA(ORB_RGB[gOrbT[i]], 255), 0.82f);
+        snprintf(b, sizeof b, "%s ×%d", i ? "L" : "R", gOrbN[i]); text(b, ox + 16, oy - 2, 0.38f, COL(255, 255, 255, 255));
+        text(ORB_NAME[gOrbT[i]], ox + 40, oy - 2, 0.3f, rgbA(ORB_RGB[gOrbT[i]], 255));
+    }
     float bx = TOP_W / 2;
     char b[48];
     C2D_DrawRectSolid(0, 0, 0.8f, TOP_W, 14, COL(0, 0, 0, 120));
