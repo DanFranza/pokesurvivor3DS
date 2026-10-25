@@ -15,7 +15,7 @@
 
 // ---------------------------------------------------------------- tipos de datos
 struct Enemy {
-    bool on, boss, moving, legend, judge, shiny, fury, binit;
+    bool on, boss, moving, legend, judge, shiny, fury, binit, arceus;
     u8 bmode, bst, batk, bside; float bcd, bmodeT, bt, bax, bay, bdx, bdy;
     short di;                       // fila en DEX
     u8 beh, dir, st;
@@ -172,6 +172,7 @@ static const ItemDef ITEMS[11] = {
     {"Casco Dentado", "Los que te tocan reciben daño."},
     {"Chaleco Asalto", "-20% de daño recibido."}};
 // la Sentencia de Arceus (al llegar a WIN_TIME): arena enorme, Arceus invencible y legendarios cada vez más fuertes
+static int gJPlate;
 static int gJ, gJN, gJDowns, gJArDi, gJNs; static u8 gJDir; static bool gJMoving;
 static float gJT, gJBossT, gJCast, gJTouch, gJLift, gJX, gJY, gJBase, gJSecT, gJSamp[30];
 static bool gHazTru;
@@ -571,6 +572,11 @@ static void killEnemy(Enemy& e) {
 }
 
 static void damageEnemyRaw(Enemy& e, float dmg) {
+    if (e.arceus) {   // invencible: sólo una parte mínima del daño, cada vez menos
+        e.hp = fmaxf(1, e.hp - dmg * 0.06f / (1 + gJT / 45));
+        e.flash = 0.08f;
+        return;
+    }
     if (e.shield > 0) { float a = fminf(e.shield, dmg); e.shield -= a; dmg -= a; }
     e.hp -= dmg;
     e.took += dmg;
@@ -607,7 +613,7 @@ static float abilOut(const Enemy& e, int type, int cat) {
 }
 static void hitEnemy(Enemy& e, float dmg, int type, int cat, float burn, float poison, float slow, float knock, float dx, float dy, int mid) {
     const DexE& p = DEX[e.di];
-    float tm = typeMult(type, p.t1, p.t2);
+    float tm = e.arceus ? typeMult(type, gJPlate, 255) : typeMult(type, p.t1, p.t2);
     float g = cat == 2 ? 1 : guardMul(cat == 1 ? p.sd : p.df);
     bool crit = frand() < P.crit + (gOrbFocusT > 0 ? 0.6f : 0);
     float d = dmg * tm * g * (crit ? 1.5f : 1) * wxMult(type) * abilOut(e, type, cat);
@@ -683,13 +689,22 @@ static void hitMove(Enemy& e, float dmg, int type, int cat, const float* v, floa
 }
 
 static int nearestEnemy(float x, float y, float maxD, const int* skipIds = nullptr, int nSkip = 0) {
-    int best = -1; float bd = maxD * maxD;
+    int best = -1, arc = -1; float bd = maxD * maxD, ad = bd;
     for (int i = 0; i < MAXE; i++) {
         if (!gE[i].on) continue;
+        if (gE[i].arceus) {
+            float dx = gE[i].x - x, dy = gE[i].y - y, d = dx * dx + dy * dy;
+            if (d < ad) { ad = d; arc = i; }
+            continue;
+        }
         bool skip = false; for (int k = 0; k < nSkip; k++) if (skipIds[k] == gE[i].id) skip = true;
         if (skip) continue;
         float dx = gE[i].x - x, dy = gE[i].y - y, d = dx * dx + dy * dy;
         if (d < bd) { bd = d; best = i; }
+    }
+    if (best < 0) {   // sin legendarios a la vista, los ataques apuntan a Arceus
+        bool skip = false; for (int k = 0; k < nSkip && arc >= 0; k++) if (skipIds[k] == gE[arc].id) skip = true;
+        if (!skip) return arc;
     }
     return best;
 }
@@ -1538,6 +1553,12 @@ static void updateEnemies(float dt) {
     for (int i = 0; i < MAXE; i++) {
         Enemy& e = gE[i]; if (!e.on) continue;
         Sc sc(nearPlayer(e.x, e.y));
+        if (e.arceus) {
+            e.x = gJX; e.y = gJY; e.kx = e.ky = 0; e.burn = e.poison = e.slow = e.stun = 0;
+            e.hp = fminf(e.maxHp, e.hp + e.maxHp * 0.01f * dt);
+            if (e.flash > 0) e.flash -= dt;
+            continue;
+        }
         if (e.flash > 0) e.flash -= dt;
         if (e.stun > 0) e.stun -= dt;
         if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slow = 0; }
@@ -2078,12 +2099,21 @@ static void judgeSpawnLegend() {
     e.spd = fmaxf(clampf(48 + (baseSpd(DEX[di]) - 78) * 0.6f, 48, 105), P.spd * P.spdMul * 0.8f);
     gJN++;
 }
+static void judgeSpawnArceus() {
+    gJPlate = 1 + (int)(rnd() % 17);
+    Def d; memset(&d, 0, sizeof d);
+    d.di = gJArDi; d.hp = 1; d.spd = 0; d.dmg = 0; d.beh = B_CHARGER;
+    int sl = spawnEnemy(d, gJX, gJY, false, false, 0);
+    if (sl >= 0) { Enemy& a = gE[sl]; a.arceus = true; a.maxHp = a.hp = 20000; a.r = 14; a.xp = 0; a.dmg = 0; a.shotDmg = 0; }
+    char b[64]; snprintf(b, sizeof b, "¡Arceus lleva una Placa de tipo %s!", typeName(gJPlate));
+    banner(b, 3.4f);
+}
 static void judgeUpdate(float dt) {
     gJT += dt;
     if (gJ == 1) {
         gJLift = fmaxf(0, 700 * (1 - gJT / 3.2f));
         for (int i = 0; i < gNP; i++) gC[i].p.invuln = fmaxf(gC[i].p.invuln, 1);
-        if (gJT >= 3.2f) { gJ = 2; gJT = 0; gJLift = 0; gShake = 0.6f; sfxPlay(SFX_BOSS); fxRing(gJX, gJY - 10, 8, 160, 0xffe070, 0.8f, 6); }
+        if (gJT >= 3.2f) { judgeSpawnArceus(); gJ = 2; gJT = 0; gJLift = 0; gShake = 0.6f; sfxPlay(SFX_BOSS); fxRing(gJX, gJY - 10, 8, 160, 0xffe070, 0.8f, 6); }
         return;
     }
     // Arceus persigue al jugador más cercano y cada vez va más rápido
@@ -2893,7 +2923,16 @@ static void drawEvents(float cx, float cy) {
         circle(ax, gJY - cy + 4, 20, COL(0, 0, 0, 90), 0.4f);
         if (gJ == 1) C2D_DrawRectSolid(ax - 14, fmaxf(0, ay - 40), 0.5f, 28, fmaxf(0, gJY - cy - (ay - 40)), COL(255, 240, 160, 110));
         ringDraw(ax, ay - 12, 30 + 3 * sinf(gMs * 0.006f), 3, COL(255, 220, 90, 200), 0.49f);
-        sprDraw(493, gJDir, gMs, gJMoving, ax, ay, nullptr, 1.5f);
+        C2D_ImageTint at; C2D_PlainImageTint(&at, rgbA(TYPE_RGB[gJPlate], 255), gJ == 2 ? 0.3f : 0.0f);
+        const Enemy* ae = nullptr; for (int q = 0; q < MAXE; q++) if (gE[q].on && gE[q].arceus) ae = &gE[q];
+        bool fl = ae && ae->flash > 0;
+        if (fl) C2D_PlainImageTint(&at, COL(255, 255, 255, 255), 0.7f);
+        sprDraw(493, gJDir, gMs, gJMoving, ax, ay, gJ == 2 ? &at : nullptr, 1.5f);
+        if (ae) {
+            float yy = ay - 60;
+            C2D_DrawRectSolid(ax - 26, yy, 0.8f, 52, 5, COL(0, 0, 0, 220));
+            C2D_DrawRectSolid(ax - 25, yy + 1, 0.85f, 50 * clampf(ae->hp / ae->maxHp, 0, 1), 3, rgbA(TYPE_RGB[gJPlate], 255));
+        }
         if (gJ == 1) {
             C2D_DrawRectSolid(0, 0, 0.77f, gVW, gVH, COL(0, 0, 0, (int)(160 * (1 - gJT / 3.2f))));
             text("LA SENTENCIA DE ARCEUS", gVW / 2 - 78, gVH / 2 - 50, 0.7f, COL(255, 230, 120, 255));
@@ -2901,6 +2940,8 @@ static void drawEvents(float cx, float cy) {
             edgeArrow(gJX, gJY, cx, cy, COL(255, 220, 90, 255));
             char jb[40]; snprintf(jb, sizeof jb, "Sentencia: %d legendarios", gJDowns);
             text(jb, gVW - 150, 12, 0.5f, COL(255, 230, 140, 255));
+            snprintf(jb, sizeof jb, "Placa: %s", typeName(gJPlate));
+            text(jb, gVW - 150, 26, 0.42f, rgbA(TYPE_RGB[gJPlate], 255));
         }
         return;
     }
@@ -2947,6 +2988,7 @@ void playDraw(u64 ms) {
         if (di.kind >= 10) { drawProp(di.kind - 10, ptx[di.idx], pty[di.idx], cx, cy); continue; }
         if (di.kind == 1) {
             Enemy& e = gE[di.idx];
+            if (e.arceus) continue;
             float x = e.x - cx, y = e.y - cy, sc = e.boss ? 2.0f : 1.0f;
             C2D_DrawEllipseSolid(x - e.r, y - e.r * 0.35f, 0.4f, e.r * 2, e.r * 0.7f, COL(0, 0, 0, 80));
             C2D_ImageTint tint;
