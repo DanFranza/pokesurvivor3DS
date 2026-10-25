@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BAG };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BAG, ST_BLACK };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -407,6 +407,115 @@ static void drawKecleonTop(u64 now) {
     }
 }
 
+// ---------------------------------------------------------------- mercado negro (épicos y legendarios a precio de oro)
+static int gBmGen = 1, gBmPage, gBmRes = -1; static bool gBmShiny; static u64 gBmT;
+static int bmList(int gen, int* out) {
+    int n = 0;
+    for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gen && DEX[i].rarity >= 4) out[n++] = i;
+    return n;
+}
+static int bmPrice(int di) { return DEX_NUM[di] == 150 || DEX_NUM[di] == 151 ? 500000 : DEX[di].rarity >= 5 ? 100000 : 50000; }
+static void bmBuy(int di) {
+    int pr = bmPrice(di);
+    if (gSave.coins < pr) { msg("No tienes suficientes Pokémonedas"); sfxPlay(SFX_HURT); return; }
+    gSave.coins -= pr;
+    bool sh = rnd() % 4092 == 0 && sprHasShiny(DEX_NUM[di]);
+    gSave.owned[di] = 1;
+    if (sh) gSave.shiny[di] = 1;
+    saveWrite();
+    gBmRes = di; gBmShiny = sh; gBmT = osGetTime();
+    sfxPlay(sh ? SFX_GACHA : SFX_LEVEL);
+}
+static void drawBlack() {
+    bgFill();
+    for (int g = 1; g <= 9; g++) {
+        static const char* ab[9] = {"Kan", "Joh", "Hoe", "Sin", "Tes", "Kal", "Alo", "Gal", "Pal"};
+        if (button(4 + (g - 1) * 34, 2, 32, 20, ab[g - 1], g == gBmGen ? GOLD_BTN : EDGE, 0.34f) && g != gBmGen) { gBmGen = g; gBmPage = 0; sfxPlay(SFX_UI); }
+    }
+    icon(IC_COIN, 8, 26, 0.5f);
+    snprintf(gTmp, sizeof gTmp, "%d", gSave.coins);
+    text(gTmp, 28, 24, 0.5f, GOLD);
+    int list[48], n = bmList(gBmGen, list);
+    int pages = (n + 2) / 3;
+    if (gBmPage >= pages) gBmPage = pages - 1;
+    if (gBmPage < 0) gBmPage = 0;
+    for (int k = 0; k < 3; k++) {
+        int idx = gBmPage * 3 + k;
+        if (idx >= n) break;
+        int di = list[idx]; float y = 44 + k * 49;
+        panel(6, y, 308, 47, gBmRes == di ? GOLD : EDGE, COL(40, 26, 70, 255));
+        text(pname(di), 14, y + 3, 0.5f, WHITE);
+        text(DEX[di].rarity >= 5 ? "Legendario" : "Épico", 14, y + 24, 0.36f, rarityColor(DEX[di].rarity));
+        if (gSave.owned[di]) text("✓", 112, y + 3, 0.5f, COL(120, 255, 160, 255));
+        if (gSave.shiny[di]) icon(IC_SHINY, 128, y + 4, 0.5f);
+        int pr = bmPrice(di);
+        snprintf(gTmp, sizeof gTmp, "%d", pr);
+        if (button(176, y + 5, 132, 37, gTmp, gSave.coins >= pr ? COL(150, 60, 150, 255) : COL(80, 84, 110, 255), 0.5f, IC_COIN)) bmBuy(di);
+    }
+    if (arrowBtn(6, 198, 40, 36, false, gBmPage > 0)) { gBmPage--; sfxPlay(SFX_UI); }
+    if (arrowBtn(52, 198, 40, 36, true, gBmPage < pages - 1)) { gBmPage++; sfxPlay(SFX_UI); }
+    snprintf(gTmp, sizeof gTmp, "%d/%d", gBmPage + 1, pages);
+    text(gTmp, 100, 200, 0.45f, WHITE);
+    text("Shiny 1/4092", 100, 218, 0.34f, COL(255, 130, 130, 255));
+    if (gMsgT > 0) text(gMsg, 160, 26, 0.34f, COL(255, 120, 120, 255));
+    if (button(232, 198, 82, 36, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
+}
+static void drawBlackTop(u64 now) {
+    float t = now / 1000.0f;
+    gradRect(0, 0, TOP_W, 170, 0.02f, COL(10, 8, 26, 255), COL(40, 24, 64, 255));
+    C2D_DrawRectSolid(0, 170, 0.02f, TOP_W, 70, COL(24, 20, 34, 255));
+    for (int i = 0; i < 12; i++) C2D_DrawRectSolid(hash2(i, 1, 5) % 400, hash2(i, 2, 5) % 90, 0.03f, 2, 2, COL(255, 255, 255, (u8)(120 + 100 * sinf(t * 2 + i))));
+    // muros de callejón y farola parpadeante
+    for (int r = 0; r < 7; r++) {
+        C2D_DrawRectSolid(0, 60 + r * 16, 0.1f, 80, 15, COL(44, 36, 56, 255));
+        C2D_DrawRectSolid(320, 60 + r * 16, 0.1f, 80, 15, COL(44, 36, 56, 255));
+    }
+    C2D_DrawRectSolid(358, 40, 0.12f, 4, 120, INK);
+    bool lit = fmodf(t, 6.0f) > 0.4f;
+    C2D_DrawRectSolid(350, 34, 0.13f, 20, 10, lit ? COL(255, 220, 120, 255) : COL(90, 80, 60, 255));
+    if (lit) C2D_DrawRectSolid(340, 44, 0.04f, 40, 120, COL(255, 220, 120, 28));
+    // lona con cartel
+    C2D_DrawRectSolid(96, 28, 0.2f, 208, 22, INK);
+    C2D_DrawRectSolid(98, 30, 0.21f, 204, 18, COL(120, 30, 120, 255));
+    text("MERCADO NEGRO", 200, 31, 0.5f, GOLD, true);
+    // Meowth
+    bool shinyAnim = gBmRes >= 0 && gBmShiny;
+    float since = gBmRes >= 0 ? (now - gBmT) / 1000.0f : 99;
+    float x = 200 + sinf(t * 0.6f) * 22;
+    float y = 166 - (shinyAnim && since < 2.4f ? fabsf(sinf(since * 9)) * 18 : 0);
+    if (sprHas(52)) sprDraw(52, cosf(t * 0.6f) > 0 ? 1 : 3, now, true, x, y, nullptr, 1.7f);
+    if (shinyAnim && since < 2.4f) {
+        C2D_DrawRectSolid(x - 5, y - 74, 0.9f, 10, 22, COL(255, 80, 80, 255));
+        C2D_DrawRectSolid(x - 5, y - 48, 0.9f, 10, 8, COL(255, 80, 80, 255));
+    }
+    // mostrador
+    C2D_DrawRectSolid(70, 168, 0.8f, 260, 30, INK);
+    C2D_DrawRectSolid(74, 170, 0.81f, 252, 24, COL(70, 40, 90, 255));
+    C2D_DrawRectSolid(74, 170, 0.82f, 252, 4, COL(130, 80, 160, 255));
+    // Pokémon comprado sobre el mostrador
+    if (gBmRes >= 0) {
+        float px = 290, py = 190 - (since < 0.5f ? (0.5f - since) * -60 : 0);
+        if (py > 190) py = 190;
+        sprDraw(DEX_NUM[gBmRes], 0, now, true, px, py, nullptr, 1.2f, gBmShiny);
+        if (gBmShiny) for (int i = 0; i < 8; i++) {
+            float a = t * 3 + i * 0.8f;
+            C2D_DrawRectSolid(px + cosf(a) * 38 - 2, py - 30 + sinf(a) * 30 - 2, 0.95f, 5, 5, ((int)(t * 8) + i) & 1 ? COL(255, 255, 255, 255) : COL(255, 230, 90, 255));
+        }
+    }
+    // globo
+    const char* line = gBmRes < 0 ? (((now / 5000) & 1) ? "Psst... ¿buscas algo muy raro?" : "Todo tiene su precio, amigo.")
+                     : gBmShiny ? "¡Vaya! No es su color habitual..." : "Un placer hacer negocios.";
+    const char* tl = T(line);
+    float bw = textW(tl, 0.42f) + 16;
+    C2D_DrawRectSolid(200 - bw / 2 - 2, 2, 0.85f, bw + 4, 22, INK);
+    C2D_DrawRectSolid(200 - bw / 2, 4, 0.86f, bw, 18, shinyAnim ? COL(255, 245, 170, 255) : COL(255, 255, 255, 255));
+    text(tl, 200, 3, 0.42f, INK, true);
+    if (shinyAnim && since < 2.4f) C2D_DrawRectSolid(0, 0, 0.99f, TOP_W, 240, COL(255, 255, 255, (u8)(110 * (1 - since / 2.4f))));
+    icon(IC_COIN, 318, 214, 0.5f);
+    snprintf(gTmp, sizeof gTmp, "%d", gSave.coins);
+    text(gTmp, 338, 212, 0.5f, GOLD);
+}
+
 // ---------------------------------------------------------------- sac (usar lo comprado en Kecleon)
 // -1 = lista · 0 aromates · 1 píldora · 2 parche · 3 MT
 static void bagUse(int di) {
@@ -517,8 +626,9 @@ static void drawMenu() {
     if (button(233, 150, 67, 40, "Sac", COL(200, 130, 50, 255), 0.4f, IC_BOOK)) { gBagItem = -1; gState = ST_BAG; sfxPlay(SFX_UI); }
     if (missionClaimable()) { C2D_DrawCircleSolid(152, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(152, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 152, 145, 0.45f, WHITE, true); }
     bool ban = permLv(PU_BAN) > 0;
-    if (ban && button(20, 198, 88, 24, "Vetar", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; }
-    if (button(ban ? 114 : 20, 198, ban ? 186 : 280, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_LANG; sfxPlay(SFX_UI); }
+    if (ban && button(20, 198, 60, 24, "Vetar", COL(160, 80, 80, 255), 0.4f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; }
+    if (button(ban ? 84 : 20, 198, ban ? 100 : 136, 24, "Mercado Negro", COL(90, 40, 120, 255), 0.4f, IC_COIN)) { gBmRes = -1; gBmPage = 0; gState = ST_BLACK; sfxPlay(SFX_UI); }
+    if (button(ban ? 188 : 160, 198, ban ? 112 : 140, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_LANG; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "START: salir · Volumen %d%% (L/R)", (int)(gSave.vol * 100 + 0.5f));
     text(gTmp, 160, 224, 0.34f, COL(140, 165, 220, 255), true);
 }
@@ -1461,6 +1571,7 @@ int main() {
             case ST_LOADOUT: case ST_PAUSE: drawLoadoutTop(now); break;
             case ST_SHOP: drawShopTop(now); break;
             case ST_KECLEON: drawKecleonTop(now); break;
+            case ST_BLACK: drawBlackTop(now); break;
             case ST_BAG: drawBagTop(); break;
             case ST_GACHA: drawGachaTop(now); break;
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
@@ -1484,6 +1595,7 @@ int main() {
             case ST_LOADOUT: case ST_PAUSE: drawLoadoutBottom(); break;
             case ST_SHOP: drawShop(); break;
             case ST_KECLEON: drawKecleon(); break;
+            case ST_BLACK: drawBlack(); break;
             case ST_BAG: drawBag(); break;
             case ST_GACHA: drawGacha(); break;
             case ST_BAN: drawBan(); break;

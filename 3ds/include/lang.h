@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[6]; };   // en, fr, it, pt-BR, zh-Hans, zh-Hant
-#define LANG_N_STR 2106
+#define LANG_N_STR 2113
 static const LangStr LANG_STR[LANG_N_STR] = {
   {" (oculta)", {"", "", "", "", "", ""}},
   {"+%d Pokémonedas  +%d tickets", {"+%d Pokécoins  +%d tickets", "+%d Pokémonnaies  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets"}},
@@ -1033,7 +1033,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Leaf Guard", {"", "", "", "", "", ""}},
   {"Lee las intenciones: esquiva el 8 % de los golpes.", {"", "Lit les intentions : esquive 8 % des coups.", "Legge le intenzioni: schiva l’8% dei colpi.", "Lê as intenções: desvia de 8% dos golpes.", "看穿意图：能闪避8%的攻击。", "看穿意圖：能閃避8%的攻擊。"}},
   {"Leg", {"Leg", "Lég", "Leg", "Leg", "Leg", "Leg"}},
-  {"Legendario", {"Legendary", "Légendaire", "Legendary", "Legendary", "Legendary", "Legendary"}},
+  {"Legendario", {"Legendary", "Légendaire", "Leggendario", "Lendário", "Legendary", "Legendary"}},
   {"Legendarios", {"Legendaries", "Légendaires", "Leggendari", "Lendários", "传说宝可梦", "傳說寶可夢"}},
   {"Legendarios de la Sentencia: %d", {"Judgment legendaries: %d", "Légendaires du Jugement : %d", "Judgment legendaries: %d", "Judgment legendaries: %d", "Judgment legendaries: %d", "Judgment legendaries: %d"}},
   {"Leggiadro", {"", "", "", "", "", ""}},
@@ -1095,6 +1095,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Lâche", {"", "", "", "", "", ""}},
   {"Lévitation", {"", "", "", "", "", ""}},
   {"Líbero", {"", "", "", "", "", ""}},
+  {"MERCADO NEGRO", {"BLACK MARKET", "MARCHÉ NOIR", "MERCATO NERO", "MERCADO NEGRO", "BLACK MARKET", "BLACK MARKET"}},
   {"MT", {"TM", "CT", "MT", "MT", "招式学习器", "招式學習器"}},
   {"MT del día", {"Daily TMs", "CT du jour", "MT del giorno", "MT do dia", "Daily TMs", "Daily TMs"}},
   {"MUNDO MISTERIOSO", {"MYSTERY WORLD", "MONDE MYSTÈRE", "MYSTERY WORLD", "MYSTERY WORLD", "MYSTERY WORLD", "MYSTERY WORLD"}},
@@ -1152,6 +1153,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Menta", {"Mint", "Aromates", "Menta", "Menta", "薄荷", "薄荷"}},
   {"Menta ×%d", {"Mint ×%d", "Aromates ×%d", "Menta ×%d", "Menta ×%d", "Mint ×%d", "Mint ×%d"}},
   {"Mente Locale", {"", "", "", "", "", ""}},
+  {"Mercado Negro", {"Black Market", "Marché Noir", "Mercato Nero", "Mercado Negro", "Black Market", "Black Market"}},
   {"Mercenario", {"Mercenary", "Mercenaire", "Mercenary", "Mercenary", "Mercenary", "Mercenary"}},
   {"Merciless", {"", "", "", "", "", ""}},
   {"Metal Liviano", {"", "", "", "", "", ""}},
@@ -1441,6 +1443,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Psicogénesis", {"", "", "", "", "", ""}},
   {"Psicoonda", {"Psywave", "Psyonde", "Psiconda", "Psywave", "精神波", "精神波"}},
   {"Psicorrayo", {"Psybeam", "Rayon Psy", "Psicoraggio", "Psybeam", "幻象光线", "幻象光線"}},
+  {"Psst... ¿buscas algo muy raro?", {"Psst... looking for something rare?", "Psst... tu cherches du rare ?", "Psst... cerchi qualcosa di raro?", "Psst... procurando algo raro?", "Psst... looking for something rare?", "Psst... looking for something rare?"}},
   {"Psychic Surge", {"", "", "", "", "", ""}},
   {"Psíquico", {"Psychic", "Psy", "Psico", "Psíquico", "超能力", "精神強念"}},
   {"Puanteur", {"", "", "", "", "", ""}},
@@ -1648,6 +1651,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Shield Dust", {"", "", "", "", "", ""}},
   {"Shields Down", {"", "", "", "", "", ""}},
   {"Shiny", {"Shiny", "Shiny", "Shiny", "Shiny", "异色", "異色"}},
+  {"Shiny 1/4092", {"Shiny 1/4092", "Shiny 1/4092", "Shiny 1/4092", "Shiny 1/4092", "Shiny 1/4092", "Shiny 1/4092"}},
   {"Siccità", {"", "", "", "", "", ""}},
   {"Sicura", {"", "", "", "", "", ""}},
   {"Siembra púas que estallan al pisarlas.", {"Scatters spikes that burst when stepped on.", "Sème des picots qui explosent au contact.", "Semina punte che esplodono quando vengono calpestate.", "Espalha espinhos que explodem quando pisados.", "撒下踩到就会爆炸的尖刺。", "撒下踩到就會爆炸的尖刺。"}},
@@ -1809,6 +1813,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Toca el que quieras llevar", {"Tap the one you want to hold", "Touche celui que tu veux porter", "Tap the one you want to hold", "Tap the one you want to hold", "Tap the one you want to hold", "Tap the one you want to hold"}},
   {"Toca un ataque marcado para quitarlo", {"", "", "", "", "", ""}},
   {"Todo acierta: +15 % de daño hecho, pero recibe un 10 % más.", {"", "Tout touche : +15 % de dégâts infligés, mais il en subit 10 % de plus.", "Tutto va a segno: +15% di danni inflitti, ma ne subisce il 10% in più.", "Tudo acerta: +15% de dano causado, mas recebe 10% a mais.", "攻击必中：造成的伤害+15%，但受到的伤害+10%。", "攻擊必中：造成的傷害+15%，但受到的傷害+10%。"}},
+  {"Todo tiene su precio, amigo.", {"Everything has a price, friend.", "Tout a un prix, mon ami.", "Tutto ha un prezzo, amico.", "Tudo tem seu preço, amigo.", "Everything has a price, friend.", "Everything has a price, friend."}},
   {"Todos los legendarios", {"All legendaries", "Tous les légendaires", "All legendaries", "All legendaries", "All legendaries", "All legendaries"}},
   {"Toison Herbue", {"", "", "", "", "", ""}},
   {"Toison Épaisse", {"", "", "", "", "", ""}},
@@ -1879,6 +1884,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Un grito encantador que daña y aparta a los que tienes cerca.", {"A charming cry that damages and pushes away those near you.", "Un cri charmeur qui blesse et repousse les proches.", "Un grido incantevole che danneggia e respinge chi ti sta vicino.", "Um grito encantador que fere e afasta quem está perto.", "造成伤害并击退身边敌人的迷人叫声。", "造成傷害並擊退身邊敵人的迷人叫聲。"}},
   {"Un hueso que va y vuelve golpeando fuerte.", {"A bone that flies out and back, hitting hard.", "Un os qui fait l'aller-retour en frappant fort.", "Un osso che va e torna colpendo con forza.", "Um osso que vai e volta acertando forte.", "来回飞行并重击敌人的骨头。", "來回飛行並重擊敵人的骨頭。"}},
   {"Un muñeco que se queda disparando por ti.", {"A decoy that stays behind shooting for you.", "Un pantin qui tire à ta place.", "Un fantoccio che resta a sparare per te.", "Um boneco que fica atirando por você.", "留下替身玩偶，代替你持续射击。", "留下替身玩偶，代替你持續射擊。"}},
+  {"Un placer hacer negocios.", {"A pleasure doing business.", "Un plaisir de faire affaire.", "Un piacere fare affari.", "Um prazer fazer negócios.", "A pleasure doing business.", "A pleasure doing business."}},
   {"Un puñetazo al aire que lanza una onda y aparta a los enemigos.", {"A punch into the air that sends out a wave and pushes enemies away.", "Un coup de poing dans le vide qui lance une onde et repousse.", "Un pugno nell’aria che lancia un’onda e respinge i nemici.", "Um soco no ar que lança uma onda e afasta os inimigos.", "朝空中挥拳放出冲击波，击退敌人。", "朝空中揮拳放出衝擊波，擊退敵人。"}},
   {"Un puñetazo tremendo donde avisa el suelo: deja aturdidos a los que pilla.", {"A tremendous punch where the ground warns: it stuns whoever it catches.", "Un poing énorme là où le sol l'annonce : étourdit ceux touchés.", "Un pugno tremendo dove il terreno lo segnala: stordisce chi viene colpito.", "Um soco tremendo onde o chão avisa: atordoa quem for atingido.", "在地面标示处打出猛烈一拳，使被击中的敌人晕眩。", "在地面標示處打出猛烈一拳，使被擊中的敵人暈眩。"}},
   {"Un rayo que salta de un enemigo a otro.", {"A bolt that jumps from one enemy to the next.", "Un éclair qui saute d'un ennemi à l'autre.", "Un fulmine che rimbalza da un nemico all'altro.", "Um raio que salta de um inimigo para outro.", "在敌人之间跳跃传导的电流。", "在敵人之間跳躍傳導的電流。"}},
@@ -2072,6 +2078,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"¡SHINY!", {"SHINY!", "SHINY !", "SHINY!", "SHINY!", "SHINY!", "SHINY!"}},
   {"¡Se abrió una grieta!", {"A rift has opened!", "Une faille s'est ouverte !", "A rift has opened!", "A rift has opened!", "A rift has opened!", "A rift has opened!"}},
   {"¡Un %s shiny anda cerca!", {"A shiny %s is nearby!", "Un %s shiny rôde dans les parages !", "A shiny %s is nearby!", "A shiny %s is nearby!", "A shiny %s is nearby!", "A shiny %s is nearby!"}},
+  {"¡Vaya! No es su color habitual...", {"Well! That's not its usual color...", "Tiens, ce n'est pas sa couleur habituelle...", "Ehi! Non è il suo colore solito...", "Ora! Não é a cor habitual...", "Well! That's not its usual color...", "Well! That's not its usual color..."}},
   {"¡Victoria!", {"Victory!", "Victoire !", "Victory!", "Victory!", "Victory!", "Victory!"}},
   {"¡Vínculo!", {"Bond!", "Lien !", "Vincolo!", "Vínculo!", "羁绊！", "羈絆！"}},
   {"¡Vínculo! %d movimientos a la vez", {"Bond! %d moves at once", "Lien ! %d capacités à la fois", "Bond! %d moves at once", "Bond! %d moves at once", "Bond! %d moves at once", "Bond! %d moves at once"}},
@@ -2082,7 +2089,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Écran Fumée", {"", "", "", "", "", ""}},
   {"Écran Poudre", {"", "", "", "", "", ""}},
   {"Égide Inflexible", {"", "", "", "", "", ""}},
-  {"Épico", {"Epic", "Épique", "Epic", "Epic", "Epic", "Epic"}},
+  {"Épico", {"Epic", "Épique", "Epico", "Épico", "Epic", "Epic"}},
   {"Épine de Fer", {"", "", "", "", "", ""}},
   {"Ímpetu Ardiente", {"", "", "", "", "", ""}},
   {"Ímpetu Arena", {"", "", "", "", "", ""}},
