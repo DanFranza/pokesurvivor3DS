@@ -97,6 +97,9 @@ struct Save {
     u64 ptm[DEX_N];                             // MT enseñadas (bit i = MT i)
     u16 bag[3];                                 // Mochila: Menta, Cápsula Habilidad, Cápsula Habilidad Oculta
     u16 tms[NTM];                               // MT sin usar
+    char nick[16];                              // pseudo online
+    char fav[6][40];                            // servidores favoritos
+    u32 wins;                                   // victorias totales (clasificación online)
 };
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
@@ -280,3 +283,15 @@ float playCdFrac(int b);
 void playSwapSlots(int a, int b);
 bool playHasItem();
 int playItem();
+
+// ---------------------------------------------------------------- online (servidor comunitario por TCP, host:puerto)
+#define ONLINE_PORT 25570
+struct OnRow { char nick[16]; int val; };
+extern OnRow gOnRows[10]; extern int gOnN, gOnMyRank, gOnTotal;
+bool onlineBusy();
+int onlineState();                                       // 0 libre · 1 en curso · 2 listo · 3 error
+bool onlineQuery(const char* addr, int cat);             // conecta, sube mis marcas y pide el top
+bool onlineFinish();                                     // al llegar el resultado: lo interpreta (true = ok)
+const char* onlineError();
+
+void onlineExit();

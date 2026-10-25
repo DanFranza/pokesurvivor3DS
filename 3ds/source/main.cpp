@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BAG, ST_BLACK };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BAG, ST_BLACK, ST_ONLINE };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -516,6 +516,111 @@ static void drawBlackTop(u64 now) {
     text(gTmp, 338, 212, 0.5f, GOLD);
 }
 
+// ---------------------------------------------------------------- online comunitario (servidor por dirección, favoritos y clasificaciones)
+static int gOnView, gOnCat, gOnPage, gKbd; static char gOnAddr[48], gOnPend[48];
+static int favCount() { int n = 0; for (int i = 0; i < 6; i++) if (gSave.fav[i][0]) n++; return n; }
+static int favFind(const char* a) { for (int i = 0; i < 6; i++) if (!strcmp(gSave.fav[i], a)) return i; return -1; }
+static void onConnect(const char* addr, int cat) {
+    snprintf(gOnAddr, sizeof gOnAddr, "%s", addr);
+    if (!gSave.nick[0]) { snprintf(gOnPend, sizeof gOnPend, "%s", addr); gKbd = 1; return; }
+    gOnCat = cat;
+    if (!onlineQuery(addr, cat)) { msg(onlineError()); onlineFinish(); }
+}
+static void onlinePoll() {
+    int st = onlineState();
+    if (st == 2) { if (onlineFinish()) gOnView = 1; else msg(onlineError()); }
+    else if (st == 3) { msg(onlineError()); onlineFinish(); }
+}
+// El teclado del sistema se abre fuera del fotograma
+static void kbdRun() {
+    if (!gKbd) return;
+    int k = gKbd; gKbd = 0;
+    SwkbdState kb; char buf[64] = {0};
+    swkbdInit(&kb, SWKBD_TYPE_WESTERN, 2, k == 1 ? 12 : 40);
+    swkbdSetHintText(&kb, k == 1 ? T("Pseudo") : "192.168.1.20:25570");
+    swkbdSetInitialText(&kb, k == 1 ? gSave.nick : gOnAddr);
+    if (swkbdInputText(&kb, buf, sizeof buf) != SWKBD_BUTTON_CONFIRM) { gOnPend[0] = 0; return; }
+    char o[48]; int n = 0;
+    for (char* c = buf; *c && n < (k == 1 ? 12 : 40); c++) {
+        bool ok = ((*c >= '0' && *c <= '9') || (*c >= 'A' && *c <= 'Z') || (*c >= 'a' && *c <= 'z')) || *c == '_' || *c == '-' || (k == 2 && (*c == '.' || *c == ':'));
+        if (ok) o[n++] = *c;
+    }
+    o[n] = 0;
+    if (k == 1) {
+        if (n < 2) { msg("Pseudo no válido"); gOnPend[0] = 0; return; }
+        snprintf(gSave.nick, sizeof gSave.nick, "%s", o); saveWrite();
+        if (gOnPend[0]) { char a[48]; snprintf(a, sizeof a, "%s", gOnPend); gOnPend[0] = 0; onConnect(a, gOnCat); }
+    } else if (n) onConnect(o, gOnCat);
+}
+static void drawOnline() {
+    bgFill();
+    headerBar("Online", IC_FRIENDS);
+    static const char* tabs[4] = {"Tiempo", "Bajas", "Nivel", "Victorias"};
+    bool busy = onlineBusy();
+    if (gOnView == 0) {
+        panel(6, 26, 308, 30, EDGE, COL(26, 49, 112, 255));
+        snprintf(gTmp, sizeof gTmp, "Pseudo: %s", gSave.nick[0] ? gSave.nick : "—");
+        text(gTmp, 14, 33, 0.5f, WHITE);
+        if (button(222, 29, 88, 24, "Cambiar", EDGE, 0.42f) && !busy) { gKbd = 1; gOnPend[0] = 0; }
+        if (button(6, 60, 308, 34, busy ? "Conectando..." : "Escribir dirección", COL(40, 160, 170, 255), 0.5f, IC_FRIENDS) && !busy) { gKbd = 2; gOnPend[0] = 0; }
+        text("Favoritos", 8, 98, 0.4f, GOLD);
+        int ids[6], n = 0;
+        for (int i = 0; i < 6; i++) if (gSave.fav[i][0]) ids[n++] = i;
+        int pages = (n + 2) / 3;
+        if (gOnPage >= pages) gOnPage = pages > 0 ? pages - 1 : 0;
+        if (!n) text("Sin favoritos", 160, 140, 0.4f, COL(150, 170, 220, 255), true);
+        for (int k = 0; k < 3; k++) {
+            int idx = gOnPage * 3 + k; if (idx >= n) break;
+            int f = ids[idx]; float y = 114 + k * 30;
+            panel(6, y, 308, 28, EDGE, COL(26, 49, 112, 255));
+            text(gSave.fav[f], 14, y + 4, 0.45f, WHITE);
+            if (button(214, y + 2, 64, 24, "Entrar", COL(60, 170, 80, 255), 0.4f) && !busy) onConnect(gSave.fav[f], gOnCat);
+            if (button(282, y + 2, 28, 24, "x", COL(180, 80, 80, 255), 0.45f)) { gSave.fav[f][0] = 0; saveWrite(); }
+        }
+        if (arrowBtn(6, 206, 40, 28, false, gOnPage > 0)) { gOnPage--; sfxPlay(SFX_UI); }
+        if (arrowBtn(52, 206, 40, 28, true, gOnPage < pages - 1)) { gOnPage++; sfxPlay(SFX_UI); }
+    } else {
+        for (int c = 0; c < 4; c++)
+            if (button(4 + c * 78, 28, 76, 24, tabs[c], c == gOnCat ? GOLD_BTN : EDGE, 0.38f) && c != gOnCat && !busy) { gOnCat = c; onConnect(gOnAddr, c); }
+        panel(6, 58, 308, 34, EDGE, COL(26, 49, 112, 255));
+        text(gOnAddr, 14, 62, 0.4f, COL(170, 200, 255, 255));
+        if (gOnMyRank > 0) snprintf(gTmp, sizeof gTmp, "%s · #%d/%d", gSave.nick, gOnMyRank, gOnTotal);
+        else snprintf(gTmp, sizeof gTmp, "%s", gSave.nick);
+        text(gTmp, 14, 76, 0.4f, WHITE);
+        bool fv = favFind(gOnAddr) >= 0;
+        if (button(6, 98, 150, 34, fv ? "Quitar favorito" : "Añadir favorito", fv ? COL(160, 120, 40, 255) : COL(200, 140, 40, 255), 0.4f)) {
+            if (fv) gSave.fav[favFind(gOnAddr)][0] = 0;
+            else { int e = -1; for (int i = 0; i < 6; i++) if (!gSave.fav[i][0]) { e = i; break; } if (e < 0) msg("Favoritos llenos"); else snprintf(gSave.fav[e], sizeof gSave.fav[e], "%s", gOnAddr); }
+            saveWrite();
+        }
+        if (button(164, 98, 150, 34, busy ? "Conectando..." : "Actualizar", COL(40, 160, 170, 255), 0.45f) && !busy) onConnect(gOnAddr, gOnCat);
+        if (button(6, 138, 150, 34, "Cambiar pseudo", EDGE, 0.4f) && !busy) { gKbd = 1; gOnPend[0] = 0; }
+    }
+    if (gMsgT > 0) text(gMsg, 160, 180, 0.38f, COL(255, 120, 120, 255), true);
+    if (button(214, 206, 100, 28, gOnView ? "Servidores" : "Volver", COL(180, 80, 80, 255), 0.45f)) { if (gOnView) gOnView = 0; else gState = ST_MENU; sfxPlay(SFX_UI); }
+}
+static void drawOnlineTop() {
+    topBg();
+    text("Clasificación", 200, 8, 0.7f, GOLD, true);
+    static const char* tabs[4] = {"Tiempo", "Bajas", "Nivel", "Victorias"};
+    if (gOnView == 0 || !gOnN) {
+        text(onlineBusy() ? "Conectando..." : "Elige un servidor por su dirección", 200, 110, 0.5f, WHITE, true);
+        return;
+    }
+    text(tabs[gOnCat], 200, 34, 0.5f, COL(170, 200, 255, 255), true);
+    for (int i = 0; i < gOnN; i++) {
+        float y = 56 + i * 17;
+        bool me = !strcmp(gOnRows[i].nick, gSave.nick);
+        if (me) C2D_DrawRectSolid(60, y - 1, 0.2f, 280, 16, COL(60, 90, 170, 200));
+        u32 c = i == 0 ? GOLD : i == 1 ? COL(210, 215, 225, 255) : i == 2 ? COL(220, 150, 80, 255) : WHITE;
+        snprintf(gTmp, sizeof gTmp, "%d", i + 1); text(gTmp, 84, y, 0.45f, c, true);
+        text(gOnRows[i].nick, 110, y, 0.45f, c);
+        if (gOnCat == 0) snprintf(gTmp, sizeof gTmp, "%d:%02d", gOnRows[i].val / 60, gOnRows[i].val % 60);
+        else snprintf(gTmp, sizeof gTmp, "%d", gOnRows[i].val);
+        text(gTmp, 320, y, 0.45f, c, true);
+    }
+}
+
 // ---------------------------------------------------------------- sac (usar lo comprado en Kecleon)
 // -1 = lista · 0 aromates · 1 píldora · 2 parche · 3 MT
 static void bagUse(int di) {
@@ -626,9 +731,14 @@ static void drawMenu() {
     if (button(233, 150, 67, 40, "Sac", COL(200, 130, 50, 255), 0.4f, IC_BOOK)) { gBagItem = -1; gState = ST_BAG; sfxPlay(SFX_UI); }
     if (missionClaimable()) { C2D_DrawCircleSolid(152, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(152, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 152, 145, 0.45f, WHITE, true); }
     bool ban = permLv(PU_BAN) > 0;
-    if (ban && button(20, 198, 60, 24, "Vetar", COL(160, 80, 80, 255), 0.4f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; }
-    if (button(ban ? 84 : 20, 198, ban ? 100 : 136, 24, "Mercado Negro", COL(90, 40, 120, 255), 0.4f, IC_COIN)) { gBmRes = -1; gBmPage = 0; gState = ST_BLACK; sfxPlay(SFX_UI); }
-    if (button(ban ? 188 : 160, 198, ban ? 112 : 140, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_LANG; sfxPlay(SFX_UI); }
+    float bx = 20;
+    if (ban) { if (button(bx, 198, 50, 24, "Vetar", COL(160, 80, 80, 255), 0.36f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; } bx += 54; }
+    float bw = ban ? 80 : 90;
+    if (button(bx, 198, bw, 24, "Mercado Negro", COL(90, 40, 120, 255), 0.34f)) { gBmRes = -1; gBmPage = 0; gState = ST_BLACK; sfxPlay(SFX_UI); }
+    bx += bw + 4;
+    if (button(bx, 198, ban ? 66 : 90, 24, "Online", COL(40, 130, 160, 255), 0.4f, IC_FRIENDS)) { gOnView = 0; gOnPage = 0; gState = ST_ONLINE; sfxPlay(SFX_UI); }
+    bx += (ban ? 66 : 90) + 4;
+    if (button(bx, 198, 300 - bx + 20, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.36f, IC_GEAR)) { gState = ST_LANG; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "START: salir · Volumen %d%% (L/R)", (int)(gSave.vol * 100 + 0.5f));
     text(gTmp, 160, 224, 0.34f, COL(140, 165, 220, 255), true);
 }
@@ -1018,6 +1128,7 @@ static void finishRun() {
     if (gNewBest) gSave.best = (int)gRun.time;
     if (gRun.level > gSave.bestLevel) gSave.bestLevel = gRun.level;
     gSave.runs++;
+    if (gRun.won) gSave.wins++;
     gSave.kills += gRun.kills;
     MissionRun mr = playMissionStats();
     gSave.stat[SB_BOSS] += mr.bosses; gSave.stat[SB_EVO] += mr.evolves; gSave.stat[SB_RIFT] += mr.rifts;
@@ -1558,6 +1669,8 @@ int main() {
         audioUpdate();
         if (gState == ST_GACHA) slotUpdate(dt);
 
+        kbdRun();
+        onlinePoll();
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         textFrame();
         C2D_TargetClear(top, COL(0, 0, 0, 255));
@@ -1572,6 +1685,7 @@ int main() {
             case ST_SHOP: drawShopTop(now); break;
             case ST_KECLEON: drawKecleonTop(now); break;
             case ST_BLACK: drawBlackTop(now); break;
+            case ST_ONLINE: drawOnlineTop(); break;
             case ST_BAG: drawBagTop(); break;
             case ST_GACHA: drawGachaTop(now); break;
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
@@ -1596,6 +1710,7 @@ int main() {
             case ST_SHOP: drawShop(); break;
             case ST_KECLEON: drawKecleon(); break;
             case ST_BLACK: drawBlack(); break;
+            case ST_ONLINE: drawOnline(); break;
             case ST_BAG: drawBag(); break;
             case ST_GACHA: drawGacha(); break;
             case ST_BAN: drawBan(); break;
@@ -1625,6 +1740,7 @@ int main() {
         if (gState == ST_COOP && gJoining && coopMode() == CN_OFF) { coopScanStep(); last = osGetTime(); }
     }
     coopClose();
+    onlineExit();
     saveWrite();
     audioExit();
     sprFreeAll();

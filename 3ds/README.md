@@ -32,6 +32,7 @@ Para oír la música en consola real hace falta `sdmc:/3ds/dspfirm.cdc` (DSP1); 
 - Clima (sol, lluvia, tormenta de arena, nevada, niebla) con bonos/penalizaciones por tipo y por bioma.
 - Estilo de la web: fuente pixel original (Pixelify Sans, con ★ ♥ ◀ ▶ propios), iconos pixel-art en los menús, paneles enmarcados, flechas ◀ ▶ para cambiar de página, contador de tickets en el gacha y ticket violeta (= 10 normales; botón propio ×10 violeta). Mejoras permanentes por Pokémon (sólo afectan al compañero elegido) y objetos traducidos.
 - Mercado Negro: épicos (50 000) y legendarios (100 000; Mewtwo y Mew 500 000) con 1/4092 de shiny; el vendedor Meowth reacciona si sale shiny.
+- Online comunitario (estilo Minecraft): menú Online con pseudo, dirección `host:puerto` (por defecto 25570), hasta 6 servidores favoritos y clasificaciones (tiempo, bajas, nivel, victorias). Servidor propio: `node server/server.js [puerto]` (ver `server/`); abre el puerto TCP en tu router/hosting.
 - Menú Trofeos: misiones y logros fusionados (se alterna con un botón).
 - Amuletos Cromáticos: completar el Pokédex de una región (legendarios incluidos) duplica el % de shiny (1% → 2%) en su banner.
 - Juicio de Arceus: Arceus es golpeable pero invencible (daño mínimo y decreciente); lleva una Placa aleatoria que fija su tipo y los ataques le apuntan cuando no quedan legendarios.
