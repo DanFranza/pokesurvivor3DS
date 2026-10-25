@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BAG, ST_BLACK, ST_ONLINE };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BLACK, ST_ONLINE, ST_COOPSEL };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -13,7 +13,7 @@ static bool gTap, gTouching;
 static int gSel;
 static int gPage, gShopPage, gGen = 1, gBanPage;
 static bool gPick2;
-static int gBagItem = -1, gBagPage, gMisPage;
+static int gMisPage;
 static int gKecPage, gKecSel = -1;
 static int partner();
 static int gMonMode, gMonPage;   // detalles del Pokémon: 0 = acciones · 1 = menta · 2 = habilidad · 3 = MT
@@ -597,7 +597,7 @@ static void drawOnline() {
         if (button(6, 138, 150, 34, "Cambiar pseudo", EDGE, 0.4f) && !busy) { gKbd = 1; gOnPend[0] = 0; }
     }
     if (gMsgT > 0) text(gMsg, 160, 180, 0.38f, COL(255, 120, 120, 255), true);
-    if (button(214, 206, 100, 28, gOnView ? "Servidores" : "Volver", COL(180, 80, 80, 255), 0.45f)) { if (gOnView) gOnView = 0; else gState = ST_MENU; sfxPlay(SFX_UI); }
+    if (button(214, 206, 100, 28, gOnView ? "Servidores" : "Volver", COL(180, 80, 80, 255), 0.45f)) { if (gOnView) gOnView = 0; else gState = ST_COOPSEL; sfxPlay(SFX_UI); }
 }
 static void drawOnlineTop() {
     topBg();
@@ -619,65 +619,6 @@ static void drawOnlineTop() {
         else snprintf(gTmp, sizeof gTmp, "%d", gOnRows[i].val);
         text(gTmp, 320, y, 0.45f, c, true);
     }
-}
-
-// ---------------------------------------------------------------- sac (usar lo comprado en Kecleon)
-// -1 = lista · 0 aromates · 1 píldora · 2 parche · 3 MT
-static void bagUse(int di) {
-    gState = ST_DEX; gDexSel = di; gDexGen = DEX[di].gen; gDexPage = 0; gDexTop = 1; gMonPage = 0;
-    gMonMode = gBagItem == 0 ? 1 : gBagItem == 3 ? 3 : 2;
-    sprFreeAll(); sfxPlay(SFX_UI);
-}
-static bool bagCanUse(int di) {
-    int s[3];
-    if (gBagItem == 0) return gSave.bag[BAG_MINT] > 0;
-    if (gBagItem == 3) { for (int i = 0; i < NTM; i++) if (gSave.tms[i] && monCanLearn(di, i)) return true; return false; }
-    if (gBagItem == 1) return gSave.bag[BAG_CAP] > 0 && monAbilChoices(di, s, false) > 0;
-    return gSave.bag[BAG_CAPH] > 0 && monAbilChoices(di, s, true) > 0;
-}
-static void drawBag() {
-    bgFill();
-    headerBar("Sac", IC_BOOK);
-    if (gBagItem < 0) {
-        int tms = 0; for (int i = 0; i < NTM; i++) tms += gSave.tms[i];
-        static const u32 bc[4] = {COL(70, 150, 90, 255), COL(70, 110, 190, 255), COL(150, 90, 190, 255), COL(200, 130, 50, 255)};
-        for (int i = 0; i < 4; i++) {
-            int cnt = i < 3 ? gSave.bag[i] : tms;
-            snprintf(gTmp, sizeof gTmp, "%s  ×%d", i < 3 ? BAG_NAME[i] : "MT", cnt);
-            if (button(10, 32 + i * 40, 300, 36, gTmp, cnt ? bc[i] : COL(80, 84, 110, 255), 0.5f)) {
-                if (cnt) { gBagItem = i; gBagPage = 0; sfxPlay(SFX_UI); } else msg("No tienes ninguno: cómpralos a Kecleon");
-            }
-        }
-        if (gMsgT > 0) text(gMsg, 160, 196, 0.36f, COL(255, 120, 120, 255), true);
-        if (button(214, 204, 100, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
-        return;
-    }
-    text("Elige un Pokémon", 160, 28, 0.45f, GOLD, true);
-    int l[DEX_N], n = ownedList(l), m = 0;
-    for (int i = 0; i < n; i++) if (bagCanUse(l[i])) l[m++] = l[i];
-    int pages = (m + 11) / 12;
-    if (gBagPage >= pages) gBagPage = pages ? pages - 1 : 0;
-    if (!m) text("Ninguno puede usarlo", 160, 100, 0.45f, WHITE, true);
-    for (int k = 0; k < 12; k++) {
-        int idx = gBagPage * 12 + k;
-        if (idx >= m) break;
-        if (button(6 + (k % 3) * 104, 50 + (k / 3) * 36, 102, 32, pname(l[idx]), EDGE, 0.36f)) { bagUse(l[idx]); return; }
-    }
-    if (arrowBtn(6, 204, 44, 30, false, gBagPage > 0)) gBagPage--;
-    if (arrowBtn(54, 204, 44, 30, true, gBagPage < pages - 1)) gBagPage++;
-    if (button(214, 204, 100, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gBagItem = -1;
-}
-static void drawBagTop() {
-    topBg();
-    tileBg();
-    text("Sac", 200, 4, 0.7f, GOLD, true);
-    if (gBagItem >= 0 && gBagItem < 3) {
-        text(BAG_NAME[gBagItem], 200, 60, 0.6f, WHITE, true);
-        textWrap(BAG_DESC[gBagItem], 40, 100, 320, 0.5f, COL(255, 220, 120, 255));
-    } else if (gBagItem == 3) {
-        text("MT", 200, 60, 0.6f, WHITE, true);
-        textWrap("Enseña a un Pokémon un movimiento que su tipo no le da. Cada MT se gasta al enseñarla.", 40, 100, 320, 0.5f, COL(255, 220, 120, 255));
-    } else textWrap("Usa aquí lo que compras a Kecleon: elige un objeto y luego un Pokémon.", 40, 80, 320, 0.5f, WHITE);
 }
 
 // ---------------------------------------------------------------- idioma
@@ -722,23 +663,15 @@ static void drawMenu() {
     panel(8, 4, 304, 26, EDGE, COL(20, 36, 84, 255));
     currencyBar(17);
     if (button(20, 38, 184, 56, "¡Jugar!", GOLD_BTN, 0.95f, IC_BALL)) { gCoop = false; gCoopEnd = 0; startRun(); }
-    if (button(210, 38, 90, 56, "Coop", COL(40, 160, 170, 255), 0.6f, IC_FRIENDS)) { if (coopOpen()) { gState = ST_COOP; gJoining = false; sfxPlay(SFX_UI); } else msg("No se pudo iniciar la red local"); }
+    if (button(210, 38, 90, 56, "Coop", COL(40, 160, 170, 255), 0.6f, IC_FRIENDS)) { gState = ST_COOPSEL; sfxPlay(SFX_UI); }
     if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.55f, IC_BOOK)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.55f, IC_UP)) { shopEnter(); gState = ST_SHOP; sfxPlay(SFX_UI); }
-    if (button(20, 150, 67, 40, "Gacha", COL(150, 80, 200, 255), 0.36f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
-    if (button(91, 150, 67, 40, "Trofeos", COL(200, 140, 40, 255), 0.32f, IC_TROPHY)) { missionsRefresh(); gMisPage = 0; gState = ST_MISSIONS; sfxPlay(SFX_UI); }
-    if (button(162, 150, 67, 40, "Kecleon", COL(110, 170, 70, 255), 0.32f, IC_COIN)) { gKecPage = 0; gState = ST_KECLEON; sfxPlay(SFX_UI); }
-    if (button(233, 150, 67, 40, "Sac", COL(200, 130, 50, 255), 0.4f, IC_BOOK)) { gBagItem = -1; gState = ST_BAG; sfxPlay(SFX_UI); }
-    if (missionClaimable()) { C2D_DrawCircleSolid(152, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(152, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 152, 145, 0.45f, WHITE, true); }
-    bool ban = permLv(PU_BAN) > 0;
-    float bx = 20;
-    if (ban) { if (button(bx, 198, 50, 24, "Vetar", COL(160, 80, 80, 255), 0.36f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; } bx += 54; }
-    float bw = ban ? 80 : 90;
-    if (button(bx, 198, bw, 24, "Mercado Negro", COL(90, 40, 120, 255), 0.34f)) { gBmRes = -1; gBmPage = 0; gState = ST_BLACK; sfxPlay(SFX_UI); }
-    bx += bw + 4;
-    if (button(bx, 198, ban ? 66 : 90, 24, "Online", COL(40, 130, 160, 255), 0.4f, IC_FRIENDS)) { gOnView = 0; gOnPage = 0; gState = ST_ONLINE; sfxPlay(SFX_UI); }
-    bx += (ban ? 66 : 90) + 4;
-    if (button(bx, 198, 300 - bx + 20, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.36f, IC_GEAR)) { gState = ST_LANG; sfxPlay(SFX_UI); }
+    if (button(20, 150, 88, 40, "Gacha", COL(150, 80, 200, 255), 0.42f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
+    if (button(116, 150, 88, 40, "Trofeos", COL(200, 140, 40, 255), 0.38f, IC_TROPHY)) { missionsRefresh(); gMisPage = 0; gState = ST_MISSIONS; sfxPlay(SFX_UI); }
+    if (button(212, 150, 88, 40, "Kecleon", COL(110, 170, 70, 255), 0.4f, IC_COIN)) { gKecPage = 0; gState = ST_KECLEON; sfxPlay(SFX_UI); }
+    if (missionClaimable()) { C2D_DrawCircleSolid(194, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(194, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 194, 145, 0.45f, WHITE, true); }
+    if (button(20, 198, 140, 24, "Mercado Negro", COL(90, 40, 120, 255), 0.4f)) { gBmRes = -1; gBmPage = 0; gState = ST_BLACK; sfxPlay(SFX_UI); }
+    if (button(166, 198, 134, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_LANG; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "START: salir · Volumen %d%% (L/R)", (int)(gSave.vol * 100 + 0.5f));
     text(gTmp, 160, 224, 0.34f, COL(140, 165, 220, 255), true);
 }
@@ -866,7 +799,8 @@ static void drawMonBottom(int di) {
         int tm = 0; for (int i = 0; i < NTM; i++) tm += gSave.tms[i] && monCanLearn(di, i);
         snprintf(gTmp, sizeof gTmp, "Enseñar una MT (%d disponibles)", tm);
         if (button(10, 128, 300, 30, gTmp, COL(200, 130, 50, 255), 0.45f)) { if (tm) { gMonMode = 3; gMonPage = 0; sfxPlay(SFX_UI); } else msg("Ninguna MT que pueda aprender"); }
-        text("Consíguelas en la tienda de Kecleon.", 160, 168, 0.36f, COL(170, 200, 255, 255), true);
+        if (permLv(PU_BAN) > 0 && button(10, 164, 300, 26, "Vetar movimientos", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; sfxPlay(SFX_UI); }
+        else if (permLv(PU_BAN) <= 0) text("Consíguelas en la tienda de Kecleon.", 160, 168, 0.36f, COL(170, 200, 255, 255), true);
     } else if (gMonMode == 1) {
         text("Elige la nueva naturaleza", 160, 44, 0.42f, GOLD, true);
         for (int i = 0; i < NNAT; i++) {
@@ -899,7 +833,7 @@ static void drawMonBottom(int di) {
             if (idx >= n) break;
             int t = l[idx];
             float x = 6 + (k % 2) * 158, y = 60 + (k / 2) * 34;
-            snprintf(gTmp, sizeof gTmp, "%s ×%d", MOVES[TM_MOVE[t]].name, gSave.tms[t]);
+            snprintf(gTmp, sizeof gTmp, "%s ×%d", T(MOVES[TM_MOVE[t]].name), gSave.tms[t]);
             if (button(x, y, 154, 30, gTmp, typeColor(MOVES[TM_MOVE[t]].type), 0.36f) && monTeach(di, t)) { sfxPlay(SFX_LEVEL); msg("¡Movimiento aprendido!"); }
         }
         if (arrowBtn(6, 204, 50, 30, false, gMonPage > 0)) gMonPage--;
@@ -1413,6 +1347,18 @@ static void coopCancel() {
     gState = ST_MENU; sprFreeAll(); tilesFree(); gTileBgOk = false;
     musicPlay(MUS_MENU);
 }
+static void drawCoopSel() {
+    bgFill();
+    headerBar("Cooperativo", IC_FRIENDS);
+    if (button(30, 44, 260, 56, "Salón local", COL(60, 170, 80, 255), 0.7f, IC_FRIENDS)) {
+        if (coopOpen()) { gState = ST_COOP; gJoining = false; sfxPlay(SFX_UI); } else msg("No se pudo iniciar la red local");
+    }
+    text("Dos consolas cercanas, sin internet", 160, 104, 0.36f, COL(170, 195, 245, 255), true);
+    if (button(30, 124, 260, 56, "Servidores comunitarios", COL(40, 130, 160, 255), 0.55f, IC_FRIENDS)) { gOnView = 0; gOnPage = 0; gState = ST_ONLINE; sfxPlay(SFX_UI); }
+    text("Pseudos y clasificaciones", 160, 184, 0.36f, COL(170, 195, 245, 255), true);
+    if (gMsgT > 0) text(gMsg, 160, 198, 0.38f, COL(255, 120, 120, 255), true);
+    if (button(100, 208, 120, 26, "Atrás", COL(160, 80, 80, 255), 0.5f)) { gState = ST_MENU; sfxPlay(SFX_UI); }
+}
 static void drawCoopLobby() {
     bgFill();
     text("Cooperativo local · 2 jugadores", 160, 6, 0.5f, GOLD, true);
@@ -1429,7 +1375,7 @@ static void drawCoopLobby() {
         text("Buscando sala…", 160, 70, 0.7f, WHITE, true);
         text("El anfitrión debe pulsar «Crear sala»", 160, 110, 0.42f, COL(170, 195, 245, 255), true);
     }
-    if (button(80, 198, 160, 30, "Atrás", COL(160, 80, 80, 255), 0.55f)) { coopClose(); gJoining = false; gState = ST_MENU; sfxPlay(SFX_UI); }
+    if (button(80, 198, 160, 30, "Atrás", COL(160, 80, 80, 255), 0.55f)) { coopClose(); gJoining = false; gState = ST_COOPSEL; sfxPlay(SFX_UI); }
 }
 static void drawCoopWait() {
     bgFill();
@@ -1556,7 +1502,7 @@ static void drawBan() {
     }
     if (arrowBtn(6, 206, 50, 28, false, gBanPage > 0)) { gBanPage--; sfxPlay(SFX_UI); }
     if (arrowBtn(60, 206, 50, 28, true, gBanPage < pages - 1)) { gBanPage++; sfxPlay(SFX_UI); }
-    if (button(220, 206, 94, 28, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
+    if (button(220, 206, 94, 28, "Volver", COL(180, 80, 80, 255), 0.5f)) { gState = ST_DEX; gDexTop = 1; gMonMode = 0; sprFreeAll(); }
     if (gMsgT > 0) text(gMsg, 160, 190, 0.4f, COL(255, 120, 120, 255), true);
 }
 
@@ -1685,7 +1631,6 @@ int main() {
             case ST_KECLEON: drawKecleonTop(now); break;
             case ST_BLACK: drawBlackTop(now); break;
             case ST_ONLINE: drawOnlineTop(); break;
-            case ST_BAG: drawBagTop(); break;
             case ST_GACHA: drawGachaTop(now); break;
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
             case ST_LANG: topBg(); tileBg(); logo(200, 70, 1.3f); break;
@@ -1694,7 +1639,7 @@ int main() {
                 if (gCoop && gState == ST_PLAY && gStall > 0.4f) text("Esperando al compañero…", 200, 10, 0.5f, COL(255, 220, 90, 255), true);
                 else if (gCoop && gState == ST_PLAY && playCoopBond()) text("Vínculo: partida en pausa", 200, 10, 0.5f, COL(255, 160, 220, 255), true);
                 break;
-            case ST_COOP: case ST_COOPWAIT: topBg(); tileBg(); logo(200, 70, 1.3f); break;
+            case ST_COOP: case ST_COOPWAIT: case ST_COOPSEL: topBg(); tileBg(); logo(200, 70, 1.3f); break;
             case ST_ACH: drawAchTop(); break;
             case ST_OVER: topBg(); text(gRun.won ? "¡Victoria!" : "Fin de la partida", 200, 100, 0.9f, WHITE, true); break;
         }
@@ -1710,7 +1655,6 @@ int main() {
             case ST_KECLEON: drawKecleon(); break;
             case ST_BLACK: drawBlack(); break;
             case ST_ONLINE: drawOnline(); break;
-            case ST_BAG: drawBag(); break;
             case ST_GACHA: drawGacha(); break;
             case ST_BAN: drawBan(); break;
             case ST_LANG: drawLang(); break;
@@ -1722,6 +1666,7 @@ int main() {
                 break;
             }
             case ST_COOP: drawCoopLobby(); break;
+            case ST_COOPSEL: drawCoopSel(); break;
             case ST_COOPWAIT: drawCoopWait(); break;
             case ST_LEVELUP: drawLevelUp(); break;
             case ST_BOND: drawBond(); break;

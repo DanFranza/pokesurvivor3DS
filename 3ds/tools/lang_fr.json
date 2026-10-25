@@ -34,7 +34,7 @@
  "Mejoras": "Bonus",
  "Gacha": "Gacha",
  "Misiones": "Missions",
- "Vetar movimientos": "Bannir des attaques",
+ "Vetar movimientos": "Bannir des capacités",
  "START: salir · Volumen %d%% (L/R)": "START : quitter · Volume %d%% (L/R)",
  "MUNDO MISTERIOSO": "MONDE MYSTÈRE",
  "Mejor tiempo %02d:%02d · Partidas %d · Colección %d/%d": "Meilleur temps %02d:%02d · Parties %d · Collection %d/%d",
@@ -961,5 +961,10 @@
  "Toca un ataque marcado para quitarlo": "Touche une attaque marquée pour la retirer",
  "Todo acierta: +15 % de daño hecho, pero recibe un 10 % más.": "Tout touche : +15 % de dégâts infligés, mais subit 10 % de plus.",
  "Un golpe que le dejaría KO le deja con 1 de vida (cada 90 s).": "Un coup qui le mettrait K.O. le laisse à 1 PV (toutes les 90 s).",
- "¡Movimiento aprendido!": "Capacité apprise !"
+ "¡Movimiento aprendido!": "Capacité apprise !",
+ "Cooperativo": "Coopératif",
+ "Salón local": "Salon local",
+ "Servidores comunitarios": "Serveurs communautaires",
+ "Dos consolas cercanas, sin internet": "Deux consoles proches, sans internet",
+ "Pseudos y clasificaciones": "Pseudos et classements"
 }

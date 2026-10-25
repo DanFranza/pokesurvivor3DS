@@ -461,5 +461,10 @@
  "Todo acierta: +15 % de daño hecho, pero recibe un 10 % más.": "Never misses: +15% damage dealt, but takes 10% more.",
  "Un golpe que le dejaría KO le deja con 1 de vida (cada 90 s).": "A hit that would KO it leaves it with 1 HP (every 90 s).",
  "Vigor": "Vigor",
- "¡Movimiento aprendido!": "Move learned!"
+ "¡Movimiento aprendido!": "Move learned!",
+ "Cooperativo": "Co-op",
+ "Salón local": "Local lobby",
+ "Servidores comunitarios": "Community servers",
+ "Dos consolas cercanas, sin internet": "Two nearby consoles, no internet",
+ "Pseudos y clasificaciones": "Nicknames and rankings"
 }
