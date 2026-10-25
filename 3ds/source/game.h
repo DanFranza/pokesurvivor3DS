@@ -102,9 +102,9 @@ struct Save {
     u32 wins;                                   // victorias totales (clasificación online)
     u16 pban[DEX_N][3];                         // movimientos vetados por Pokémon (id+1; 0 = libre)
 };
-inline bool moveBanned(int di, int m) { for (int k = 0; k < 3; k++) if (gSave.pban[di][k] == m + 1) return true; return false; }
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
+inline bool moveBanned(int di, int m) { for (int k = 0; k < 3; k++) if (gSave.pban[di][k] == m + 1) return true; return false; }
 void saveLoad();
 void saveWrite();
 int permCost(int id, int lvl);
