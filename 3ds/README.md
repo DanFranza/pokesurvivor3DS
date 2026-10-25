@@ -31,6 +31,9 @@ Para oír la música en consola real hace falta `sdmc:/3ds/dspfirm.cdc` (DSP1); 
 - Vínculo/fusión tras vencer a un legendario en la grieta (fusiona 2 ataques o añade uno a un grupo; se disparan a la vez).
 - Clima (sol, lluvia, tormenta de arena, nevada, niebla) con bonos/penalizaciones por tipo y por bioma.
 - Estilo de la web: fuente pixel original (Pixelify Sans, con ★ ♥ ◀ ▶ propios), iconos pixel-art en los menús, paneles enmarcados, flechas ◀ ▶ para cambiar de página, contador de tickets en el gacha y ticket violeta (= 10 normales; botón propio ×10 violeta). Mejoras permanentes por Pokémon (sólo afectan al compañero elegido) y objetos traducidos.
+- Menú Trofeos: misiones y logros fusionados (se alterna con un botón).
+- Amuletos Cromáticos: completar el Pokédex de una región (legendarios incluidos) duplica el % de shiny (1% → 2%) en su banner.
+- Juicio de Arceus: Arceus es golpeable pero invencible (daño mínimo y decreciente); lleva una Placa aleatoria que fija su tipo y los ataques le apuntan cuando no quedan legendarios.
 - Logros con medallas (colección, supervivencia, combate, grietas, un logro por legendario) con premios automáticos.
 - Cooperativo local 3DS↔3DS para 2 jugadores (botón Coop; red inalámbrica local UDS, sin internet ni servidores). Las dos consolas ejecutan la misma simulación y sólo intercambian entradas (lockstep, 30 pasos/s, mismo build en ambas). Sin pausa manual; las mejoras se eligen en la pantalla inferior sin detener el juego; el compañero caído revive al subir de nivel el otro. Grieta: si uno entra, el otro es teletransportado (el legendario tiene más vida). Vínculo/fusión: la partida se pausa hasta que los dos hayan elegido. Sentencia de Arceus adaptada a dos jugadores (Arceus persigue al más cercano; termina cuando caen los dos). No probado en hardware.
 

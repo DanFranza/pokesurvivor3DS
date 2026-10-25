@@ -512,14 +512,13 @@ static void drawMenu() {
     if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.55f, IC_BOOK)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.55f, IC_UP)) { shopEnter(); gState = ST_SHOP; sfxPlay(SFX_UI); }
     if (button(20, 150, 67, 40, "Gacha", COL(150, 80, 200, 255), 0.36f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
-    if (button(91, 150, 67, 40, "Misiones", COL(60, 150, 90, 255), 0.32f, IC_MEDAL3)) { missionsRefresh(); gMisPage = 0; gState = ST_MISSIONS; sfxPlay(SFX_UI); }
+    if (button(91, 150, 67, 40, "Trofeos", COL(200, 140, 40, 255), 0.32f, IC_TROPHY)) { missionsRefresh(); gMisPage = 0; gState = ST_MISSIONS; sfxPlay(SFX_UI); }
     if (button(162, 150, 67, 40, "Kecleon", COL(110, 170, 70, 255), 0.32f, IC_COIN)) { gKecPage = 0; gState = ST_KECLEON; sfxPlay(SFX_UI); }
     if (button(233, 150, 67, 40, "Sac", COL(200, 130, 50, 255), 0.4f, IC_BOOK)) { gBagItem = -1; gState = ST_BAG; sfxPlay(SFX_UI); }
     if (missionClaimable()) { C2D_DrawCircleSolid(152, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(152, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 152, 145, 0.45f, WHITE, true); }
     bool ban = permLv(PU_BAN) > 0;
     if (ban && button(20, 198, 88, 24, "Vetar", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; }
-    if (button(ban ? 114 : 20, 198, ban ? 98 : 190, 24, "Logros", COL(200, 140, 40, 255), 0.42f, IC_TROPHY)) { achCheck(); gState = ST_ACH; gAchCat = 0; gAchPage = 0; sfxPlay(SFX_UI); }
-    if (button(218, 198, 82, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_LANG; sfxPlay(SFX_UI); }
+    if (button(ban ? 114 : 20, 198, ban ? 186 : 280, 24, LANG_NAMES[gSave.lang], COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_LANG; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "START: salir · Volumen %d%% (L/R)", (int)(gSave.vol * 100 + 0.5f));
     text(gTmp, 160, 224, 0.34f, COL(140, 165, 220, 255), true);
 }
@@ -1043,13 +1042,15 @@ static void drawGacha() {
     }
     icon(IC_SHINY, 12, 58 + 65 - 2, 0.5f);
     text("Shiny", 32, 58 + 65 - 3, 0.36f, COL(255, 130, 130, 255));
-    snprintf(gTmp, sizeof gTmp, "%.0f%%", SHINY_RATE);
+    snprintf(gTmp, sizeof gTmp, "%.0f%%", shinyRate(gGen));
     text(gTmp, 190, 58 + 65 - 3, 0.36f, COL(255, 130, 130, 255), true);
     int own = 0, tot = 0;
     for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gGen) { tot++; if (gSave.owned[i]) own++; }
     text("Poseídos", 252, 62, 0.4f, COL(170, 200, 255, 255), true);
     snprintf(gTmp, sizeof gTmp, "%d/%d", own, tot);
     text(gTmp, 252, 78, 0.5f, WHITE, true);
+    if (charmHas(gGen)) { icon(IC_SHINY, 218, 94, 0.5f); text("Amuleto Cromático", 252, 96, 0.34f, COL(255, 210, 90, 255), true); }
+    else text("Dex completo = Amuleto Cromático", 252, 96, 0.3f, COL(150, 150, 170, 255), true);
     bool ok1 = gSave.t1 >= 1, ok10 = gSave.t1 >= 10, okP = gSave.t10 >= 1;
     bool idle = !slotBusy();
     u32 off = COL(70, 60, 90, 255);
@@ -1097,7 +1098,7 @@ static void drawMission(float y, MSlot& m, bool weekly) {
 }
 static void drawMissions() {
     bgFill();
-    headerBar("Misiones", IC_MEDAL3);
+    headerBar("Trofeos", IC_TROPHY);
     int n = gMisPage ? 2 : 3;
     text(gMisPage ? "Semanales" : "Diarias", 8, 26, 0.42f, GOLD);
     for (int i = 0; i < n; i++) drawMission(46 + i * 52, gMisPage ? gSave.mw[i] : gSave.md[i], gMisPage != 0);
@@ -1105,6 +1106,7 @@ static void drawMissions() {
     if (arrowBtn(54, 204, 44, 30, true, gMisPage < 1)) { gMisPage = 1; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "%d/2", gMisPage + 1);
     text(gTmp, 118, 208, 0.45f, WHITE, true);
+    if (button(146, 204, 64, 30, "Logros", COL(200, 140, 40, 255), 0.4f, IC_TROPHY)) { achCheck(); gState = ST_ACH; gAchCat = 0; gAchPage = 0; sfxPlay(SFX_UI); }
     if (button(214, 204, 100, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
 }
 static void drawMissionsTop() {
@@ -1295,7 +1297,8 @@ static void drawAch() {
         snprintf(gTmp, sizeof gTmp, "%d/%d", gAchPage + 1, pages);
         text(gTmp, 160, 186, 0.5f, WHITE, true);
     }
-    if (button(100, 212, 120, 24, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
+    if (button(6, 212, 110, 24, "Misiones", COL(60, 150, 90, 255), 0.42f, IC_MEDAL3)) { missionsRefresh(); gMisPage = 0; gState = ST_MISSIONS; sfxPlay(SFX_UI); }
+    if (button(204, 212, 110, 24, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
 }
 static void drawAchTop() {
     topBg();

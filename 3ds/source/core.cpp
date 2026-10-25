@@ -46,6 +46,12 @@ const char* T(const char* es) {
     }
     return es;
 }
+bool charmHas(int gen) {
+    int n = 0;
+    for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gen) { n++; if (!gSave.owned[i]) return false; }
+    return n > 0;
+}
+float shinyRate(int gen) { return charmHas(gen) ? SHINY_RATE * 2 : SHINY_RATE; }
 const char* typeName(int t) {
     static const char* N[18] = {"Normal", "Fuego", "Agua", "Eléctrico", "Planta", "Hielo", "Lucha", "Veneno", "Tierra", "Volador", "Psíquico", "Bicho", "Roca", "Fantasma", "Dragón", "Siniestro", "Acero", "Hada"};
     return t >= 0 && t < 18 ? T(N[t]) : "";
@@ -252,7 +258,7 @@ int gachaPull(int gen, int n, PullResult* out, bool useT10) {
         PullResult& r = out[i];
         r.dex = idx; r.rarity = rar; r.shiny = false;
         // 1% de shiny; si ya lo tienes se busca otro de la misma rareza al que le falte
-        if (frand() * 100 < SHINY_RATE && sprHasShiny(DEX_NUM[idx])) {
+        if (frand() * 100 < shinyRate(gen) && sprHasShiny(DEX_NUM[idx])) {
             r.shiny = true;
             if (gSave.shiny[idx]) {
                 static short alt[DEX_N]; int na = 0;

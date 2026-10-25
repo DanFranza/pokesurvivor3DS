@@ -45,6 +45,8 @@ enum { LANG_ES, LANG_EN, LANG_FR, LANG_IT, LANG_PT, LANG_N };
 const char* pname(int di);                      // nombre del Pokémon (fila de DEX) en el idioma activo
 const char* T(const char* es);                  // traduce un texto en español al idioma activo (si no lo conoce, lo devuelve igual)
 const char* typeName(int t);
+bool charmHas(int gen);
+float shinyRate(int gen);
 const char* const LANG_NAMES[LANG_N] = {"Español", "English", "Français", "Italiano", "Português"};
 // Todo formato de snprintf pasa por T(): las cadenas de printf se traducen solas.
 #define snprintf(b, n, f, ...) snprintf(b, n, T(f), ##__VA_ARGS__)

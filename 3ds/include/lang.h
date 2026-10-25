@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[6]; };   // en, fr, it, pt-BR, zh-Hans, zh-Hant
-#define LANG_N_STR 2101
+#define LANG_N_STR 2106
 static const LangStr LANG_STR[LANG_N_STR] = {
   {" (oculta)", {"", "", "", "", "", ""}},
   {"+%d Pokémonedas  +%d tickets", {"+%d Pokécoins  +%d tickets", "+%d Pokémonnaies  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets"}},
@@ -213,6 +213,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Alud", {"Avalanche", "Avalanche", "Slavina", "Avalanche", "雪崩", "雪崩"}},
   {"Amable", {"", "", "", "", "", ""}},
   {"Amicoscudo", {"", "", "", "", "", ""}},
+  {"Amuleto Cromático", {"Shiny Charm", "Charme Chroma", "Amuleto Cromatico", "Amuleto Cromático", "Shiny Charm", "Shiny Charm"}},
   {"Analyste", {"", "", "", "", "", ""}},
   {"Analytic", {"", "", "", "", "", ""}},
   {"Anger Point", {"", "", "", "", "", ""}},
@@ -587,6 +588,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Destello a tu alrededor.", {"A flash of light all around you.", "Éclair autour de toi.", "Un bagliore attorno a te.", "Um clarão ao seu redor.", "在身边释放闪光。", "在身邊釋放閃光。"}},
   {"Detalles", {"", "", "", "", "", ""}},
   {"Detonación", {"", "", "", "", "", ""}},
+  {"Dex completo = Amuleto Cromático", {"Full Dex = Shiny Charm", "Dex complet = Charme Chroma", "Dex completo = Amuleto Cromatico", "Dex completo = Amuleto Cromático", "Full Dex = Shiny Charm", "Full Dex = Shiny Charm"}},
   {"Diarias", {"Daily", "Quotid.", "Giornaliere", "Diárias", "每日", "每日"}},
   {"Diarias cobradas hoy: %d/3", {"Daily claimed today: %d/3", "Quotidiennes encaissées : %d/3", "Daily claimed today: %d/3", "Daily claimed today: %d/3", "Daily claimed today: %d/3", "Daily claimed today: %d/3"}},
   {"Dicha", {"", "", "", "", "", ""}},
@@ -1361,6 +1363,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Pixilate", {"", "", "", "", "", ""}},
   {"Piège Sable", {"", "", "", "", "", ""}},
   {"Più", {"", "", "", "", "", ""}},
+  {"Placa: %s", {"Plate: %s", "Plaque : %s", "Lastra: %s", "Placa: %s", "Plate: %s", "Plate: %s"}},
   {"Placaje", {"Tackle", "Charge", "Azione", "Tackle", "撞击", "撞擊"}},
   {"Placaje con todo el peso: lento, corto y brutal.", {"A full-weight tackle: slow, short and brutal.", "Charge de tout son poids : lent, court et brutal.", "Una carica con tutto il corpo: lenta, a corto raggio e brutale.", "Uma investida com todo o peso: lenta, curta e brutal.", "以全身重量撞击：速度慢、距离短，但威力强大。", "以全身重量撞擊：速度慢、距離短，但威力強大。"}},
   {"Placida", {"", "", "", "", "", ""}},
@@ -1834,6 +1837,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Triage", {"", "", "", "", "", ""}},
   {"Triataque", {"Tri Attack", "Triplattaque", "Tripletta", "Tri Attack", "三重攻击", "三重攻擊"}},
   {"Triturar", {"Crunch", "Mâchouille", "Sgranocchio", "Crunch", "咬碎", "咬碎"}},
+  {"Trofeos", {"Trophies", "Trophées", "Trofei", "Troféus", "Trophies", "Trophies"}},
   {"Truant", {"", "", "", "", "", ""}},
   {"Trueno", {"Thunder", "Fatal-Foudre", "Tuono", "Thunder", "打雷", "打雷"}},
   {"Tumba Rocas", {"Rock Tomb", "Tomberoche", "Rocciotomba", "Rock Tomb", "岩石封锁", "岩石封鎖"}},
@@ -2039,6 +2043,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"¡%s te desafía!", {"%s challenges you!", "%s te défie !", "%s challenges you!", "%s challenges you!", "%s challenges you!", "%s challenges you!"}},
   {"¡%s te sigue! Llévalo a la marca verde", {"%s is following you! Take it to the green marker", "%s te suit ! Ramène-le à la marque verte", "%s is following you! Take it to the green marker", "%s is following you! Take it to the green marker", "%s is following you! Take it to the green marker", "%s is following you! Take it to the green marker"}},
   {"¡Abierto!", {"Opened!", "Ouvert !", "Opened!", "Opened!", "Opened!", "Opened!"}},
+  {"¡Arceus lleva una Placa de tipo %s!", {"Arceus holds a %s-type Plate!", "Arceus porte une Plaque de type %s !", "Arceus porta una Lastra di tipo %s!", "Arceus leva uma Placa do tipo %s!", "Arceus holds a %s-type Plate!", "Arceus holds a %s-type Plate!"}},
   {"¡Banda Focus!", {"Focus Sash!", "Bandeau Focus !", "Focalnastro!", "Focus Sash!", "气势披带发动！", "氣勢披帶發動！"}},
   {"¡Bienvenido a la Tienda Kecleon!", {"Welcome to the Kecleon Shop!", "Bienvenue à la Boutique Kecleon !", "Benvenuto al Negozio Kecleon!", "Bem-vindo à Loja Kecleon!", "欢迎光临隐形龙商店！", "歡迎光臨隱形龍商店！"}},
   {"¡Bomba!", {"Bomb!", "Bombe !", "Bomb!", "Bomb!", "Bomb!", "Bomb!"}},
