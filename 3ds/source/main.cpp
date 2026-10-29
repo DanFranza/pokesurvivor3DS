@@ -1567,6 +1567,7 @@ static void drawBan() {
 }
 
 int main() {
+    osSetSpeedupEnable(true);   // New 3DS: CPU a 804 MHz (no afecta a la Old 3DS)
     gfxInitDefault();
     romfsInit();
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);

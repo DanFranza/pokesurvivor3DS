@@ -302,7 +302,7 @@ static float vnoise(float x, float y, u32 seed) {
     float c = (hash2(xi, yi + 1, seed) & 0xFFFF) / 65535.0f, d = (hash2(xi + 1, yi + 1, seed) & 0xFFFF) / 65535.0f;
     return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
 }
-static bool liquidTile(int tx, int ty) {
+static bool liquidRaw(int tx, int ty) {
     float pools = TILESET_POOLS[gSet];
     if (pools <= 0) return false;
     if (tx * tx + ty * ty < 36) return false;
@@ -315,7 +315,10 @@ static bool isBroken(int tx, int ty) {
     for (int i = 0; i < gNBroken; i++) if (gBroken[i][0] == (u8)(tx & 255) && gBroken[i][1] == (u8)(ty & 255)) return true;
     return false;
 }
-static int propAt(int tx, int ty, int* var) {
+static int propRaw(int tx, int ty, int* var);
+static bool liquidTile(int tx, int ty);
+static int propAt(int tx, int ty, int* var);
+static int propRaw(int tx, int ty, int* var) {
     if (tx * tx + ty * ty < 30) return PR_NONE;
     if (gArena && fabsf(tx * TS + 16 - gArenaX) < ARENA_H + TS && fabsf(ty * TS + 16 - gArenaY) < ARENA_H + TS) {
         if (gJ) return PR_NONE;
@@ -340,6 +343,32 @@ static int propAt(int tx, int ty, int* var) {
     if (kind >= PR_ROCK && isBroken(tx, ty)) return PR_NONE;
     if (var) *var = (h >> 16) % (kind == PR_TREE ? 3 : 2);
     return kind;
+}
+
+// Caché del mundo procedural: props y agua por casilla. Se vacía si cambia algo de lo que dependen.
+struct PCell { int tx, ty; s8 kind, var, liq; bool v; };
+static PCell gPC[2048];
+static struct { int set; bool arena; float ax, ay, ah; int j, nb; } gPCStamp = {-1, false, 0, 0, 0, 0, 0};
+static void pcInvalidate() { memset(gPC, 0, sizeof gPC); gPCStamp.set = -1; }
+static PCell& pcSlot(int tx, int ty) {
+    if (gPCStamp.set != gSet || gPCStamp.arena != gArena || gPCStamp.ax != gArenaX || gPCStamp.ay != gArenaY || gPCStamp.ah != ARENA_H || gPCStamp.j != gJ || gPCStamp.nb != gNBroken) {
+        memset(gPC, 0, sizeof gPC);
+        gPCStamp = {gSet, gArena, gArenaX, gArenaY, ARENA_H, gJ, gNBroken};
+    }
+    PCell& c = gPC[((u32)tx * 73856093u ^ (u32)ty * 19349663u) & 2047];
+    if (!c.v || c.tx != tx || c.ty != ty) { c.tx = tx; c.ty = ty; c.v = true; c.kind = -1; c.liq = -1; c.var = 0; }
+    return c;
+}
+static bool liquidTile(int tx, int ty) {
+    PCell& c = pcSlot(tx, ty);
+    if (c.liq < 0) c.liq = liquidRaw(tx, ty);
+    return c.liq;
+}
+static int propAt(int tx, int ty, int* var) {
+    PCell& c = pcSlot(tx, ty);
+    if (c.kind < 0) { int v = 0; c.kind = (s8)propRaw(tx, ty, &v); c.var = (s8)v; }
+    if (var) *var = c.var;
+    return c.kind;
 }
 static float propR(int k) { return k == PR_TREE ? 8.0f : (k == PR_ROCK || k == PR_AROCK) ? 11.0f : 9.0f; }
 static void propPos(int tx, int ty, float* x, float* y) { *x = tx * TS + 16; *y = ty * TS + 27; }
@@ -1352,8 +1381,7 @@ static void spawnWave(float dt) {
             float a = tries ? ang + frange(-0.9f, 0.9f) : ang, dd = 230 + frange(10, 70);
             float x = P.x + cosf(a) * dd, y = P.y + sinf(a) * dd * 0.75f;
             if (liquidTile((int)floorf(x / TS), (int)floorf(y / TS))) continue;
-            int cnt = 0; for (int i = 0; i < MAXE; i++) if (gE[i].on) cnt++;
-            spawnEnemy(*d, x, y, false, cnt >= CAPE * 0.85f, gTime);
+            if (spawnEnemy(*d, x, y, false, count >= CAPE * 0.85f, gTime) >= 0) count++;
             return;
         }
     };
@@ -1365,7 +1393,7 @@ static void spawnWave(float dt) {
         gSurgeT = frange(38, 56);
         float base = frand() * 6.283f;
         int n = (int)((14 + floorf(gTime / 22)) * 0.4f);
-        for (int i = 0; i < n && count + i < CAPE; i++) spawnOne(base + frange(-0.55f, 0.55f));
+        for (int i = 0; i < n && count < CAPE; i++) spawnOne(base + frange(-0.55f, 0.55f));
         banner("¡Marea de Pokémon!", 2.2f);
     }
 }
@@ -1586,7 +1614,7 @@ static void updateEnemies(float dt) {
         enemyAI(e, dt);
         if (!e.on) continue;
         e.x += e.kx * dt; e.y += e.ky * dt; e.kx *= expf(-8 * dt); e.ky *= expf(-8 * dt);
-        pushOut(e.x, e.y, e.r * 0.5f);
+        if (fabsf(e.x - P.x) < 300 && fabsf(e.y - P.y) < 260) pushOut(e.x, e.y, e.r * 0.5f);   // fuera de pantalla no hace falta
         // contacto con el jugador
         e.hitCd -= dt;
         if (e.hitCd <= 0 && distf(e.x, e.y, P.x, P.y) < e.r + 9 && e.beh != B_BOMBER && e.beh != B_THIEF) {
@@ -1601,19 +1629,29 @@ static void updateEnemies(float dt) {
             e.x = P.x + cosf(a) * 250; e.y = P.y + sinf(a) * 200;
         }
     }
-    // separación entre enemigos
+    // separación entre enemigos (cuadrícula espacial: sólo se comparan vecinos)
+    static short head[256], nxt[MAXE];
+    memset(head, -1, sizeof head);
+    for (int i = 0; i < MAXE; i++) {
+        if (!gE[i].on) continue;
+        int h = ((int)floorf(gE[i].x / 24) * 73 + (int)floorf(gE[i].y / 24) * 151) & 255;
+        nxt[i] = head[h]; head[h] = (short)i;
+    }
     for (int i = 0; i < MAXE; i++) {
         Enemy& a = gE[i]; if (!a.on) continue;
-        for (int j = i + 1; j < MAXE; j++) {
-            Enemy& b = gE[j]; if (!b.on) continue;
-            float dx = b.x - a.x; if (dx > 24 || dx < -24) continue;
-            float dy = b.y - a.y; if (dy > 24 || dy < -24) continue;
-            float d2 = dx * dx + dy * dy, m = (a.r + b.r) * 0.7f;
-            if (d2 < m * m && d2 > 0.01f) {
-                float d = sqrtf(d2), push = (m - d) * 0.35f;
-                a.x -= dx / d * push; a.y -= dy / d * push; b.x += dx / d * push; b.y += dy / d * push;
+        int cx = (int)floorf(a.x / 24), cy = (int)floorf(a.y / 24);
+        for (int oy = -1; oy <= 1; oy++) for (int ox = -1; ox <= 1; ox++)
+            for (int j = head[((cx + ox) * 73 + (cy + oy) * 151) & 255]; j >= 0; j = nxt[j]) {
+                if (j <= i) continue;
+                Enemy& b = gE[j];
+                float dx = b.x - a.x; if (dx > 24 || dx < -24) continue;
+                float dy = b.y - a.y; if (dy > 24 || dy < -24) continue;
+                float d2 = dx * dx + dy * dy, m = (a.r + b.r) * 0.7f;
+                if (d2 < m * m && d2 > 0.01f) {
+                    float d = sqrtf(d2), push = (m - d) * 0.35f;
+                    a.x -= dx / d * push; a.y -= dy / d * push; b.x += dx / d * push; b.y += dy / d * push;
+                }
             }
-        }
     }
 }
 
@@ -2449,7 +2487,7 @@ bool playCoopActive() { return gNP > 1; }
 static void resetWorld(int charIdx) {
     memset(gE, 0, sizeof gE); memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
     memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF); memset(gFx, 0, sizeof gFx);
-    memset(gBigP, 0, sizeof gBigP); gNBroken = 0; gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
+    memset(gBigP, 0, sizeof gBigP); gNBroken = 0; pcInvalidate(); gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
     memset(gKillsType, 0, sizeof gKillsType); gChests = gEvolves = gRifts = 0;
     gNextBoss = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gTickN = 0;
     gArena = gArenaDead = gPortal = false; gThiefN = 0; gThiefT = frange(120, 240); gLost.on = false; gLostT = frange(150, 210); gRiftChk = 30; gRiftMiss = 0;
@@ -2987,12 +3025,6 @@ void playDraw(u64 ms) {
     // objetos ordenados por y
     int n = 0;
     int tx0 = (int)floorf(cx / TS) - 1, tx1 = (int)floorf((cx + gVW) / TS) + 1, ty0 = (int)floorf(cy / TS) - 1, ty1 = (int)floorf((cy + gVH) / TS) + 3;
-    for (int ty = ty0; ty <= ty1 && n < 250; ty++)
-        for (int tx = tx0; tx <= tx1 && n < 250; tx++) {
-            int k = propAt(tx, ty, nullptr);
-            if (k != PR_NONE) { float px, py; propPos(tx, ty, &px, &py); gDI[n++] = {py, (u8)(10 + k), (short)((tx & 0xff) | 0)}; gDI[n - 1].idx = 0; gDI[n - 1].y = py; gDI[n - 1].kind = (u8)(10 + k); gDI[n - 1].idx = (short)0; (void)tx; (void)ty; gDI[n - 1].idx = 0; }
-        }
-    // (las coordenadas de los props se recalculan en el bucle de dibujo; guardamos tx,ty en tablas paralelas)
     static short ptx[256], pty[256]; int np = 0;
     n = 0;
     for (int ty = ty0; ty <= ty1 && np < 250; ty++)

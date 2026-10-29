@@ -2103,7 +2103,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"¡Legendario derrotado!", {"Legendary defeated!", "Légendaire vaincu !", "Legendary defeated!", "Legendary defeated!", "Legendary defeated!", "Legendary defeated!"}},
   {"¡Llevas %s!", {"You now hold %s!", "Tu portes %s !", "You now hold %s!", "You now hold %s!", "You now hold %s!", "You now hold %s!"}},
   {"¡Logros nuevos: %d!", {"New achievements: %d!", "Nouveaux succès : %d !", "New achievements: %d!", "New achievements: %d!", "New achievements: %d!", "New achievements: %d!"}},
-  {"¡Marea de Pokémon!", {"Pokémon swarm!", "Marée de Pokémon !", "Ondata di Pokémon!", "Maré de Pokémon!", "宝可梦大潮来袭！", "寶可夢大潮來襲！"}},
+  {"¡Marea de Pokémon!", {"Pokémon wave!", "Vague de Pokémon !", "Ondata di Pokémon!", "Onda de Pokémon!", "宝可梦大潮来袭！", "寶可夢大潮來襲！"}},
   {"¡Movimiento aprendido!", {"Move learned!", "Capacité apprise !", "Move learned!", "Move learned!", "Move learned!", "Move learned!"}},
   {"¡NUEVO!", {"NEW!", "NOUVEAU !", "NUOVO!", "NOVO!", "新获得！", "新獲得！"}},
   {"¡Nivel %d! Elige una mejora", {"Level %d! Pick an upgrade", "Niveau %d ! Choisis une amélioration", "Level %d! Pick an upgrade", "Level %d! Pick an upgrade", "Level %d! Pick an upgrade", "Level %d! Pick an upgrade"}},
