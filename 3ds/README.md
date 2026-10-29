@@ -42,3 +42,7 @@ Para oír la música en consola real hace falta `sdmc:/3ds/dspfirm.cdc` (DSP1); 
 ## No incluido
 Cooperativo online, nube, amigos, títulos/perfil, logros de grupo/objetos/arenas, nombres de Pokémon traducidos. Partida de 15 min (la web: 30); al llegar, empieza la Sentencia de Arceus (versión simplificada, sin cinemática saltable). Objetos equipables: los 11 de la web (cofres 8 %/50 %, jefes siempre; uno por partida).
 Guardado en `sdmc:/3ds/pokesurvivor3ds.sav`.
+
+## Efectos de ataque y opciones
+- Proyectiles y órbitas usan las mismas formas y paletas que la web (`tools/make_vfx.py` → `romfs/gfx/vfx.t3x` + `include/vfxmeta.h`; ejecutar tras cambiar `js/entities/vfx.js` o los movimientos).
+- Menú **Opciones** (menú principal): idioma y visualización «Normal» / «Legibilidad mejorada». Esta última muestra 2 elementos por página, con letra más grande, en Kecleon, Trofeos y Mejoras (`Save.bigUI`).

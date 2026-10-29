@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[6]; };   // en, fr, it, pt-BR, zh-Hans, zh-Hant
-#define LANG_N_STR 2148
+#define LANG_N_STR 2151
 static const LangStr LANG_STR[LANG_N_STR] = {
   {"\nEND ", {"", "", "", "", "", ""}},
   {" (oculta)", {" (hidden)", " (cachée)", " (hidden)", " (hidden)", " (hidden)", " (hidden)"}},
@@ -1054,6 +1054,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Legendarios", {"Legendaries", "Légendaires", "Leggendari", "Lendários", "传说宝可梦", "傳說寶可夢"}},
   {"Legendarios de la Sentencia: %d", {"Judgment legendaries: %d", "Légendaires du Jugement : %d", "Judgment legendaries: %d", "Judgment legendaries: %d", "Judgment legendaries: %d", "Judgment legendaries: %d"}},
   {"Leggiadro", {"", "", "", "", "", ""}},
+  {"Legibilidad mejorada", {"Enhanced readability", "Lisibilité améliorée", "Leggibilità migliorata", "Legibilidade melhorada", "Enhanced readability", "Enhanced readability"}},
   {"Lengüetazo", {"Lick", "Léchouille", "Leccata", "Lick", "舌舔", "舌舔"}},
   {"Lentifumé", {"", "", "", "", "", ""}},
   {"Lentiteintée", {"", "", "", "", "", ""}},
@@ -1303,6 +1304,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Onda sonora que sale en todas direcciones.", {"A sound wave that spreads in every direction.", "Onde sonore dans toutes les directions.", "Un'onda sonora che si espande in tutte le direzioni.", "Uma onda sonora que se espalha em todas as direções.", "向四面八方扩散的声波。", "向四面八方擴散的聲波。"}},
   {"Onda Ígnea", {"Heat Wave", "Onde Ignée", "Ondacalda", "Heat Wave", "热风", "熱風"}},
   {"Online", {"Online", "En ligne", "Online", "Online", "Online", "Online"}},
+  {"Opciones", {"Options", "Options", "Opzioni", "Opções", "Options", "Options"}},
   {"Orbe Concentración", {"Focus Orb", "Orbe Concentration", "Sfera Concentrazione", "Orbe Concentração", "Focus Orb", "Focus Orb"}},
   {"Orbe Lentitud", {"Slow Orb", "Orbe Lenteur", "Sfera Lentezza", "Orbe Lentidão", "Slow Orb", "Slow Orb"}},
   {"Orbe Luz", {"Light Orb", "Orbe Lumière", "Sfera Luce", "Orbe Luz", "Light Orb", "Light Orb"}},
@@ -1985,6 +1987,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Viscosidad", {"", "", "", "", "", ""}},
   {"Viscosità", {"", "", "", "", "", ""}},
   {"Vista Lince", {"", "", "", "", "", ""}},
+  {"Visualización", {"Display", "Affichage", "Visualizzazione", "Exibição", "Display", "Display"}},
   {"Vital Spirit", {"", "", "", "", "", ""}},
   {"Vitalidad", {"Vitality", "Vitalité", "Vitalità", "Vitalidade", "生命力", "生命力"}},
   {"Vittorstella", {"", "", "", "", "", ""}},
