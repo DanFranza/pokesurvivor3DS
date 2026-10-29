@@ -263,9 +263,33 @@ static void doLoadRun() {
 // ---------------------------------------------------------------- tienda de Kecleon (menta, cápsulas y las MT del día)
 static int kecPer() { return gSave.bigUI ? 2 : 3; }
 static int kecObjPages() { return (3 + kecPer() - 1) / kecPer(); }
-static int kecPages() { return kecObjPages() + (8 + kecPer() - 1) / kecPer(); }
 static float gKecFx;                  // destello al comprar
 static u64 gKecFxT;
+static bool kecSkins() { if (hwOn()) return true; for (int k = 0; k < 3; k++) if (gSave.skin[k]) return true; return false; }
+static int kecTmPages() { return (8 + kecPer() - 1) / kecPer(); }
+static int kecPages() { return kecObjPages() + kecTmPages() + (kecSkins() ? (3 + kecPer() - 1) / kecPer() : 0); }
+#define SKIN_PRICE 300
+static void kecSkinRow(float y, int k) {
+    bool big = gSave.bigUI;
+    float h = big ? 76 : 50, f = big ? 1.3f : 1.0f;
+    int di = dexIndexOf(SKIN_BASE[k]);
+    panel(6, y, 308, h, gSave.skinOn[k] && gSave.skin[k] ? GOLD : EDGE, COL(26, 49, 112, 255));
+    snprintf(gTmp, sizeof gTmp, "%s %s", T("Bruja"), di >= 0 ? pname(di) : "");
+    text(gTmp, 14, y + 1, 0.5f * f, WHITE);
+    textWrap("Disfraz de Halloween", 14, y + 19 * f, 200, 0.33f * f, COL(210, 225, 255, 255));
+    float bx = big ? 212 : 228, bw = big ? 96 : 80, bh = big ? 48 : 38;
+    if (!gSave.skin[k]) {
+        bool can = gSave.candy >= SKIN_PRICE && hwOn();
+        snprintf(gTmp, sizeof gTmp, "%d", SKIN_PRICE);
+        if (button(bx, y + 6, bw, bh, gTmp, can ? COL(230, 120, 30, 255) : COL(80, 84, 110, 255), 0.5f)) {
+            if (!hwOn()) { msg("Sólo durante Halloween"); sfxPlay(SFX_HURT); }
+            else if (gSave.candy < SKIN_PRICE) { msg("No tienes suficientes Caramelos"); sfxPlay(SFX_HURT); }
+            else { gSave.candy -= SKIN_PRICE; gSave.skin[k] = gSave.skinOn[k] = 1; saveWrite(); sfxPlay(SFX_LEVEL); gKecFx = 1; gKecFxT = osGetTime(); }
+        }
+    } else if (button(bx, y + 6, bw, bh, gSave.skinOn[k] ? "Quitar" : "Poner", gSave.skinOn[k] ? COL(150, 90, 90, 255) : COL(70, 150, 90, 255), 0.5f)) {
+        gSave.skinOn[k] ^= 1; saveWrite(); sfxPlay(SFX_UI);
+    }
+}
 
 static void kecRow(float y, const char* name, const char* desc, int price, int owned, int tmMoveType, int cat, bool canLearn, u32 col, int id) {
     bool sel = gKecSel == id, big = gSave.bigUI;
@@ -299,7 +323,13 @@ static void drawKecleon() {
     if (gKecPage >= pages) gKecPage = pages - 1;
     int tm[8], n = tmDaily(tm);
     int di = partner();
-    if (gKecPage < op) {
+    int tp = kecTmPages();
+    if (gKecPage >= op + tp) {
+        for (int k = 0; k < per; k++) {
+            int i = (gKecPage - op - tp) * per + k; if (i >= 3) break;
+            kecSkinRow(30 + k * step, i);
+        }
+    } else if (gKecPage < op) {
         static const u32 bc[3] = {COL(70, 150, 90, 255), COL(70, 110, 190, 255), COL(150, 90, 190, 255)};
         for (int k = 0; k < per; k++) {
             int i = gKecPage * per + k; if (i >= 3) break;
@@ -316,7 +346,8 @@ static void drawKecleon() {
     }
     if (arrowBtn(6, 198, 40, 36, false, gKecPage > 0)) { gKecPage--; sfxPlay(SFX_UI); }
     if (arrowBtn(52, 198, 40, 36, true, gKecPage < pages - 1)) { gKecPage++; sfxPlay(SFX_UI); }
-    snprintf(gTmp, sizeof gTmp, "%s  %d/%d", gKecPage < op ? T("Objetos") : T("MT del día"), gKecPage + 1, pages);
+    snprintf(gTmp, sizeof gTmp, "%s  %d/%d", gKecPage < op ? T("Objetos") : gKecPage < op + tp ? T("MT del día") : T("Disfraces"), gKecPage + 1, pages);
+    if (gKecPage >= op + tp) { snprintf(gTmp + strlen(gTmp), 40, "  (%u)", (unsigned)gSave.candy); }
     text(gTmp, 100, 200, 0.42f, GOLD);
     if (gMsgT > 0) text(gMsg, 100, 218, 0.34f, COL(255, 120, 120, 255));
     if (button(232, 198, 82, 36, "Volver", COL(180, 80, 80, 255), 0.5f)) gState = ST_MENU;
@@ -368,7 +399,7 @@ static void drawKecleonTop(u64 now) {
     C2D_DrawRectSolid(54, 53, 0.71f, 301, 2, INK);
 
     // Kecleon: verde y morado (mismo sprite teñido) paseando detrás del mostrador
-    const int KD = 352;
+    const int KD = hwOn() && sprHas(1053) ? 1053 : 352;
     if (sprHas(KD)) {
         float t = now / 1000.0f;
         for (int k = 0; k < 2; k++) {
@@ -787,12 +818,13 @@ static void drawMenu() {
 static void drawMenuTop(u64 ms) {
     topBg();
     tileBg();
+    if (hwOn()) C2D_DrawRectSolid(0, 0, 0.02f, TOP_W, TOP_H, COL(40, 10, 70, 120));
     logo(200, 8, 1.3f);
     text("MUNDO MISTERIOSO", 200, 52, 0.5f, COL(255, 255, 255, 255), true);
     int di = partner();
     C2D_DrawEllipseSolid(150, 178, 0.3f, 100, 24, COL(0, 0, 0, 90));
     C2D_DrawEllipseSolid(156, 180, 0.31f, 88, 18, COL(255, 255, 255, 40));
-    sprDraw(DEX_NUM[di], 0, ms, true, 200, 182, nullptr, 2.0f, gSave.shinyOn[di] && gSave.shiny[di]);
+    { int sn = skinNum(di); sprLoad(sn); sprDraw(sn, 0, ms, true, 200, 182, nullptr, 2.0f, sn == DEX_NUM[di] && gSave.shinyOn[di] && gSave.shiny[di]); }
     text(pname(di), 200, 190, 0.5f, WHITE, true);
     int own = 0;
     for (int i = 0; i < DEX_N; i++) own += gSave.owned[i];
@@ -1296,9 +1328,11 @@ static void drawShopTop(u64 ms) {
 static u32 rarCol(int r) { return rarityColor(r); }
 static void drawGacha() {
     bgFill();
-    for (int g = 1; g <= 9; g++) {
-        static const char* ab[9] = {"Kan", "Joh", "Hoe", "Sin", "Tes", "Kal", "Alo", "Gal", "Pal"};
-        if (button(4 + (g - 1) * 34, 2, 32, 20, ab[g - 1], g == gGen ? GOLD_BTN : EDGE, 0.34f) && g != gGen && !slotBusy()) { gGen = g; sfxPlay(SFX_UI); }
+    bool hw = hwOn();
+    if (!hw && gGen == 10) gGen = 1;
+    for (int g = 1; g <= (hw ? 10 : 9); g++) {
+        static const char* ab[10] = {"Kan", "Joh", "Hoe", "Sin", "Tes", "Kal", "Alo", "Gal", "Pal", "👻"};
+        if (button(4 + (g - 1) * (hw ? 31 : 34), 2, hw ? 29 : 32, 20, g == 10 ? "HW" : ab[g - 1], g == gGen ? GOLD_BTN : g == 10 ? COL(120, 60, 170, 255) : EDGE, 0.34f) && g != gGen && !slotBusy()) { gGen = g; sfxPlay(SFX_UI); }
     }
     // tickets que tienes
     panel(6, 26, 308, 24, EDGE, COL(20, 36, 84, 255));
@@ -1321,11 +1355,12 @@ static void drawGacha() {
     snprintf(gTmp, sizeof gTmp, "%.0f%%", shinyRate(gGen));
     text(gTmp, 190, 58 + 65 - 3, 0.36f, COL(255, 130, 130, 255), true);
     int own = 0, tot = 0;
-    for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gGen) { tot++; if (gSave.owned[i]) own++; }
+    for (int i = 0; i < DEX_N; i++) if (gGen == 10 ? (DEX[i].t1 == 13 || DEX[i].t2 == 13) : DEX[i].gen == gGen) { tot++; if (gSave.owned[i]) own++; }
     text("Poseídos", 252, 62, 0.4f, COL(170, 200, 255, 255), true);
     snprintf(gTmp, sizeof gTmp, "%d/%d", own, tot);
     text(gTmp, 252, 78, 0.5f, WHITE, true);
-    if (charmHas(gGen)) { icon(IC_SHINY, 218, 94, 0.5f); text("Amuleto Cromático", 252, 96, 0.34f, COL(255, 210, 90, 255), true); }
+    if (gGen == 10) text("Sólo en Halloween: shiny ×2", 252, 96, 0.3f, COL(255, 150, 50, 255), true);
+    else if (charmHas(gGen)) { icon(IC_SHINY, 218, 94, 0.5f); text("Amuleto Cromático", 252, 96, 0.34f, COL(255, 210, 90, 255), true); }
     else text("Dex completo = Amuleto Cromático", 252, 96, 0.3f, COL(150, 150, 170, 255), true);
     bool ok1 = gSave.t1 >= 1, ok10 = gSave.t1 >= 10, okP = gSave.t10 >= 1;
     bool idle = !slotBusy();

@@ -50,4 +50,8 @@ Guardado en `sdmc:/3ds/pokesurvivor3ds.sav`.
 
 ## Test inicial y Halloween
 - Primera partida (sin guardado): test de personalidad que propone el Pokémon inicial (`ST_QUIZ`, datos exportados por `tools/export_game.js`).
-- Halloween (30-10 al 2-11, según el reloj de la consola; cuenta atrás en el menú principal 14 días antes): mapas nocturnos (3 tilesets extra), calabazas rompibles, 2 fantasmas más por tramo y caramelos (1,25/min de partida como máximo). Una partida empezada en el evento lo sigue hasta el final; se desactiva en cooperativo. No incluido: música, banner de gacha, Gengar bruja, disfraces y tienda de caramelos.
+- Halloween (30-10 al 2-11, según el reloj de la consola; cuenta atrás en el menú principal 14 días antes): mapas nocturnos (3 tilesets extra), calabazas rompibles, 2 fantasmas más por tramo y caramelos (1,25/min de partida como máximo; +60 con Gengar). Una partida empezada en el evento lo sigue hasta el final; se desactiva en cooperativo.
+- Al final de la partida, Gengar bruja (placa Fantasma) sustituye a Arceus.
+- Banner de gacha «Noche Espectral» (Pokémon Fantasma de todas las regiones, shiny 2 %), sólo durante el evento.
+- Kecleon: lleva sombrero de bruja en el evento y vende 3 disfraces (Gengar, Pikachu, Umbreon) por 300 caramelos; se compran sólo durante el evento y se conservan (página «Disfraces»). Sprites `p1050-1053` generados por `tools/make_sprites.py` (ataques con disfraz usan la animación de caminar).
+- Música más lenta, en tono menor y con campana grave durante el evento. El fondo de menú sólo recibe un tinte nocturno.

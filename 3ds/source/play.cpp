@@ -520,7 +520,7 @@ static void rollRun() {
     }
 }
 void playPreloadSprites() {
-    sprLoad(DEX_NUM[P.di]);
+    sprLoad(DEX_NUM[P.di]); sprLoad(skinNum(P.di));
     for (int ti = 0; ti < 6; ti++) for (int k = 0; k < gNCast[ti]; k++) { sprLoad(DEX_NUM[gCast[ti][k].di]); if (gCast[ti][k].minion) sprLoad(gCast[ti][k].minion); }
     for (int s = 0; s < 5; s++) sprLoad(DEX_NUM[gBossDef[s].di]);
 }
@@ -2123,7 +2123,7 @@ static void riftWin(Enemy& e) {
 // ---------------------------------------------------------------- Sentencia de Arceus
 static bool judgeStart() {
     gJArDi = -1;
-    for (int i = 0; i < DEX_N; i++) if (DEX_NUM[i] == 493 && sprHas(493)) gJArDi = i;
+    for (int i = 0; i < DEX_N; i++) if (DEX_NUM[i] == (gHwRun ? 94 : 493) && sprHas(DEX_NUM[i])) gJArDi = i;
     if (gJArDi < 0) return false;
     memset(gE, 0, sizeof gE); memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
     memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF);
@@ -2147,7 +2147,8 @@ static bool judgeStart() {
     gJ = 1; gJT = 0; gJN = 0; gJDowns = 0; gJBossT = 5; gJCast = 3; gJTouch = 0; gJLift = 700;
     gJX = gArenaX; gJY = gArenaY - 140; gJDir = 0; gJMoving = false;
     gSave.stat[SB_JUDGE]++;
-    banner("LA SENTENCIA DE ARCEUS", 3.2f);
+    if (gHwRun) gCandy += 60;
+    banner(gHwRun ? "LA NOCHE ESPECTRAL DE GENGAR" : "LA SENTENCIA DE ARCEUS", 3.2f);
     musicPlay(MUS_BOSS); sfxPlay(SFX_BOSS); gShake = fmaxf(gShake, 0.8f);
     return true;
 }
@@ -2177,12 +2178,12 @@ static void judgeSpawnLegend() {
     gJN++;
 }
 static void judgeSpawnArceus() {
-    gJPlate = 1 + (int)(rnd() % 17);
+    gJPlate = gHwRun ? 13 : 1 + (int)(rnd() % 17);
     Def d; memset(&d, 0, sizeof d);
     d.di = gJArDi; d.hp = 1; d.spd = 0; d.dmg = 0; d.beh = B_CHARGER;
     int sl = spawnEnemy(d, gJX, gJY, false, false, 0);
     if (sl >= 0) { Enemy& a = gE[sl]; a.arceus = true; a.maxHp = a.hp = 20000; a.r = 14; a.xp = 0; a.dmg = 0; a.shotDmg = 0; }
-    char b[64]; snprintf(b, sizeof b, "¡Arceus lleva una Placa de tipo %s!", typeName(gJPlate));
+    char b[96]; if (gHwRun) snprintf(b, sizeof b, "%s", T("¡El gran Gengar te ha arrastrado a su Noche Espectral!")); else snprintf(b, sizeof b, "¡Arceus lleva una Placa de tipo %s!", typeName(gJPlate));
     banner(b, 3.4f);
 }
 static void judgeUpdate(float dt) {
@@ -3025,7 +3026,8 @@ static void drawEvents(float cx, float cy) {
         const Enemy* ae = nullptr; for (int q = 0; q < MAXE; q++) if (gE[q].on && gE[q].arceus) ae = &gE[q];
         bool fl = ae && ae->flash > 0;
         if (fl) C2D_PlainImageTint(&at, COL(255, 255, 255, 255), 0.7f);
-        sprDraw(493, gJDir, gMs, gJMoving, ax, ay, gJ == 2 ? &at : nullptr, 1.5f);
+        if (gHwRun) sprDraw(sprHas(1050) ? 1050 : 94, gJDir, gMs, gJMoving, ax, ay, gJ == 2 ? &at : nullptr, 2.4f);
+        else sprDraw(493, gJDir, gMs, gJMoving, ax, ay, gJ == 2 ? &at : nullptr, 1.5f);
         if (ae) {
             float yy = ay - 60;
             C2D_DrawRectSolid(ax - 26, yy, 0.8f, 52, 5, COL(0, 0, 0, 220));
@@ -3033,7 +3035,7 @@ static void drawEvents(float cx, float cy) {
         }
         if (gJ == 1) {
             C2D_DrawRectSolid(0, 0, 0.77f, gVW, gVH, COL(0, 0, 0, (int)(160 * (1 - gJT / 3.2f))));
-            text("LA SENTENCIA DE ARCEUS", gVW / 2 - 78, gVH / 2 - 50, 0.7f, COL(255, 230, 120, 255));
+            text(gHwRun ? "LA NOCHE ESPECTRAL DE GENGAR" : "LA SENTENCIA DE ARCEUS", gVW / 2 - 78 - (gHwRun ? 30 : 0), gVH / 2 - 50, 0.7f, COL(255, 230, 120, 255));
         } else {
             edgeArrow(gJX, gJY, cx, cy, COL(255, 220, 90, 255));
             char jb[40]; snprintf(jb, sizeof jb, "Sentencia: %d legendarios", gJDowns);
@@ -3118,8 +3120,10 @@ void playDraw(u64 ms) {
                 C2D_ImageTint tint; bool t = false;
                 if (PP.flash > 0) { C2D_PlainImageTint(&tint, COL(255, 80, 80, 255), 0.7f); t = true; }
                 float at = PP.actK ? (gTime - PP.actS) / PP.actD : 2;
-                if (!(at >= 0 && at < 1 && actDraw(DEX_NUM[PP.di], PP.actK - 1, PP.actDir, at, x, y, t ? &tint : nullptr, 1.0f, pc.shiny)))
-                    sprDraw(DEX_NUM[PP.di], PP.dir, gMs, PP.moving, x, y, t ? &tint : nullptr, 1.0f, pc.shiny);
+                if (!(at >= 0 && at < 1 && (di.idx != gLoc || skinNum(PP.di) == DEX_NUM[PP.di]) && actDraw(DEX_NUM[PP.di], PP.actK - 1, PP.actDir, at, x, y, t ? &tint : nullptr, 1.0f, pc.shiny))) {
+                    int sn = di.idx == gLoc ? skinNum(PP.di) : DEX_NUM[PP.di];
+                    sprDraw(sn, PP.dir, gMs, PP.moving, x, y, t ? &tint : nullptr, 1.0f, sn == DEX_NUM[PP.di] && pc.shiny);
+                }
             }
             C2D_DrawRectSolid(x - 15, y - 4, 0.8f, 30, 4, COL(0, 0, 0, 200));
             C2D_DrawRectSolid(x - 14, y - 3, 0.85f, 28 * clampf(PP.hp / PP.maxHp, 0, 1), 2, di.idx == gLoc ? COL(90, 230, 90, 255) : COL(90, 170, 255, 255));

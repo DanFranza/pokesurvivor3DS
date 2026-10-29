@@ -54,7 +54,7 @@ bool charmHas(int gen) {
     for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gen) { n++; if (!gSave.owned[i]) return false; }
     return n > 0;
 }
-float shinyRate(int gen) { return charmHas(gen) ? SHINY_RATE * 2 : SHINY_RATE; }
+float shinyRate(int gen) { return gen == 10 || charmHas(gen) ? SHINY_RATE * 2 : SHINY_RATE; }
 const char* typeName(int t) {
     static const char* N[18] = {"Normal", "Fuego", "Agua", "Eléctrico", "Planta", "Hielo", "Lucha", "Veneno", "Tierra", "Volador", "Psíquico", "Bicho", "Roca", "Fantasma", "Dragón", "Siniestro", "Acero", "Hada"};
     return t >= 0 && t < 18 ? T(N[t]) : "";
@@ -271,7 +271,9 @@ void saveWrite() {
 int permCost(int id, int lvl) { return (int)(floorf(PERM[id].base * powf(PERM[id].grow, (float)lvl) / 10.0f + 0.5f) * 10); }
 
 // ---------------------------------------------------------------- gacha
-const char* GACHA_GEN_NAMES[9] = {"Kanto", "Johto", "Hoenn", "Sinnoh", "Teselia", "Kalos", "Alola", "Galar", "Paldea"};
+const char* GACHA_GEN_NAMES[10] = {"Kanto", "Johto", "Hoenn", "Sinnoh", "Teselia", "Kalos", "Alola", "Galar", "Paldea", "Noche Espectral"};
+// banner 10 (Halloween): los Pokémon Fantasma de todas las regiones
+static bool inBanner(int i, int gen) { return gen == 10 ? (DEX[i].t1 == 13 || DEX[i].t2 == 13) : DEX[i].gen == gen; }
 const float GACHA_RATES[5] = {45, 30, 17, 6.5f, 1.5f};
 #define RATES GACHA_RATES
 static const int REFUND[6] = {0, 15, 30, 60, 120, 300};
@@ -290,7 +292,7 @@ static int pickInBanner(int gen, int rarity, int* outRarity) {
         if (r < 1 || r > 5) continue;
         int n = 0;
         for (int i = 0; i < DEX_N; i++)
-            if (DEX[i].gen == gen && DEX[i].rarity == r && sprHas(DEX_NUM[i])) list[n++] = i;
+            if (inBanner(i, gen) && DEX[i].rarity == r && sprHas(DEX_NUM[i])) list[n++] = i;
         if (n) { *outRarity = r; return list[rnd() % n]; }
     }
     *outRarity = rarity;
@@ -320,7 +322,7 @@ int gachaPull(int gen, int n, PullResult* out, bool useT10) {
             if (gSave.shiny[idx]) {
                 static short alt[DEX_N]; int na = 0;
                 for (int k = 0; k < DEX_N; k++)
-                    if (DEX[k].gen == gen && DEX[k].rarity == rar && !gSave.shiny[k] && sprHasShiny(DEX_NUM[k])) alt[na++] = k;
+                    if (inBanner(k, gen) && DEX[k].rarity == rar && !gSave.shiny[k] && sprHasShiny(DEX_NUM[k])) alt[na++] = k;
                 if (na) { idx = alt[rnd() % na]; r.dex = idx; }
             }
         }
@@ -344,6 +346,12 @@ int gachaPull(int gen, int n, PullResult* out, bool useT10) {
 // ---------------------------------------------------------------- Halloween (hora de la consola)
 static time_t hwStart(int year) { struct tm t; memset(&t, 0, sizeof t); t.tm_year = year - 1900; t.tm_mon = 9; t.tm_mday = 30; t.tm_isdst = -1; return mktime(&t); }
 static time_t hwEnd(int year) { struct tm t; memset(&t, 0, sizeof t); t.tm_year = year - 1900; t.tm_mon = 10; t.tm_mday = 3; t.tm_isdst = -1; return mktime(&t); }
+const int SKIN_BASE[3] = {94, 25, 197};
+int skinNum(int di) {
+    int d = DEX_NUM[di];
+    for (int k = 0; k < 3; k++) if (d == SKIN_BASE[k] && gSave.skin[k] && gSave.skinOn[k] && sprHas(1050 + k)) return 1050 + k;
+    return d;
+}
 bool hwOn() {
     time_t now = time(nullptr); struct tm lt; localtime_r(&now, &lt);
     return (lt.tm_mon == 9 && lt.tm_mday >= 30) || (lt.tm_mon == 10 && lt.tm_mday <= 2);

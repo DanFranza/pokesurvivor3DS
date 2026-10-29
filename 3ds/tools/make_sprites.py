@@ -29,10 +29,16 @@ def load_meta():
     return {int(d): json.loads(b) for d, b in re.findall(r"^\s*(\d+): (\{.*\}),?\s*$", txt, re.M)}
 
 
-def build(dn, m, tmp):
+# Disfraces de Halloween: id de sprite propio -> (Pokémon, carpeta k-…); sus hojas llevan margen (8 px a los lados, 16 arriba)
+SKINS = {1050: (94, "bruja-gengar"), 1051: (25, "bruja-pikachu"), 1052: (197, "bruja-umbreon"), 1053: (352, "hat")}
+
+
+def build(dn, m, tmp, pid=None, skin=None):
     w = m["a"]["Walk"]
-    fw, fh, n = w["w"], w["h"], min(w["n"], MAXF)
-    sheet = Image.open(ROOT / f"assets/pokemon/{dn}/Walk.png").convert("RGBA")
+    pid = pid or dn
+    sheet = Image.open(ROOT / f"assets/pokemon/{dn}/{'k-' + skin + '/' if skin else ''}Walk.png").convert("RGBA")
+    n = min(w["n"], MAXF)
+    fw, fh = (sheet.width // w["n"], sheet.height // 8) if skin else (w["w"], w["h"])
     frames = {}
     bx0, by0, bx1, by1 = fw, fh, 0, 0
     for r in range(4):
@@ -52,7 +58,7 @@ def build(dn, m, tmp):
     img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
     for (r, f), fr in frames.items():
         img.paste(fr.crop((bx0, by0, bx1, by1)), (f * bw, r * bh))
-    name = f"p{dn:04d}"
+    name = f"p{pid:04d}"
     png = tmp / f"{name}.png"
     img.save(png)
     subprocess.run(["tex3ds", "-f", "rgba5551", "-o", str(OUT / f"romfs/gfx/{name}.t3x"), str(png)],
@@ -60,7 +66,7 @@ def build(dn, m, tmp):
     d = w["d"][:n]
     sh = 0
     sp = ROOT / f"assets/pokemon/{dn}/s/Walk.png"
-    if m.get("sh") and sp.exists() and "sm" not in m:
+    if not skin and m.get("sh") and sp.exists() and "sm" not in m:
         ss = Image.open(sp).convert("RGBA")
         if ss.size == sheet.size:
             im2 = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
@@ -74,9 +80,10 @@ def build(dn, m, tmp):
                            check=True, capture_output=True)
             sh = 1
     ms = max(30, int(sum(d) / n * 1000 / 60))
-    ax = int(round(w["ax"] - bx0))
-    ay = int(round(w["ay"] - by0))
-    return dn, (bw, bh, n, tw, th, ms, ax, ay, sh)
+    px, pt = (fw - w["w"]) // 2, fh - w["h"]
+    ax = int(round(w["ax"] + (px if skin else 0) - bx0))
+    ay = int(round(w["ay"] + (pt if skin else 0) - by0))
+    return pid, (bw, bh, n, tw, th, ms, ax, ay, sh)
 
 
 def main():
@@ -89,6 +96,9 @@ def main():
         with ThreadPoolExecutor() as ex:
             for dn, e in ex.map(lambda kv: build(kv[0], kv[1], tmp), sorted(todo.items())):
                 res[dn] = e
+            for pid, (dn, sk) in SKINS.items():
+                _, e = build(dn, meta[dn], tmp, pid, sk)
+                res[pid] = e
     lines = ["// GENERADO por tools/make_sprites.py — no editar", "#pragma once",
              f"#define POKE_MAX {POKE_MAX}",
              "struct PokeSpr { short w, h, n, tw, th, ms, ax, ay, sh; };",

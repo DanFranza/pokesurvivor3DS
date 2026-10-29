@@ -18,6 +18,7 @@ static bool gOk;
 static int gSong = -1, gStep;
 static double gStepAt, gClock;
 static float gFade;
+static bool gSpooky; static int gTonic;   // Halloween: tempo más lento, tono menor y campana grave
 static u32 gNoise = 12345;
 static double gSfxLast[SFX_N];
 
@@ -48,7 +49,11 @@ static void startNote(const SongEv& e, float stepSamples) {
     v->on = true; v->music = true; v->inst = e.inst;
     v->vol = e.vel / 100.0f;
     v->dur = e.len * stepSamples;
-    if (e.inst < I_KICK) v->f = 440.0f * powf(2.0f, (e.midi - 69) / 12.0f);
+    if (e.inst < I_KICK) {
+        int m = e.midi;
+        if (gSpooky) { int d = ((m - gTonic) % 12 + 12) % 12; if (d == 4 || d == 9 || d == 11) m--; }
+        v->f = 440.0f * powf(2.0f, (m - 69) / 12.0f);
+    }
     else if (e.inst == I_KICK) { v->f = 150; v->ratio = powf(42.0f / 150.0f, 1.0f / (0.13f * RATE)); v->dur = 0.22f * RATE; }
     else if (e.inst == I_SNARE) { v->f = 190; v->dur = 0.13f * RATE; }
     else if (e.inst == I_HAT) v->dur = 0.05f * RATE;
@@ -105,7 +110,7 @@ static float voiceSample(Voice& v) {
 
 static void fill(s16* dst, int n) {
     const SongDef* sd = gSong >= 0 ? &SONGS[gSong] : nullptr;
-    float stepS = sd ? RATE * 60.0f / sd->bpm / 4 : 0;
+    float stepS = sd ? RATE * 60.0f / (sd->bpm * (gSpooky ? 0.88f : 1.0f)) / 4 : 0;
     float vol = clampf(gSave.vol, 0, 1) * 0.9f;
     for (int i = 0; i < n; i++) {
         if (sd) {
@@ -113,6 +118,10 @@ static void fill(s16* dst, int n) {
                 double swing = (gStep % 4 == 2) ? sd->swing / 100.0 * stepS : 0;
                 if (gClock < gStepAt + swing) break;
                 int s = gStep % sd->steps;
+                if (gSpooky && s % 16 == 0) {
+                    Voice* tv = freeVoice();
+                    if (tv) { *tv = Voice(); tv->on = true; tv->music = true; tv->inst = I_BELL; tv->vol = 0.9f; tv->f = 65.4f; tv->dur = 1.6f * RATE; }
+                }
                 for (int k = 0; k < sd->n; k++) {
                     if (sd->ev[k].step == s) startNote(sd->ev[k], stepS);
                     else if (sd->ev[k].step > s) break;
@@ -167,6 +176,9 @@ void musicPlay(int song) {
     if (!gOk || song == gSong) return;
     for (Voice& v : gV) if (v.music) v.on = false;
     gSong = song >= 0 && song < MUS_N ? song : -1;
+    gSpooky = hwOn() && gSong >= 0;
+    gTonic = 0;
+    if (gSpooky) { const SongDef& sd = SONGS[gSong]; for (int k = 0; k < sd.n; k++) if (sd.ev[k].inst == I_BASS) { gTonic = sd.ev[k].midi; break; } }
     gStep = 0;
     gStepAt = gClock + 0.05 * RATE;
     gFade = 0;

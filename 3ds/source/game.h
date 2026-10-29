@@ -108,6 +108,7 @@ struct Save {
     u8 bigUI;                                   // 1 = legibilidad mejorada (2 elementos por página)
     u8 quizPending;                             // 1 = primera partida: falta el test de personalidad
     u32 candy;                                  // caramelos de Halloween
+    u8 skin[3], skinOn[3];                      // disfraces de bruja (Gengar, Pikachu, Umbreon): comprado / puesto
 };
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
@@ -180,7 +181,7 @@ void slotUpdate(float dt);
 void slotDraw(u64 ms);                            // pantalla superior
 void slotSkip();
 u32 rarityColor(int r);
-extern const char* GACHA_GEN_NAMES[9];
+extern const char* GACHA_GEN_NAMES[10];
 
 // ---------- audio (audio.cpp) ----------
 void audioInit();
@@ -270,6 +271,8 @@ int playWeather(float* left);                    // 0 ninguno; 1 sol 2 lluvia 3 
 const char* weatherName(int k);
 u32 weatherColor(int k);
 struct RunStats { float time; int kills, level, bosses, coins, t1, t10, jdowns, candy; bool won; };
+int skinNum(int di);                               // sprite del Pokémon con su disfraz puesto
+extern const int SKIN_BASE[3];
 bool hwOn();                                      // ¿estamos en Halloween (30-10 al 2-11, hora de la consola)?
 bool hwCountdown(char* out, int n);               // texto de cuenta atrás para el menú (false = nada que mostrar)
 // objetos equipables (uno por partida)
