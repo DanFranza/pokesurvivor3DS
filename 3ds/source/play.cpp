@@ -1,5 +1,6 @@
 // Simulación y dibujo de la partida: mundo, enemigos, movimientos, efectos.
 #include "game.h"
+#include "vfxmeta.h"
 
 // ---------------------------------------------------------------- límites (todo estático)
 #define MAXE   84
@@ -2773,16 +2774,25 @@ static void drawFieldsGround(float cx, float cy) {
     }
 }
 
+static float vfxAng(int shape, float vx, float vy, float spinRate, float seed) {
+    if (VFX_SHAPE[shape].flags & 2) return (gMs / 1000.0f) * spinRate + seed;
+    return atan2f(vy, vx);
+}
+
 static void drawShot(Shot& s, float cx, float cy) {
     float x = s.x - cx, y = s.y - cy;
+    int shape = -1, pal = 0;
+    if (s.mid >= 0 && s.mid < NMOVES) { shape = VFX_MOVE[s.mid].proj; pal = VFX_MOVE[s.mid].pal; }
+    if (shape >= 0) {
+        float sc = s.r >= 8 ? 1.5f : 1.0f;
+        int fr = (int)(gMs / 83);
+        float ang = s.boom ? (gMs / 1000.0f) * 14 : vfxAng(shape, s.vx, s.vy, 9, s.x * 0.05f);
+        circle(x, y + 6, 4 * sc, COL(0, 0, 0, 60), 0.55f);
+        vfxDraw(shape, pal, fr, x, y, 0.6f, ang, sc);
+        return;
+    }
     u32 rgb = TYPE_RGB[s.type];
     float r = s.r < 5 ? 5.5f : s.r + 1.5f;
-    // rastro
-    float dx = s.x - s.px, dy = s.y - s.py;
-    float vl = sqrtf(s.vx * s.vx + s.vy * s.vy);
-    if (vl > 1) { float tx = -s.vx / vl * r * 1.6f, ty = -s.vy / vl * r * 1.6f;
-        circle(x + tx, y + ty, r * 0.8f, rgbA(rgb, 130), 0.58f); circle(x + tx * 2, y + ty * 2, r * 0.55f, rgbA(rgb, 70), 0.57f); }
-    (void)dx; (void)dy;
     circle(x, y, r + 2.5f, rgbA(darken(rgb, 0.35f), 255), 0.6f);
     circle(x, y, r, rgbA(lighten(rgb, 0.15f), 255), 0.61f);
     circle(x, y, r * 0.5f, rgbA(0xffffff, 255), 0.62f);
@@ -3040,6 +3050,8 @@ void playDraw(u64 ms) {
         for (int i = 0; i < cnt; i++) {
             float a = P.orbA[b] + (float)i / cnt * 6.283f;
             float ox = P.x - cx + cosf(a) * rad, oy = P.y - cy - 8 + sinf(a) * rad * 0.85f;
+            int sh = VFX_MOVE[m.id].proj;
+            if (sh >= 0 && vfxDraw(sh, VFX_MOVE[m.id].pal, (int)(gMs / 83), ox, oy, 0.6f, vfxAng(sh, -sinf(a), cosf(a), 8, a), sz >= 8 ? 1.5f : 1.0f)) continue;
             circle(ox, oy, sz + 3, rgbA(darken(rgb, 0.35f), 255), 0.6f); circle(ox, oy, sz, rgbA(lighten(rgb, 0.15f), 255), 0.61f); circle(ox, oy, sz * 0.5f, rgbA(0xffffff, 255), 0.62f);
         }
     }

@@ -1520,6 +1520,7 @@ int main() {
     C3D_RenderTarget* bot = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
     textInit();
     iconsLoad();
+    vfxLoad();
     saveLoad();
     textSetLang();
     missionsRefresh();

@@ -1,0 +1,140 @@
+// GENERADO por tools/make_vfx.py — no editar
+#pragma once
+#define VFX_NSHAPE 23
+#define VFX_NPAL 19
+// forma: ancho, alto, fotogramas, primera columna, flags (1 = direccional, 2 = gira)
+struct VfxShape { unsigned char w, h, frames, col, flags; };
+static const VfxShape VFX_SHAPE[VFX_NSHAPE] = {
+  {15,11,3,0,1},  // fire
+  {13,9,1,3,1},  // drop
+  {11,11,2,4,0},  // bubble
+  {12,7,1,6,2},  // leaf
+  {15,10,2,7,1},  // bolt
+  {13,7,1,9,1},  // shard
+  {12,11,3,10,2},  // rock
+  {12,11,2,13,0},  // blob
+  {13,5,1,15,1},  // needle
+  {11,11,2,16,2},  // star
+  {15,5,1,18,1},  // streak
+  {13,11,2,19,2},  // wind
+  {11,11,1,21,2},  // web
+  {13,13,2,22,0},  // ring
+  {12,11,1,24,1},  // crescent
+  {11,11,1,25,1},  // note
+  {15,15,2,26,0},  // impact
+  {13,13,1,28,0},  // claw
+  {13,11,2,29,0},  // jaws
+  {7,9,1,31,0},  // arrow
+  {11,11,2,32,0},  // ball
+  {13,13,3,34,0},  // shadow
+  {9,8,1,37,0},  // heart
+};
+// por movimiento (mismo orden que MOVES): forma del proyectil, del rayo (-1 = ninguna), paleta
+struct VfxMove { signed char proj, beam, pal; };
+static const VfxMove VFX_MOVE[NMOVES] = {
+  {9,-1,17},  // tackle
+  {10,-1,17},  // quick-attack
+  {9,-1,6},  // swords-dance
+  {9,-1,17},  // nasty-plot
+  {9,-1,9},  // agility
+  {9,-1,15},  // harden
+  {0,-1,0},  // ember
+  {0,0,0},  // flamethrower
+  {0,-1,0},  // fire-spin
+  {0,-1,0},  // heat-wave
+  {1,-1,1},  // water-gun
+  {2,-1,1},  // bubble
+  {1,1,1},  // hydro-pump
+  {1,-1,1},  // aqua-ring
+  {3,-1,2},  // vine-whip
+  {3,-1,2},  // razor-leaf
+  {3,-1,2},  // leaf-storm
+  {3,-1,2},  // giga-drain
+  {4,-1,3},  // thunder-shock
+  {4,-1,3},  // discharge
+  {4,-1,3},  // thunderbolt
+  {13,-1,4},  // confusion
+  {13,13,4},  // psybeam
+  {13,-1,4},  // psychic
+  {7,-1,7},  // sludge
+  {7,-1,8},  // mud-shot
+  {11,-1,9},  // gust
+  {11,-1,9},  // wing-attack
+  {9,-1,17},  // body-slam
+  {15,-1,17},  // hyper-voice
+  {8,-1,7},  // poison-sting
+  {7,-1,7},  // toxic
+  {7,-1,8},  // bulldoze
+  {8,-1,10},  // bug-bite
+  {12,-1,10},  // string-shot
+  {8,-1,10},  // bug-buzz
+  {6,-1,11},  // rock-throw
+  {6,-1,11},  // rock-slide
+  {5,5,5},  // ice-beam
+  {5,-1,5},  // powder-snow
+  {20,-1,6},  // karate-chop
+  {20,-1,18},  // aura-sphere
+  {21,-1,12},  // lick
+  {21,-1,12},  // shadow-ball
+  {0,0,13},  // dragon-rage
+  {0,-1,13},  // dragon-dance
+  {9,-1,16},  // fairy-wind
+  {9,-1,16},  // dazzling-gleam
+  {5,-1,15},  // metal-claw
+  {5,5,15},  // flash-cannon
+  {14,-1,14},  // bite
+  {14,-1,14},  // dark-pulse
+  {14,-1,14},  // night-shade
+  {14,-1,8},  // bonemerang
+  {14,-1,4},  // psycho-cut
+  {9,-1,8},  // spikes
+  {9,-1,7},  // toxic-spikes
+  {5,-1,5},  // hail
+  {6,-1,15},  // meteor-mash
+  {20,-1,0},  // will-o-wisp
+  {9,-1,17},  // substitute
+  {11,-1,9},  // aerial-ace
+  {0,-1,0},  // flame-wheel
+  {2,-1,1},  // bubble-beam
+  {21,21,12},  // hex
+  {9,9,17},  // hyper-beam
+  {9,-1,17},  // rapid-spin
+  {0,-1,0},  // flame-charge
+  {1,-1,1},  // whirlpool
+  {3,-1,2},  // seed-bomb
+  {20,-1,2},  // energy-ball
+  {3,9,2},  // solar-beam
+  {4,-1,3},  // thunder-wave
+  {4,-1,3},  // electro-ball
+  {13,-1,4},  // extrasensory
+  {13,-1,4},  // mist-ball
+  {7,-1,7},  // acid-spray
+  {6,-1,8},  // sand-tomb
+  {6,-1,8},  // magnitude
+  {11,-1,9},  // whirlwind
+  {14,-1,9},  // air-slash
+  {9,-1,10},  // signal-beam
+  {8,-1,10},  // u-turn
+  {6,-1,11},  // rock-tomb
+  {6,-1,11},  // ancient-power
+  {5,-1,11},  // power-gem
+  {5,-1,5},  // ice-shard
+  {5,-1,5},  // freeze-dry
+  {20,-1,6},  // rolling-kick
+  {13,-1,18},  // vacuum-wave
+  {16,-1,6},  // dynamic-punch
+  {21,-1,12},  // shadow-sneak
+  {21,-1,12},  // ominous-wind
+  {0,-1,13},  // dragon-breath
+  {0,-1,13},  // dragon-claw
+  {0,-1,13},  // outrage
+  {22,-1,16},  // draining-kiss
+  {9,-1,16},  // play-rough
+  {15,-1,16},  // disarming-voice
+  {5,-1,15},  // mirror-shot
+  {5,-1,15},  // gyro-ball
+  {14,-1,14},  // sucker-punch
+  {14,-1,14},  // night-slash
+};
+static const signed char VFX_TYPE_PAL[18] = {17,0,1,3,2,5,6,7,8,9,4,10,11,12,13,14,15,16};
+static const signed char VFX_TYPE_SHAPE[18] = {9,0,1,4,3,5,20,7,7,11,13,8,6,21,0,14,5,9};

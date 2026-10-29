@@ -27,6 +27,7 @@ u32 typeColorLight(int t, int a) { return shade(TYPE_RGB[t], 1.55f, a); }
 
 // ---------------------------------------------------------------- idioma
 #include "lang.h"
+#include "vfxmeta.h"
 extern Save gSave;
 #include "pkname.h"
 #undef snprintf
@@ -150,6 +151,31 @@ void tileDraw(const TCell& c, float x, float y, float z, const C2D_ImageTint* ti
     st.top = 1.0f - c.y / 256.0f; st.bottom = 1.0f - (c.y + c.h) / 256.0f;
     img.subtex = &st;
     C2D_DrawImageAt(img, floorf(x), floorf(y), z, tint, sc, sc);
+}
+
+
+// ---------------------------------------------------------------- efectos de ataque (formas de la web)
+static C2D_SpriteSheet gVfx;
+void vfxLoad() {
+    gVfx = C2D_SpriteSheetLoad("romfs:/gfx/vfx.t3x");
+    if (gVfx) { C2D_Image im = C2D_SpriteSheetGetImage(gVfx, 0); C3D_TexSetFilter(im.tex, GPU_NEAREST, GPU_NEAREST); }
+}
+// ang < 0 y forma direccional: usa 'dir' (radianes). Las formas que giran usan 'spin' (radianes).
+bool vfxDraw(int shape, int pal, int frame, float x, float y, float z, float ang, float sc, float alpha) {
+    if (!gVfx || shape < 0 || shape >= VFX_NSHAPE || pal < 0 || pal >= VFX_NPAL) return false;
+    const VfxShape& S = VFX_SHAPE[shape];
+    C2D_Image img = C2D_SpriteSheetGetImage(gVfx, 0);
+    Tex3DS_SubTexture st;
+    int cx = (S.col + frame % S.frames) * 16, cy = pal * 16;
+    st.width = S.w; st.height = S.h;
+    st.left = cx / 1024.0f; st.right = (cx + S.w) / 1024.0f;
+    st.top = 1.0f - cy / 512.0f; st.bottom = 1.0f - (cy + S.h) / 512.0f;
+    img.subtex = &st;
+    C2D_ImageTint t; C2D_PlainImageTint(&t, 0xFFFFFFFF, 1.0f);
+    for (int i = 0; i < 4; i++) t.corners[i].blend = 0;
+    t.corners[0].color = t.corners[1].color = t.corners[2].color = t.corners[3].color = C2D_Color32(255, 255, 255, (u8)(alpha * 255));
+    C2D_DrawImageAtRotated(img, x, y, z, (S.flags & 3) ? ang : 0, &t, sc, sc);
+    return true;
 }
 
 // ---------------------------------------------------------------- iconos

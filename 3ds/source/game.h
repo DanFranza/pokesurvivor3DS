@@ -38,6 +38,8 @@ void textWrap(const char* s, float x, float y, float w, float sc, u32 col);
 // ---------- iconos pixel art (include/icons.h generado) ----------
 #include "icons.h"
 void iconsLoad();
+void vfxLoad();
+bool vfxDraw(int shape, int pal, int frame, float x, float y, float z, float ang, float sc = 1, float alpha = 1);
 void icon(int ic, float x, float y, float sc = 0.5f, u32 tint = 0xFFFFFFFF, float z = 0.85f);   // sc 0.5 = 16 px
 
 // ---------- idioma (core.cpp + include/lang.h generado) ----------
