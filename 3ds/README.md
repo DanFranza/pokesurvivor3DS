@@ -47,3 +47,7 @@ Guardado en `sdmc:/3ds/pokesurvivor3ds.sav`.
 - Proyectiles y órbitas usan las mismas formas y paletas que la web (`tools/make_vfx.py` → `romfs/gfx/vfx.t3x` + `include/vfxmeta.h`; ejecutar tras cambiar `js/entities/vfx.js` o los movimientos).
 - Menú **Opciones** (menú principal): idioma y visualización «Normal» / «Legibilidad mejorada». Esta última muestra 2 elementos por página, con letra más grande, en Kecleon, Trofeos y Mejoras (`Save.bigUI`).
 - El jugador anima su ataque como en la web (Attack / Shoot / Charge según el tipo de movimiento): `tools/make_acts.py` → `romfs/gfx/pNNNN{a,h,c}[s].t3x` + `include/actmeta.h` (6 fotogramas por animación; añade ~45 MB al romfs). Sin animación, vuelve a «Walk».
+
+## Test inicial y Halloween
+- Primera partida (sin guardado): test de personalidad que propone el Pokémon inicial (`ST_QUIZ`, datos exportados por `tools/export_game.js`).
+- Halloween (30-10 al 2-11, según el reloj de la consola; cuenta atrás en el menú principal 14 días antes): mapas nocturnos (3 tilesets extra), calabazas rompibles, 2 fantasmas más por tramo y caramelos (1,25/min de partida como máximo). Una partida empezada en el evento lo sigue hasta el final; se desactiva en cooperativo. No incluido: música, banner de gacha, Gengar bruja, disfraces y tienda de caramelos.

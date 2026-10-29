@@ -1,5 +1,6 @@
 // Utilidades, sprites, tilesets, guardado y gacha.
 #include "game.h"
+#include <time.h>
 #include <initializer_list>
 #include <sys/stat.h>
 
@@ -338,4 +339,25 @@ int gachaPull(int gen, int n, PullResult* out, bool useT10) {
     achCheck();
     saveWrite();
     return n;
+}
+
+// ---------------------------------------------------------------- Halloween (hora de la consola)
+static time_t hwStart(int year) { struct tm t; memset(&t, 0, sizeof t); t.tm_year = year - 1900; t.tm_mon = 9; t.tm_mday = 30; t.tm_isdst = -1; return mktime(&t); }
+static time_t hwEnd(int year) { struct tm t; memset(&t, 0, sizeof t); t.tm_year = year - 1900; t.tm_mon = 10; t.tm_mday = 3; t.tm_isdst = -1; return mktime(&t); }
+bool hwOn() {
+    time_t now = time(nullptr); struct tm lt; localtime_r(&now, &lt);
+    return (lt.tm_mon == 9 && lt.tm_mday >= 30) || (lt.tm_mon == 10 && lt.tm_mday <= 2);
+}
+bool hwCountdown(char* out, int n) {
+    time_t now = time(nullptr); struct tm lt; localtime_r(&now, &lt);
+    int y = lt.tm_year + 1900;
+    long left; bool on = hwOn();
+    if (on) left = (long)difftime(hwEnd(lt.tm_mon == 10 ? y : y), now);
+    else { time_t st = hwStart(y); if (now > hwEnd(y)) st = hwStart(y + 1); left = (long)difftime(st, now); if (left > 14L * 86400) return false; }
+    if (left < 0) return false;
+    char d[32];
+    if (left >= 86400) snprintf(d, sizeof d, "%ld d %ld h", left / 86400, left % 86400 / 3600);
+    else snprintf(d, sizeof d, "%ld h %ld min", left / 3600, left % 3600 / 60);
+    snprintf(out, n, on ? "%s %s" : "%s %s", T(on ? "¡Halloween! Termina en" : "Halloween empieza en"), d);
+    return true;
 }

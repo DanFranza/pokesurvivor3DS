@@ -107,6 +107,7 @@ struct Save {
     u16 pban[DEX_N][3];                         // movimientos vetados por Pokémon (id+1; 0 = libre)
     u8 bigUI;                                   // 1 = legibilidad mejorada (2 elementos por página)
     u8 quizPending;                             // 1 = primera partida: falta el test de personalidad
+    u32 candy;                                  // caramelos de Halloween
 };
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
@@ -268,7 +269,9 @@ void playBondSkip();
 int playWeather(float* left);                    // 0 ninguno; 1 sol 2 lluvia 3 arena 4 nieve 5 niebla
 const char* weatherName(int k);
 u32 weatherColor(int k);
-struct RunStats { float time; int kills, level, bosses, coins, t1, t10, jdowns; bool won; };
+struct RunStats { float time; int kills, level, bosses, coins, t1, t10, jdowns, candy; bool won; };
+bool hwOn();                                      // ¿estamos en Halloween (30-10 al 2-11, hora de la consola)?
+bool hwCountdown(char* out, int n);               // texto de cuenta atrás para el menú (false = nada que mostrar)
 // objetos equipables (uno por partida)
 int itemCount();
 const char* itemName(int i);

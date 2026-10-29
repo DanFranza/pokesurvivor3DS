@@ -309,8 +309,10 @@ static bool liquidRaw(int tx, int ty) {
     if (gArena && fabsf(tx * TS + 16 - gArenaX) < ARENA_H + TS && fabsf(ty * TS + 16 - gArenaY) < ARENA_H + TS) return false;
     return vnoise(tx / 4.5f, ty / 4.5f, wseed() + 3) > 0.78f - pools * 0.85f;
 }
-enum { PR_NONE, PR_TREE, PR_ROCK, PR_CHEST, PR_BIG, PR_AROCK };
-static bool breakable(int k) { return k == PR_ROCK || k == PR_CHEST; }
+enum { PR_NONE, PR_TREE, PR_ROCK, PR_CHEST, PR_BIG, PR_AROCK, PR_PUMPKIN };
+static bool gHwRun;                 // partida de Halloween (se fija al empezar y dura hasta el final)
+static int gCandy, gCandyDrop;
+static bool breakable(int k) { return k == PR_ROCK || k == PR_CHEST || k == PR_PUMPKIN; }
 static bool isBroken(int tx, int ty) {
     for (int i = 0; i < gNBroken; i++) if (gBroken[i][0] == (u8)(tx & 255) && gBroken[i][1] == (u8)(ty & 255)) return true;
     return false;
@@ -338,6 +340,7 @@ static int propRaw(int tx, int ty, int* var) {
     else if (r < b) kind = PR_ROCK;
     else if (r < b + 0.0016f) kind = PR_CHEST;
     else if (r < b + 0.0021f) kind = PR_BIG;
+    else if (gHwRun && r > 0.972f && r <= 0.9795f) kind = PR_PUMPKIN;
     if (kind == PR_NONE) return kind;
     if (liquidTile(tx, ty)) return PR_NONE;
     if (kind >= PR_ROCK && isBroken(tx, ty)) return PR_NONE;
@@ -370,7 +373,7 @@ static int propAt(int tx, int ty, int* var) {
     if (var) *var = c.var;
     return c.kind;
 }
-static float propR(int k) { return k == PR_TREE ? 8.0f : (k == PR_ROCK || k == PR_AROCK) ? 11.0f : 9.0f; }
+static float propR(int k) { return k == PR_TREE ? 8.0f : (k == PR_ROCK || k == PR_AROCK || k == PR_PUMPKIN) ? 11.0f : 9.0f; }
 static void propPos(int tx, int ty, float* x, float* y) { *x = tx * TS + 16; *y = ty * TS + 27; }
 static void pushOut(float& x, float& y, float r) {
     int tx0 = (int)floorf(x / TS), ty0 = (int)floorf(y / TS);
@@ -455,6 +458,12 @@ static bool candidate(int i, int ti) {
     const DexE& p = DEX[i];
     return p.rarity < 5 && !p.leg && p.bst >= TIERS[ti].bstLo && p.bst <= TIERS[ti].bstHi && sprHas(DEX_NUM[i]);
 }
+// bonbons: 1,25 por minuto de partida como mucho; los fantasmas sueltan con más facilidad
+static bool takeCandy(int need) {
+    if (!gHwRun || (int)(gTime / 60 * 1.25f) - gCandyDrop < need) return false;
+    gCandyDrop++;
+    return true;
+}
 static void rollRun() {
     static short all[DEX_N], pick[16];
     for (int ti = 0; ti < 6; ti++) {
@@ -480,6 +489,15 @@ static void rollRun() {
         }
         if (ti > 0) take([](int b) { return !isPlain(b) && !isSupport(b); }, 1);
         if (ti == 0) take(isPlain, TIERS[ti].cast); else take([](int) { return true; }, TIERS[ti].cast);
+        if (gHwRun) {   // dos fantasmas más por tramo
+            int n2 = 0;
+            for (int i = 0; i < DEX_N; i++) if ((DEX[i].t1 == 13 || DEX[i].t2 == 13) && candidate(i, ti)) all[n2++] = i;
+            for (int tries = 0, add = 0; n2 && tries < 30 && add < 2 && cnt < 8; tries++) {
+                int di = all[rnd() % n2]; bool dup = false;
+                for (int k = 0; k < cnt; k++) if (pick[k] == di) dup = true;
+                if (!dup) { pick[cnt++] = di; add++; }
+            }
+        }
         gNCast[ti] = cnt;
         for (int k = 0; k < cnt; k++) gCast[ti][k] = defFor(pick[k], ti);
         // el más rápido de los sencillos pasa a corredor
@@ -594,6 +612,7 @@ static void killEnemy(Enemy& e) {
         gShake = 0.5f;
     } else {
         if (frand() < 1.0f / 400) dropPick(3, e.x + frange(-6, 6), e.y, 1);
+        if (gHwRun) { bool gh = DEX[e.di].t1 == 13 || DEX[e.di].t2 == 13; if (takeCandy(gh ? 1 : 3)) dropPick(8, e.x, e.y - 6, 1); }
         if (r < 0.10f) dropPick(1, e.x + frange(-6, 6), e.y + frange(-4, 4), 1);
         else if (r < 0.115f) dropPick(2, e.x, e.y, 1);
         else if (r < 0.12f) dropPick(4, e.x, e.y, 1);
@@ -1006,6 +1025,11 @@ static void breakProp(int tx, int ty, int kind) {
         if (r < 0.4f) dropPick(0, x, y, 6);
         if (r > 0.75f) dropPick(1, x + 6, y, 2);
         if (r > 0.94f) dropPick(2, x - 6, y, 1);
+    } else if (kind == PR_PUMPKIN) {
+        fxBurst(x, y - 8, 0xff8a1f, 10, 110);
+        dropPick(0, x, y, 8);
+        if (frand() < 0.5f) { dropPick(1, x - 6, y, 2); dropPick(1, x + 6, y, 2); }
+        if (takeCandy(1)) dropPick(8, x, y - 8, 1);
     } else if (kind == PR_CHEST) {
         gChests++;
         int n = 4 + rnd() % 4;
@@ -1772,6 +1796,7 @@ static void updatePickups(float dt) {
                     fxText(P.x, P.y - 30, "¡Imán!", 0x80c0ff, 0.5f); sfxPlay(SFX_PICK); break;
                 case 5: sfxPlay(SFX_RARE); itemOffer((int)p.val); break;
                 case 7: orbTake((int)p.val); break;
+                case 8: gCandy++; fxText(P.x, P.y - 30, "+Caramelo", 0xff9a3d, 0.5f); sfxPlay(SFX_PICK); break;
                 case 6: {
                     float bd = 60 + P.level * 14;
                     fxRing(P.x, P.y - 8, 10, 270, 0xff9a3d, 0.6f, 6); fxRing(P.x, P.y - 8, 6, 180, 0xffe070, 0.45f, 4);
@@ -2344,7 +2369,7 @@ static void biomeStep() {
     int setNow = ((int)(gTime / 300)) % 3;
     static int lastBiome = -1;
     if (setNow != lastBiome) {
-        if (lastBiome >= 0) { gSet = (gChar % 3 + setNow) % 3; tilesLoad(gSet); banner(TILESET_NAMES[gSet], 3.0f); }
+        if (lastBiome >= 0) { gSet = (gChar % 3 + setNow) % 3 + (gHwRun ? 21 : 0); tilesLoad(gSet); banner(TILESET_NAMES[gSet], 3.0f); }
         lastBiome = setNow;
     }
     if (gTime < 0.05f) lastBiome = -1;
@@ -2493,7 +2518,8 @@ static void resetWorld(int charIdx) {
     gArena = gArenaDead = gPortal = false; gThiefN = 0; gThiefT = frange(120, 240); gLost.on = false; gLostT = frange(150, 210); gRiftChk = 30; gRiftMiss = 0;
     gJ = 0; ARENA_H = 320; gJNs = 0; gJSecT = 0; gHazTru = false;
     gWx = 0; gWxChk = 60; gWxChip = 2;
-    gChar = charIdx; gSet = charIdx % 3;
+    gHwRun = gNP <= 1 && hwOn(); gCandy = gCandyDrop = 0;
+    gChar = charIdx; gSet = charIdx % 3 + (gHwRun ? 21 : 0);
 }
 // jugador nuevo: estadísticas de su Pokémon + sus mejoras permanentes
 static void ctxInit(int ci, int di, const u8* perm, const int* startMoves, int nStart, bool shiny, int nat, int abil) {
@@ -2565,7 +2591,7 @@ PlayState playState() { return gPS; }
 void playSetState(PlayState s) { gPS = s; }
 RunStats playStats() {
     RunStats r;
-    r.time = gTime; r.kills = gKills; r.level = P.level; r.bosses = gBossesDown; r.t1 = gT1 + (int)(gTime / 300); r.t10 = gT10; r.won = gPS == PS_WIN || gJ > 0; r.jdowns = gJDowns;
+    r.time = gTime; r.kills = gKills; r.level = P.level; r.bosses = gBossesDown; r.t1 = gT1 + (int)(gTime / 300); r.t10 = gT10; r.won = gPS == PS_WIN || gJ > 0; r.jdowns = gJDowns; r.candy = gCandy;
     float base = floorf(gTime / 5) + floorf(gKills * 0.25f) + gBossesDown * 80 + gCoins;
     r.coins = (int)roundf(base * P.coinMul);
     return r;
@@ -2882,6 +2908,17 @@ static void drawProp(int kind, int tx, int ty, float cx, float cy) {
     float sx = px - cx, sy = py - cy;
     int var = 0; propAt(tx, ty, &var);
     if (kind == PR_TREE) { C2D_DrawEllipseSolid(sx - 12, sy - 4, 0.38f, 24, 8, COL(0, 0, 0, 70)); tileDraw(T.tree[var], sx - T.tree[var].ax, sy - T.tree[var].ay, 0.5f); }
+    else if (kind == PR_PUMPKIN) {
+        C2D_DrawEllipseSolid(sx - 11, sy - 4, 0.38f, 22, 8, COL(0, 0, 0, 70));
+        float gl = 0.6f + 0.4f * sinf(gTime * 5 + tx * 1.7f);
+        C2D_DrawEllipseSolid(sx - 12, sy - 22, 0.41f, 24, 20, COL(230, 110, 20, 255));
+        C2D_DrawEllipseSolid(sx - 8, sy - 22, 0.42f, 16, 20, COL(255, 140, 30, 255));
+        C2D_DrawRectSolid(sx - 1.5f, sy - 26, 0.43f, 3, 5, COL(70, 120, 40, 255));
+        u32 eye = COL((int)(255 * gl), (int)(220 * gl), 60, 255);
+        C2D_DrawTriangle(sx - 6, sy - 15, eye, sx - 2, sy - 15, eye, sx - 4, sy - 19, eye, 0.44f);
+        C2D_DrawTriangle(sx + 2, sy - 15, eye, sx + 6, sy - 15, eye, sx + 4, sy - 19, eye, 0.44f);
+        C2D_DrawRectSolid(sx - 5, sy - 10, 0.44f, 10, 3, eye);
+    }
     else if (kind == PR_ROCK || kind == PR_AROCK) {
         C2D_DrawEllipseSolid(sx - 12, sy - 4, 0.38f, 24, 8, COL(0, 0, 0, 70));
         tileDraw(T.rock[var], sx - T.rock[var].ax, sy - T.rock[var].ay, 0.5f);
@@ -3119,6 +3156,7 @@ void playDraw(u64 ms) {
             case 3: if (p.val >= 10) icon(IC_TICKET10, x - 12, y - 12, 0.75f); else icon(IC_TICKET, x - 8, y - 8, 0.5f); break;
             case 4: circle(x, y, 6, COL(60, 90, 230, 255), 0.45f); circle(x, y, 3, COL(230, 60, 60, 255), 0.46f); break;
             case 6: icon(IC_BOMB, x - 10, y - 12, 0.62f); break;
+            case 8: circle(x, y, 5, COL(255, 138, 31, 255), 0.45f); C2D_DrawTriangle(x - 5, y, COL(255, 255, 255, 255), x - 9, y - 4, COL(255, 255, 255, 255), x - 9, y + 4, COL(255, 255, 255, 255), 0.45f); C2D_DrawTriangle(x + 5, y, COL(255, 255, 255, 255), x + 9, y - 4, COL(255, 255, 255, 255), x + 9, y + 4, COL(255, 255, 255, 255), 0.45f); circle(x - 1, y - 1, 2, COL(255, 210, 120, 255), 0.46f); break;
             case 7: { u32 c = ORB_RGB[(int)p.val % OB_N]; circle(x, y, 7, rgbA(darken(c, 0.4f), 255), 0.45f); circle(x, y, 5.5f, rgbA(c, 255), 0.46f); circle(x - 2, y - 2, 1.8f, COL(255, 255, 255, 230), 0.47f); ringDraw(x, y, 8 + sinf(p.t * 6) * 1.5f, 1, rgbA(c, 160), 0.44f); break; }
             case 5: C2D_DrawRectSolid(x - 7, y - 7, 0.45f, 14, 14, COL(255, 255, 255, 255)); C2D_DrawRectSolid(x - 6, y - 6, 0.46f, 12, 12, COL(255, 120, 200, 255)); C2D_DrawRectSolid(x - 2, y - 2, 0.47f, 4, 4, COL(255, 230, 90, 255)); break;
         }
@@ -3127,6 +3165,7 @@ void playDraw(u64 ms) {
     drawEvents(cx, cy);
 
     C2D_ViewReset();
+    if (gHwRun) C2D_DrawRectSolid(0, 0, 0.72f, TOP_W, TOP_H, COL(14, 6, 40, 110));   // noche
     // HUD superior mínimo
     for (int i = 0; i < 2; i++) if (gNP == 1 && gOrbT[i] >= 0) {
         char b[32];
@@ -3149,6 +3188,7 @@ void playDraw(u64 ms) {
     }
     int sec = (int)gTime; snprintf(b, sizeof b, "%02d:%02d", sec / 60, sec % 60); text(b, bx, -2, 0.45f, COL(255, 255, 255, 255), true);
     snprintf(b, sizeof b, "KO %d", gKills); text(b, TOP_W - 52, -2, 0.45f, COL(255, 230, 120, 255));
+    if (gHwRun) { snprintf(b, sizeof b, "%s %d", T("Caramelos"), gCandy); text(b, TOP_W - 96, TOP_H - 16, 0.42f, COL(255, 150, 50, 255)); }
     if (gBannerT > 0) text(gBanner, bx, 30, strlen(gBanner) > 30 ? 0.5f : 0.7f, COL(255, 240, 160, 255), true);
     if (gWx) {
         C2D_DrawRectSolid(TOP_W - 96, 15, 0.8f, 92, 14, COL(0, 0, 0, 130));

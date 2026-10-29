@@ -45,7 +45,10 @@ def load_palettes():
         sets.append(dict(pal=d['biomes'][d['arena'] + d['types'].index(t)], name=th['name'],
                          pools=float(th.get('pools', 0.10)), tree=float(pr.get('tree', 0.03)),
                          pillars=float(th.get('pillars', 0.02))))
-    assert len(sets) == 21, len(sets)
+    for i in range(3):   # biomas de noche de Halloween (al final de la lista web)
+        b = d['biomes'][len(d['biomes']) - 3 + i]
+        sets.append(dict(pal=b, name=b['name'], pools=0.12, tree=0.03, pillars=0.02))
+    assert len(sets) == 24, len(sets)
     return sets
 
 

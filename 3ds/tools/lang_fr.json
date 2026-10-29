@@ -974,5 +974,10 @@
  "Tu personalidad": "Ta personnalité",
  "Tu compañero será": "Ton partenaire sera",
  "Otro": "Autre",
- "OK": "OK"
+ "OK": "OK",
+ "Caramelos": "Bonbons",
+ "+Caramelo": "+Bonbon",
+ "+%d Caramelos (total %u)": "+%d Bonbons (total %u)",
+ "¡Halloween! Termina en": "Halloween ! Se termine dans",
+ "Halloween empieza en": "Halloween commence dans"
 }

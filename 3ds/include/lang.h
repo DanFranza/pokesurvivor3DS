@@ -1,10 +1,11 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[6]; };   // en, fr, it, pt-BR, zh-Hans, zh-Hant
-#define LANG_N_STR 2132
+#define LANG_N_STR 2140
 static const LangStr LANG_STR[LANG_N_STR] = {
   {"\nEND ", {"", "", "", "", "", ""}},
   {" (oculta)", {" (hidden)", " (cachée)", " (hidden)", " (hidden)", " (hidden)", " (hidden)"}},
+  {"+%d Caramelos (total %u)", {"+%d Candy (total %u)", "+%d Bonbons (total %u)", "+%d Caramelle (totale %u)", "+%d Doces (total %u)", "+%d Candy (total %u)", "+%d Candy (total %u)"}},
   {"+%d Pokémonedas  +%d tickets", {"+%d Pokécoins  +%d tickets", "+%d Pokémonnaies  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets", "+%d Pokécoins  +%d tickets"}},
   {"+%d tickets", {"+%d tickets", "+%d tickets", "+%d tickets", "+%d tickets", "+%d tickets", "+%d tickets"}},
   {"+0.2 vida/s", {"+0.2 HP/s", "+0.2 PV/s", "+0.2 PS/s", "+0.2 de vida/s", "每秒恢复 0.2 生命值", "每秒恢復 0.2 生命值"}},
@@ -127,6 +128,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"+8 % de velocidad.", {"+8% speed.", "+8 % de vitesse.", "+8% di velocità.", "+8% de velocidade.", "速度+8%。", "速度+8%。"}},
   {"+8 vida", {"+8 HP", "+8 PV", "+8 PS", "+8 de vida", "生命值 +8", "生命值 +8"}},
   {"+8% Pokémonedas", {"+8% PokéCoins", "+8% Pokémonnaies", "+8% Pokémonete", "+8% de Pokémoedas", "宝可币 +8%", "寶可幣 +8%"}},
+  {"+Caramelo", {"+Candy", "+Bonbon", "+Caramella", "+Doce", "+Candy", "+Candy"}},
   {"+PS", {"+HP", "+PV", "+HP", "+HP", "+HP", "+HP"}},
   {"+Ticket", {"+Ticket", "+Ticket", "+Ticket", "+Ticket", "+Ticket", "+Ticket"}},
   {"-20% de daño recibido.", {"-20% damage taken.", "-20 % de dégâts reçus.", "-20% damage taken.", "-20% damage taken.", "-20% damage taken.", "-20% damage taken."}},
@@ -333,6 +335,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Boost Chimère", {"", "", "", "", "", ""}},
   {"Bosque Colmena", {"Hive Forest", "Forêt Ruche", "Bosco Alveare", "Hive Forest", "虫巢森林", "蟲巢森林"}},
   {"Bosque Encantado", {"Enchanted Forest", "Forêt Enchantée", "Bosco Incantato", "Enchanted Forest", "魔法森林", "魔法森林"}},
+  {"Bosque Tenebroso", {"", "Forêt ténébreuse", "Bosco tenebroso", "Floresta Sombria", "幽暗森林", "幽暗森林"}},
   {"Bosque Umbrío", {"Shady Forest", "Forêt Sombre", "Bosco Ombroso", "Shady Forest", "幽暗森林", "幽暗森林"}},
   {"Bouclier-Carcan", {"", "", "", "", "", ""}},
   {"Boule de Poils", {"", "", "", "", "", ""}},
@@ -384,6 +387,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Capa Tóxica", {"", "", "", "", "", ""}},
   {"Caparazón", {"", "", "", "", "", ""}},
   {"Cara de Hielo", {"", "", "", "", "", ""}},
+  {"Caramelos", {"Candy", "Bonbons", "Caramelle", "Doces", "Candy", "Candy"}},
   {"Carantoña", {"Play Rough", "Câlinerie", "Carineria", "Play Rough", "嬉闹", "嬉鬧"}},
   {"Careful", {"", "", "", "", "", ""}},
   {"Carga Cuark", {"", "", "", "", "", ""}},
@@ -404,6 +408,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Cañón de cristal: +15 % de daño con más de la mitad de vida; con menos, −25 %.", {"Glass cannon: +15% damage above half HP; below, −25%.", "Canon de verre : +15 % de dégâts avec plus de la moitié des PV ; en dessous, −25 %.", "Cannone di vetro: +15% di danni sopra metà PS; sotto, −25%.", "Canhão de vidro: +15% de dano com mais de metade da vida; com menos, −25%.", "玻璃大炮：体力高于一半时伤害+15%；低于一半时−25%。", "玻璃大砲：體力高於一半時傷害+15%；低於一半時−25%。"}},
   {"Caótico", {"Chaotic", "Chaotique", "Caotico", "Caótico", "难以捉摸", "難以捉摸"}},
   {"Cecchino", {"", "", "", "", "", ""}},
+  {"Cementerio Embrujado", {"", "Cimetière hanté", "Cimitero infestato", "Cemitério Assombrado", "闹鬼墓地", "鬧鬼墓地"}},
   {"Cementerio Sombrío", {"Gloomy Graveyard", "Cimetière Sombre", "Cimitero Cupo", "Gloomy Graveyard", "幽暗墓地", "幽暗墓地"}},
   {"Central Voltio", {"Volt Plant", "Centrale Volt", "Centrale Volt", "Volt Plant", "伏特电厂", "伏特電廠"}},
   {"Cercle d’Énergie", {"", "", "", "", "", ""}},
@@ -871,6 +876,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"HELLO 1 %08x %s %d %d %d %u\nTOP %d\n", {"", "", "", "", "", ""}},
   {"Habilidad: %s", {"Ability: %s", "Talent : %s", "Ability: %s", "Ability: %s", "Ability: %s", "Ability: %s"}},
   {"Hada", {"Fairy", "Fée", "Folletto", "Fada", "妖精", "妖精"}},
+  {"Halloween empieza en", {"Halloween starts in", "Halloween commence dans", "Halloween inizia tra", "Halloween começa em", "Halloween starts in", "Halloween starts in"}},
   {"Hardi", {"", "", "", "", "", ""}},
   {"Hardy", {"", "", "", "", "", ""}},
   {"Harvest", {"", "", "", "", "", ""}},
@@ -897,6 +903,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Honey Gather", {"", "", "", "", "", ""}},
   {"Hospitalidad", {"", "", "", "", "", ""}},
   {"Hospitality", {"", "", "", "", "", ""}},
+  {"Huerto de Calabazas", {"", "Champ de citrouilles", "Campo di zucche", "Plantação de Abóboras", "南瓜田", "南瓜田"}},
   {"Huesomerang", {"Bonemerang", "Osmerang", "Ossomerang", "Bonemerang", "骨头回力镖", "骨頭回力鏢"}},
   {"Huevo Suerte", {"Lucky Egg", "Oeuf Chance", "Fortunuovo", "Lucky Egg", "幸运蛋", "幸運蛋"}},
   {"Huge Power", {"", "", "", "", "", ""}},
@@ -2071,6 +2078,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"¡Buena suerte!", {"Good luck!", "Bonne chance !", "Good luck!", "Good luck!", "Good luck!", "Good luck!"}},
   {"¡Eficaz!", {"Effective!", "Efficace !", "Effective!", "Effective!", "Effective!", "Effective!"}},
   {"¡Grieta superada! ¡Vínculo!", {"Rift cleared! Bond!", "Brèche vaincue ! Lien !", "Rift cleared! Bond!", "Rift cleared! Bond!", "Rift cleared! Bond!", "Rift cleared! Bond!"}},
+  {"¡Halloween! Termina en", {"Halloween! Ends in", "Halloween ! Se termine dans", "Halloween! Finisce tra", "Halloween! Termina em", "Halloween! Ends in", "Halloween! Ends in"}},
   {"¡Has caído!", {"You fainted!", "Tu es K.O. !", "You fainted!", "You fainted!", "You fainted!", "You fainted!"}},
   {"¡Has conseguido a %s shiny!", {"You got shiny %s!", "Tu as obtenu %s shiny !", "You got shiny %s!", "You got shiny %s!", "You got shiny %s!", "You got shiny %s!"}},
   {"¡Has llevado a %s a casa! Te lo agradece", {"You took %s home! It thanks you", "Tu as ramené %s chez lui ! Il te remercie", "You took %s home! It thanks you", "You took %s home! It thanks you", "You took %s home! It thanks you", "You took %s home! It thanks you"}},

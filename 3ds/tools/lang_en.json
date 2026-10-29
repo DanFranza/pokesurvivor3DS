@@ -491,5 +491,10 @@
  "Tu personalidad": "Your personality",
  "Tu compañero será": "Your partner will be",
  "Otro": "Other",
- "OK": "OK"
+ "OK": "OK",
+ "Caramelos": "Candy",
+ "+Caramelo": "+Candy",
+ "+%d Caramelos (total %u)": "+%d Candy (total %u)",
+ "¡Halloween! Termina en": "Halloween! Ends in",
+ "Halloween empieza en": "Halloween starts in"
 }

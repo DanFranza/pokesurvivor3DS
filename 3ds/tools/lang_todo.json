@@ -79,6 +79,8 @@
  "Alola": null,
  "Galar": null,
  "Paldea": null,
+ "¡Halloween! Termina en": null,
+ "Halloween empieza en": null,
  "Volver": "Back",
  "Atrás": "Back",
  "PokéSurvivor": null,
@@ -220,6 +222,7 @@
  "Tiempo %02d:%02d · Nivel %d · KO %d": null,
  "Jefes derrotados: %d": null,
  "+%d Pokémonedas  +%d tickets": null,
+ "+%d Caramelos (total %u)": null,
  "Legendarios de la Sentencia: %d": null,
  "Compañero desconectado": null,
  "Partida desincronizada": null,
@@ -400,6 +403,7 @@
  "+10 Tickets": null,
  "+Ticket": null,
  "¡Imán!": null,
+ "+Caramelo": null,
  "¡Bomba!": null,
  "¡Vínculo! %d movimientos a la vez": null,
  "¡%s con monedas! ¡Atrápalo!": null,
@@ -439,6 +443,7 @@
  "Evoluciona %s": null,
  "Sentencia: %d legendarios": null,
  "Placa: %s": null,
+ "Caramelos": null,
  "¡NUEVO!": "NEW!",
  "¡Resultados!": null,
  "POKÉ SLOTS": null,
@@ -2130,5 +2135,8 @@
  "Santuario Dragón": "Dragon Sanctuary",
  "Callejón Oscuro": "Dark Alley",
  "Fortaleza de Acero": "Steel Fortress",
- "Bosque Encantado": "Enchanted Forest"
+ "Bosque Encantado": "Enchanted Forest",
+ "Huerto de Calabazas": null,
+ "Cementerio Embrujado": null,
+ "Bosque Tenebroso": null
 }

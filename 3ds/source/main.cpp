@@ -798,6 +798,8 @@ static void drawMenuTop(u64 ms) {
     for (int i = 0; i < DEX_N; i++) own += gSave.owned[i];
     snprintf(gTmp, sizeof gTmp, "Mejor tiempo %02d:%02d · Partidas %d · Colección %d/%d", gSave.best / 60, gSave.best % 60, gSave.runs, own, DEX_N);
     text(gTmp, 200, 218, 0.38f, WHITE, true);
+    char hw[64];
+    if (hwCountdown(hw, sizeof hw)) text(hw, 200, 66, 0.45f, COL(255, 150, 50, 255), true);
 }
 
 // ---------------------------------------------------------------- Pokémon (Pokédex por regiones)
@@ -1172,6 +1174,7 @@ static void finishRun() {
     gSave.runs++;
     if (gRun.won) gSave.wins++;
     gSave.kills += gRun.kills;
+    gSave.candy += gRun.candy;
     MissionRun mr = playMissionStats();
     gSave.stat[SB_BOSS] += mr.bosses; gSave.stat[SB_EVO] += mr.evolves; gSave.stat[SB_RIFT] += mr.rifts;
     missionsReport(mr);
@@ -1188,6 +1191,7 @@ static void drawOver() {
     text(gTmp, 160, 84, 0.5f, WHITE, true);
     snprintf(gTmp, sizeof gTmp, "+%d Pokémonedas  +%d tickets", gRun.coins, gRun.t1 + gRun.t10 * 10);
     text(gTmp, 160, 112, 0.55f, COL(255, 220, 90, 255), true);
+    if (gRun.candy > 0) { snprintf(gTmp, sizeof gTmp, "+%d Caramelos (total %u)", gRun.candy, (unsigned)gSave.candy); text(gTmp, 160, 98, 0.5f, COL(255, 150, 50, 255), true); }
     if (gRun.jdowns > 0) { snprintf(gTmp, sizeof gTmp, "Legendarios de la Sentencia: %d", gRun.jdowns); text(gTmp, 160, 138, 0.5f, COL(255, 230, 140, 255), true); }
     if (gCoopEnd) text(gCoopEnd == 1 ? "Compañero desconectado" : gCoopEnd == 2 ? "Partida desincronizada" : "Conexión perdida", 160, 138, 0.5f, COL(255, 140, 140, 255), true);
     if (gNewBest) text("¡Nuevo récord!", 160, 156 - 0, 0.6f, COL(120, 255, 140, 255), true);
