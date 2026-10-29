@@ -247,7 +247,7 @@ void saveLoad() {
         gSave.magic = SAVE_MAGIC;
         gSave.vol = 0.7f;
         gSave.t1 = 5;                          // regalo de bienvenida
-        for (int i = 0; i < NSTARTERS; i++) gSave.owned[STARTERS_IDX[i]] = 1;
+        gSave.quizPending = 1;                 // sin compañero hasta acabar el test de personalidad
     }
     if (!gSave.pupgMig) {   // las mejoras antiguas eran de toda la cuenta: pasan al compañero actual (como en la web)
         int d = (gSave.lastChar >= 0 && gSave.lastChar < DEX_N && gSave.owned[gSave.lastChar]) ? gSave.lastChar : STARTERS_IDX[0];

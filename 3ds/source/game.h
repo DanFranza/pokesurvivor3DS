@@ -106,6 +106,7 @@ struct Save {
     u32 wins;                                   // victorias totales (clasificación online)
     u16 pban[DEX_N][3];                         // movimientos vetados por Pokémon (id+1; 0 = libre)
     u8 bigUI;                                   // 1 = legibilidad mejorada (2 elementos por página)
+    u8 quizPending;                             // 1 = primera partida: falta el test de personalidad
 };
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;

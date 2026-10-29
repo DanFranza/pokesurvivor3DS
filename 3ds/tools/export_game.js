@@ -127,6 +127,17 @@ out.push('static const short DEX_NUM[DEX_N] = {' + dexList.map(p => p.dex).join(
 out.push('static const short STARTERS_IDX[] = {' + G.STARTERS.map(s => dexIdx[s.dex]).join(',') + '};');
 out.push(`#define NSTARTERS ${G.STARTERS.length}`, '');
 
+// ---- test de personalidad del primer arranque
+const TR = Object.keys(G.TRAIT_TEXT), cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+out.push(`#define NTRAITS ${TR.length}`, `#define NQUIZ ${G.PERSONALITY_TEST.length}`);
+out.push('static const char* TRAIT_NAME[NTRAITS] = {' + TR.map(t => S(cap(t))).join(',') + '};');
+out.push('static const char* TRAIT_TXT[NTRAITS] = {' + TR.map(t => S(G.TRAIT_TEXT[t])).join(',') + '};');
+out.push('static const unsigned char STARTER_TRAITS[NSTARTERS][2] = {' + G.STARTERS.map(s => `{${TR.indexOf(s.traits[0])},${TR.indexOf(s.traits[1])}}`).join(',') + '};');
+out.push('struct QuizA { const char* t; signed char p[NTRAITS]; };');
+out.push('struct QuizQ { const char* q; QuizA a[4]; };');
+out.push('static const QuizQ QUIZ[NQUIZ] = {' + G.PERSONALITY_TEST.map(q => `{${S(q.q)},{` +
+  q.a.map(a => `{${S(a.t)},{${TR.map(t => a.p[t] || 0).join(',')}}}`).join(',') + '}}').join(',\n') + '};', '');
+
 // ---- objetos y mejoras permanentes
 out.push(`#define NITEMS ${G.Items.LIST.length}`, 'static const char* ITEM_NAMES[NITEMS] = {' + G.Items.LIST.map(i => S(i.name)).join(',') + '};');
 out.push('static const char* ITEM_DESCS[NITEMS] = {' + G.Items.LIST.map(i => S(i.desc)).join(',') + '};');

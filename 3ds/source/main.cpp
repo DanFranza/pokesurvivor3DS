@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BLACK, ST_ONLINE, ST_COOPSEL, ST_OPTIONS };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BLACK, ST_ONLINE, ST_COOPSEL, ST_OPTIONS, ST_QUIZ };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -627,6 +627,89 @@ static void drawOnlineTop() {
 }
 
 // ---------------------------------------------------------------- idioma
+// ---------------------------------------------------------------- test de personalidad (primera partida)
+static int gQzIdx, gQzPhase, gQzRes, gQzPick, gQzPage, gQzTrait;
+static int gQzScore[NTRAITS];
+static void quizStart() { gQzIdx = 0; gQzPhase = 0; gQzRes = -1; gQzPick = -1; gQzPage = 0; memset(gQzScore, 0, sizeof gQzScore); gState = ST_QUIZ; }
+static void quizResult() {
+    int tr = 0; for (int i = 1; i < NTRAITS; i++) if (gQzScore[i] > gQzScore[tr]) tr = i;
+    int best = -1, nb = 0, bs[NSTARTERS];
+    for (int s = 0; s < NSTARTERS; s++) {
+        int v = gQzScore[STARTER_TRAITS[s][0]] * 2 + gQzScore[STARTER_TRAITS[s][1]];
+        if (v > best) { best = v; nb = 0; }
+        if (v == best) bs[nb++] = s;
+    }
+    gQzTrait = tr; gQzRes = bs[(int)(frand() * nb) % nb]; gQzPick = gQzRes; gQzPhase = 1;
+}
+static void quizFinish(int s) {
+    int di = STARTERS_IDX[s];
+    gSave.owned[di] = 1; gSave.lastChar = di; gSel = di; gSave.quizPending = 0;
+    saveWrite(); sprFreeAll(); gState = ST_MENU; sfxPlay(SFX_UI);
+}
+static void quizInfoTop(int s, u64 now) {
+    int di = STARTERS_IDX[s];
+    sprLoad(DEX_NUM[di]);
+    text(DEX[di].name, 200, 20, 0.9f, WHITE, true);
+    typeChip(144, 58, DEX[di].t1); typeChip(204, 58, DEX[di].t2);
+    sprDraw(DEX_NUM[di], 0, now, true, 200, 150, nullptr, 2.4f);
+    snprintf(gTmp, sizeof gTmp, "%s: %s", T("Movimiento inicial"), T(MOVES[DEX[di].start].name));
+    text(gTmp, 200, 176, 0.5f, typeColorLight(MOVES[DEX[di].start].type), true);
+    snprintf(gTmp, sizeof gTmp, "%s · %s", T(TRAIT_NAME[STARTER_TRAITS[s][0]]), T(TRAIT_NAME[STARTER_TRAITS[s][1]]));
+    text(gTmp, 200, 202, 0.55f, COL(170, 200, 255, 255), true);
+}
+static void drawQuizTop(u64 now) {
+    topBg();
+    if (gQzPhase == 0) {
+        snprintf(gTmp, sizeof gTmp, "%s %d / %d", T("Pregunta"), gQzIdx + 1, NQUIZ);
+        text(gTmp, 200, 14, 0.55f, GOLD, true);
+        C2D_DrawRectSolid(60, 38, 0.3f, 280, 8, COL(10, 14, 36, 255));
+        C2D_DrawRectSolid(61, 39, 0.35f, 278.0f * gQzIdx / NQUIZ, 6, GOLD);
+        textWrap(QUIZ[gQzIdx].q, 30, 80, 340, 0.7f, WHITE);
+    } else if (gQzPhase == 1) {
+        text("Tu personalidad", 200, 12, 0.5f, COL(170, 200, 255, 255), true);
+        text(TRAIT_NAME[gQzTrait], 200, 32, 0.9f, GOLD, true);
+        textWrap(TRAIT_TXT[gQzTrait], 40, 70, 320, 0.5f, WHITE);
+        int di = STARTERS_IDX[gQzRes]; sprLoad(DEX_NUM[di]);
+        sprDraw(DEX_NUM[di], 0, now, true, 200, 175, nullptr, 2.0f);
+        text(DEX[di].name, 200, 196, 0.7f, WHITE, true);
+    } else quizInfoTop(gQzPick, now);
+}
+static void drawQuiz() {
+    bgFill();
+    if (gQzPhase == 0) {
+        for (int a = 0; a < 4; a++) {
+            float y = 14 + a * 56;
+            if (button(10, y, 300, 48, QUIZ[gQzIdx].a[a].t, COL(60, 100, 200, 255), 0.42f)) {
+                for (int k = 0; k < NTRAITS; k++) gQzScore[k] += QUIZ[gQzIdx].a[a].p[k];
+                sfxPlay(SFX_UI);
+                if (++gQzIdx >= NQUIZ) quizResult();
+            }
+        }
+    } else if (gQzPhase == 1) {
+        text("Tu compañero será", 160, 30, 0.6f, COL(255, 230, 120, 255), true);
+        text(DEX[STARTERS_IDX[gQzRes]].name, 160, 60, 0.9f, WHITE, true);
+        if (button(30, 120, 120, 50, "OK", COL(60, 170, 80, 255), 0.7f)) quizFinish(gQzRes);
+        if (button(170, 120, 120, 50, "Otro", COL(200, 110, 40, 255), 0.7f)) { gQzPhase = 2; gQzPage = gQzPick / 12; sfxPlay(SFX_UI); }
+    } else {
+        int pages = (NSTARTERS + 11) / 12;
+        u64 ms = osGetTime();
+        for (int k = 0; k < 12; k++) {
+            int s = gQzPage * 12 + k; if (s >= NSTARTERS) break;
+            int di = STARTERS_IDX[s];
+            float x = 8 + (k % 4) * 76, y = 6 + (k / 4) * 56;
+            sprLoad(DEX_NUM[di]);
+            panel(x, y, 72, 52, s == gQzPick ? GOLD : EDGE, s == gQzPick ? COL(90, 70, 20, 255) : PANEL);
+            { const PokeSpr& ps = POKE_SPR[DEX_NUM[di]]; sprDraw(DEX_NUM[di], 0, ms, false, x + 36, y + 26 + (ps.ay - ps.h / 2.0f) * 0.75f, nullptr, 0.75f); }
+            if (tapIn(x, y, 72, 52)) { gQzPick = s; sfxPlay(SFX_UI); }
+        }
+        if (arrowBtn(6, 178, 40, 28, false, gQzPage > 0)) { gQzPage--; sfxPlay(SFX_UI); }
+        if (arrowBtn(52, 178, 40, 28, true, gQzPage < pages - 1)) { gQzPage++; sfxPlay(SFX_UI); }
+        if (button(100, 174, 100, 34, "Atrás", COL(180, 80, 80, 255), 0.5f)) { gQzPick = gQzRes; gQzPhase = 1; }
+        if (button(208, 174, 104, 34, "Elegir", COL(60, 170, 80, 255), 0.55f)) quizFinish(gQzPick);
+        snprintf(gTmp, sizeof gTmp, "%d/%d", gQzPage + 1, pages); text(gTmp, 160, 214, 0.4f, WHITE, true);
+    }
+}
+
 static void drawLang() {
     bgFill();
     text("Idioma · Language · Langue", 160, 14, 0.6f, COL(255, 220, 90, 255), true);
@@ -637,7 +720,7 @@ static void drawLang() {
         C2D_DrawRectSolid(x - 2, y - 2, 0.05f, 148, 40, cur ? COL(255, 255, 255, 255) : COL(10, 20, 50, 255));
         if (button(x, y, 144, 36, LANG_NAMES[i], cols[i], 0.5f)) {
             gSave.lang = (u8)i; gSave.langSet = 1; textSetLang(); saveWrite(); sfxPlay(SFX_UI);
-            gState = ST_MENU;
+            if (gSave.quizPending) quizStart(); else gState = ST_MENU;
         }
     }
     if (gSave.langSet && button(100, 212, 120, 24, "Volver", COL(180, 80, 80, 255), 0.45f)) gState = ST_MENU;
@@ -1585,6 +1668,7 @@ int main() {
     musicPlay(MUS_MENU);
     gSel = gSave.lastChar >= 0 && gSave.lastChar < DEX_N ? gSave.lastChar : 0;
     if (!gSave.langSet) gState = ST_LANG;
+    else if (gSave.quizPending) quizStart();
 
     u64 last = osGetTime();
     bool quit = false;
@@ -1695,6 +1779,7 @@ int main() {
             case ST_ONLINE: drawOnlineTop(); break;
             case ST_GACHA: drawGachaTop(now); break;
             case ST_BAN: topBg(); text("Elige los movimientos que no quieres ver", 200, 100, 0.5f, WHITE, true); break;
+            case ST_QUIZ: drawQuizTop(now); break;
             case ST_LANG: case ST_OPTIONS: topBg(); tileBg(); logo(200, 70, 1.3f); break;
             case ST_LOADING: topBg(); text("Cargando…", 200, 100, 0.8f, WHITE, true); break;
             case ST_PLAY: case ST_LEVELUP: case ST_BOND: case ST_ITEM: playDraw(now);
@@ -1719,6 +1804,7 @@ int main() {
             case ST_ONLINE: drawOnline(); break;
             case ST_GACHA: drawGacha(); break;
             case ST_BAN: drawBan(); break;
+            case ST_QUIZ: drawQuiz(); break;
             case ST_LANG: drawLang(); break;
             case ST_OPTIONS: drawOptions(); break;
             case ST_LOADING: bgFill(); text("Cargando…", 160, 100, 0.8f, WHITE, true); break;
