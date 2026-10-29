@@ -52,7 +52,7 @@ struct Fx {
 struct Player {
     float x, y, hp, maxHp, spd, invuln, flash, aim, vx, vy, dashT;
     int dir; bool moving;
-    float atkMul, spdMul, cdMul, dmgReduce, regen, magnet, xpMul, coinMul, crit;
+    float atkMul, spdMul, cdMul, dmgReduce, itemReduce, regen, magnet, xpMul, coinMul, crit;
     int level; float xp, xpNeed;
     int di;
     float buffAtk, buffAtkT, buffSpd, buffSpdT, buffDef, buffDefT;
@@ -1034,7 +1034,7 @@ static void hurtPlayer(float dmg, int cat, int srcDi, bool tru = false) {
             if (t.op == AO_IN_ALL || (t.op == AO_IN_CAT && cat == t.a) || (t.op == AO_IN_FULL && P.hp >= P.maxHp * 0.95f)) g *= t.k;
         }
     }
-    float red = tru ? 0 : clampf(P.dmgReduce + (P.buffDefT > 0 ? P.buffDef : 0), 0, 0.8f);
+    float red = tru ? 0 : clampf(P.dmgReduce + P.itemReduce + (P.buffDefT > 0 ? P.buffDef : 0), 0, 0.8f);
     float d = dmg * g * (1 - red);
     P.hp -= d; P.invuln = 0.55f; P.flash = 0.2f;
     char b[12]; snprintf(b, sizeof b, "-%d", (int)(d + 0.5f));
@@ -1648,7 +1648,7 @@ static void itemApply(int id, bool on) {
         case 6: if (on) P.xpMul *= 1.3f; else P.xpMul /= 1.3f; break;
         case 7: if (on) P.atkMul *= 1.3f; else P.atkMul /= 1.3f; break;
         case 8: if (on) P.spdMul *= 1.35f; else P.spdMul /= 1.35f; break;
-        case 10: P.dmgReduce += 0.2f * k; break;
+        case 10: P.itemReduce += 0.2f * k; break;   // aparte: no cuenta para el tope del 70 % de Coraza
         default: break;
     }
 }
@@ -2468,7 +2468,7 @@ static void ctxInit(int ci, int di, const u8* perm, const int* startMoves, int n
     int lv[NPERM]; for (int i = 0; i < NPERM; i++) lv[i] = perm[i];
     P.maxHp = p.hp + lv[PU_HP] * 8; P.hp = P.maxHp; P.spd = p.spd * 0.9f;
     P.atkMul = 1 + lv[PU_ATK] * 0.04f; P.spdMul = 1 + lv[PU_SPD] * 0.03f; P.cdMul = 1 - lv[PU_CD] * 0.03f;
-    P.dmgReduce = lv[PU_DEF] * 0.02f; P.regen = lv[PU_REGEN] * 0.2f; P.magnet = 78 * (1 + lv[PU_MAGNET] * 0.12f);
+    P.dmgReduce = lv[PU_DEF] * 0.02f; P.itemReduce = 0; P.regen = lv[PU_REGEN] * 0.2f; P.magnet = 78 * (1 + lv[PU_MAGNET] * 0.12f);
     P.xpMul = 1 + lv[PU_XP] * 0.05f; P.coinMul = 1 + lv[PU_COINS] * 0.08f; P.crit = lv[PU_CRIT] * 0.03f;
     P.level = 1; P.xpNeed = xpFor(1); P.rerolls = 0; P.dir = 0; P.actK = 0;
     gRerollsLeft = 1 + lv[PU_REROLL];
