@@ -39,6 +39,8 @@ void textWrap(const char* s, float x, float y, float w, float sc, u32 col);
 #include "icons.h"
 void iconsLoad();
 void vfxLoad();
+bool actHas(int d, int k);
+bool actDraw(int d, int k, int dir, float t01, float x, float y, const C2D_ImageTint* tint, float sc, bool shiny);
 bool vfxDraw(int shape, int pal, int frame, float x, float y, float z, float ang, float sc = 1, float alpha = 1);
 void icon(int ic, float x, float y, float sc = 0.5f, u32 tint = 0xFFFFFFFF, float z = 0.85f);   // sc 0.5 = 16 px
 

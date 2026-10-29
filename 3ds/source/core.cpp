@@ -28,6 +28,7 @@ u32 typeColorLight(int t, int a) { return shade(TYPE_RGB[t], 1.55f, a); }
 // ---------------------------------------------------------------- idioma
 #include "lang.h"
 #include "vfxmeta.h"
+#include "actmeta.h"
 extern Save gSave;
 #include "pkname.h"
 #undef snprintf
@@ -109,7 +110,36 @@ static void sprLoadShiny(int d) {
     char p[48]; snprintf(p, sizeof p, "romfs:/gfx/p%04ds.t3x", d);
     gSheetsS[d] = C2D_SpriteSheetLoad(p);
 }
+// animaciones de ataque del jugador (Attack / Shoot / Charge), carga perezosa
+static C2D_SpriteSheet gAct[POKE_MAX][3], gActS[POKE_MAX][3];
+static const char ACT_SUF[3] = {'a', 'h', 'c'};
+bool actHas(int d, int k) { return d > 0 && d < POKE_MAX && k >= 0 && k < 3 && ACT_SPR[d][k].w > 0; }
+bool actDraw(int d, int k, int dir, float t01, float x, float y, const C2D_ImageTint* tint, float sc, bool shiny) {
+    if (!actHas(d, k)) return false;
+    const ActSpr& s = ACT_SPR[d][k];
+    bool sh = shiny && s.sh;
+    if (shiny && !s.sh) return false;
+    C2D_SpriteSheet& slot = sh ? gActS[d][k] : gAct[d][k];
+    if (!slot) {
+        char p[48]; snprintf(p, sizeof p, "romfs:/gfx/p%04d%c%s.t3x", d, ACT_SUF[k], sh ? "s" : "");
+        slot = C2D_SpriteSheetLoad(p);
+    }
+    if (!slot) return false;
+    int f = (int)(t01 * s.n); if (f < 0) f = 0; if (f >= s.n) f = s.n - 1;
+    C2D_Image img = C2D_SpriteSheetGetImage(slot, 0);
+    Tex3DS_SubTexture st;
+    st.width = s.w; st.height = s.h;
+    st.left = (float)(f * s.w) / s.tw; st.right = (float)(f * s.w + s.w) / s.tw;
+    st.top = 1.0f - (float)(dir * s.h) / s.th; st.bottom = 1.0f - (float)(dir * s.h + s.h) / s.th;
+    img.subtex = &st;
+    C2D_DrawImageAt(img, floorf(x - s.ax * sc), floorf(y - s.ay * sc), 0.5f, tint, sc, sc);
+    return true;
+}
 void sprFreeAll() {
+    for (int i = 0; i < POKE_MAX; i++) for (int k = 0; k < 3; k++) {
+        if (gAct[i][k]) { C2D_SpriteSheetFree(gAct[i][k]); gAct[i][k] = nullptr; }
+        if (gActS[i][k]) { C2D_SpriteSheetFree(gActS[i][k]); gActS[i][k] = nullptr; }
+    }
     for (int i = 0; i < POKE_MAX; i++) {
         if (gSheets[i]) { C2D_SpriteSheetFree(gSheets[i]); gSheets[i] = nullptr; }
         if (gSheetsS[i]) { C2D_SpriteSheetFree(gSheetsS[i]); gSheetsS[i] = nullptr; }

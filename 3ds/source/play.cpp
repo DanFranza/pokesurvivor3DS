@@ -59,6 +59,7 @@ struct Player {
     float slowT, liqT;
     int rerolls;
     float orbA[4];
+    int actK, actDir; float actS, actD;   // animación de ataque en curso (0 = ninguna)
 };
 
 enum { BEH_COUNT = 13, B_THIEF = 99 };
@@ -720,6 +721,15 @@ static void blastAt(const Field& f, float r, float k) {
 }
 static void breakProps(float x, float y, float r, float dmg);
 
+// misma tabla que la web: tipo de movimiento → animación (0 Attack, 1 Shoot, 2 Charge; -1 = caminar)
+static int actKindOf(int k) {
+    switch (k) {
+        case MK_MELEE: case MK_NOVA: case MK_DASH: case MK_SPIN: case MK_SHOVE: case MK_QUAKE: case MK_STUN: case MK_CHARGE: return 0;
+        case MK_AURA: case MK_BUFF: case MK_ORBIT: case MK_MINE: case MK_METEOR: case MK_TURRET: case MK_VORTEX: return 2;
+        case MK_TRAIL: return -1;
+        default: return 1;
+    }
+}
 static bool castMove(int b) {
     MoveInst& m = gMoves[b];
     const MoveDef& d = MOVES[m.id]; const float* v = m.v;
@@ -1853,6 +1863,9 @@ static void updateMoves(float dt, u32 down) {
         }
         if (castMove(b)) {
             m.cd = fmaxf(0.05f, m.v[K_CD] * P.cdMul);
+            { int ak = actKindOf(MOVES[m.id].kind);
+              if (ak >= 0) { P.actK = ak + 1; P.actS = gTime; P.actD = clampf(m.cd * 0.9f, 0.25f, 0.55f);
+                  float ax = cosf(P.aim), ay = sinf(P.aim); P.actDir = fabsf(ax) > fabsf(ay) ? (ax > 0 ? 1 : 3) : (ay > 0 ? 0 : 2); } }
             if (gItem == 7 && MOVES[m.id].kind != MK_ORBIT && MOVES[m.id].kind != MK_TRAIL) P.hp = fmaxf(1, P.hp - fmaxf(1, P.maxHp * 0.01f));
         }
         else m.cd = 0.1f;
@@ -2457,7 +2470,7 @@ static void ctxInit(int ci, int di, const u8* perm, const int* startMoves, int n
     P.atkMul = 1 + lv[PU_ATK] * 0.04f; P.spdMul = 1 + lv[PU_SPD] * 0.03f; P.cdMul = 1 - lv[PU_CD] * 0.03f;
     P.dmgReduce = lv[PU_DEF] * 0.02f; P.regen = lv[PU_REGEN] * 0.2f; P.magnet = 78 * (1 + lv[PU_MAGNET] * 0.12f);
     P.xpMul = 1 + lv[PU_XP] * 0.05f; P.coinMul = 1 + lv[PU_COINS] * 0.08f; P.crit = lv[PU_CRIT] * 0.03f;
-    P.level = 1; P.xpNeed = xpFor(1); P.rerolls = 0; P.dir = 0;
+    P.level = 1; P.xpNeed = xpFor(1); P.rerolls = 0; P.dir = 0; P.actK = 0;
     gRerollsLeft = 1 + lv[PU_REROLL];
     gCur->ms = monStats(di, nat); gCur->abil = abil;
     P.spd = gCur->ms.spd * 0.9f;
@@ -3035,7 +3048,9 @@ void playDraw(u64 ms) {
             if (PP.invuln <= 0 || ((int)(gTime * 14) & 1)) {
                 C2D_ImageTint tint; bool t = false;
                 if (PP.flash > 0) { C2D_PlainImageTint(&tint, COL(255, 80, 80, 255), 0.7f); t = true; }
-                sprDraw(DEX_NUM[PP.di], PP.dir, gMs, PP.moving, x, y, t ? &tint : nullptr, 1.0f, pc.shiny);
+                float at = PP.actK ? (gTime - PP.actS) / PP.actD : 2;
+                if (!(at >= 0 && at < 1 && actDraw(DEX_NUM[PP.di], PP.actK - 1, PP.actDir, at, x, y, t ? &tint : nullptr, 1.0f, pc.shiny)))
+                    sprDraw(DEX_NUM[PP.di], PP.dir, gMs, PP.moving, x, y, t ? &tint : nullptr, 1.0f, pc.shiny);
             }
             C2D_DrawRectSolid(x - 15, y - 4, 0.8f, 30, 4, COL(0, 0, 0, 200));
             C2D_DrawRectSolid(x - 14, y - 3, 0.85f, 28 * clampf(PP.hp / PP.maxHp, 0, 1), 2, di.idx == gLoc ? COL(90, 230, 90, 255) : COL(90, 170, 255, 255));
