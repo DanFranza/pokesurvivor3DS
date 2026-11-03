@@ -51,7 +51,7 @@ Guardado en `sdmc:/3ds/pokesurvivor3ds.sav`.
 
 ## Efectos de ataque y opciones
 - Proyectiles y órbitas usan las mismas formas y paletas que la web (`tools/make_vfx.py` → `romfs/gfx/vfx.t3x` + `include/vfxmeta.h`; ejecutar tras cambiar `js/entities/vfx.js` o los movimientos).
-- Menú **Opciones** (menú principal): idioma en la primera página; visualización «Normal» / «Legibilidad mejorada» y botón «Música» en la segunda. Este botón permite elegir y escuchar una pista. La legibilidad mejorada muestra 2 elementos por página, con letra más grande, en Kecleon, Trofeos y Mejoras (`Save.bigUI`).
+- Menú **Opciones** (menú principal): idioma en la primera página; visualización «Normal» / «Legibilidad mejorada» y botón «Música» en la segunda. Este botón permite elegir una pista que suena tanto en los menús como durante las partidas. La legibilidad mejorada muestra 2 elementos por página, con letra más grande, en Kecleon, Trofeos y Mejoras (`Save.bigUI`).
 - El jugador anima su ataque como en la web (Attack / Shoot / Charge según el tipo de movimiento): `tools/make_acts.py` → `romfs/gfx/pNNNN{a,h,c}[s].t3x` + `include/actmeta.h` (6 fotogramas por animación; añade ~45 MB al romfs). Sin animación, vuelve a «Walk».
 
 ## Test inicial y Halloween

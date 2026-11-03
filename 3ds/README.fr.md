@@ -29,7 +29,7 @@ Le répertoire `romfs/gfx/` est généré et n'est pas inclus dans Git. Pour tes
 
 ## Musique de partie
 
-Depuis le menu principal, ouvre **Options**, passe à la deuxième page et touche **Musique** pour choisir une musique et en écouter un aperçu. Le choix est conservé et s'applique pendant les parties ; « Musique originale » rétablit la musique du jeu. Les morceaux ajoutés sont convertis en audio mono pour la 3DS : Route 101, Surf Theme, New Bark Town et Littleroot Town (Feora VGM / Yume), Pokémon League Night (Feora / Lucas Cooper) et Pallet Town. Les six pistes proviennent de Pixabay et ont leurs propres conditions : voir [leurs crédits, liens et conditions](MUSIC-LICENSE.md). Les versions fournies avec le jeu sont adaptées au format audio de la 3DS.
+Depuis le menu principal, ouvre **Options**, passe à la deuxième page et touche **Musique** pour choisir une musique et en écouter un aperçu. Le choix est conservé et s’applique dans les menus et pendant les parties ; « Musique originale » rétablit la musique du jeu. Les morceaux ajoutés sont convertis en audio mono pour la 3DS : Route 101, Surf Theme, New Bark Town et Littleroot Town (Feora VGM / Yume), Pokémon League Night (Feora / Lucas Cooper) et Pallet Town. Les six pistes proviennent de Pixabay et ont leurs propres conditions : voir [leurs crédits, liens et conditions](MUSIC-LICENSE.md). Les versions fournies avec le jeu sont adaptées au format audio de la 3DS.
 
 ## Contenu
 

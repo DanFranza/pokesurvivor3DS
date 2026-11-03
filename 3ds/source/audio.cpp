@@ -226,8 +226,8 @@ void audioUpdate() {
 }
 void musicPlay(int song) {
     if (!gOk || song == gSong) return;
-    bool keepTrack = gTrack && song != MUS_MENU && song >= 0;
-    if (!keepTrack) { trackClose(); if (song != MUS_MENU && song >= 0 && gSave.musicChoice > 0 && gSave.musicChoice <= 6) trackOpen(gSave.musicChoice); }
+    bool keepTrack = gTrack && song >= 0 && gSave.musicChoice > 0 && gSave.musicChoice <= 6;
+    if (!keepTrack) { trackClose(); if (song >= 0 && gSave.musicChoice > 0 && gSave.musicChoice <= 6) trackOpen(gSave.musicChoice); }
     for (Voice& v : gV) if (v.music) v.on = false;
     gSong = song >= 0 && song < MUS_N ? song : -1;
     gSpooky = hwOn() && gSong >= 0;
@@ -239,7 +239,7 @@ void musicPlay(int song) {
 }
 void musicChoose(int choice) {
     if (choice < 0 || choice > 6) return;
-    gSave.musicChoice = choice; saveWrite(); trackClose(); gSong = -1; musicPlay(MUS_BATTLE);
+    gSave.musicChoice = choice; saveWrite(); trackClose(); gSong = -1; musicPlay(MUS_MENU);
 }
 void sfxPlay(int id) {
     if (!gOk || id < 0 || id >= SFX_N) return;

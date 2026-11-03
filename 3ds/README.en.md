@@ -71,7 +71,7 @@ Witch Gengar replaces Arceus at the end of a run. Kecleon sells three costumes â
 
 ## Additional music
 
-Open **Options**, switch to its second page, and select **Music** to preview and choose a track. The six additional tracks come from Pixabay and were converted for 3DS playback. See [credits, sources and terms](MUSIC-LICENSE.md).
+Open **Options**, switch to its second page, and select **Music** to preview and choose a track for both menus and gameplay. The six additional tracks come from Pixabay and were converted for 3DS playback. See [credits, sources and terms](MUSIC-LICENSE.md).
 
 ## Copyright claims
 
