@@ -825,13 +825,17 @@ static void drawMenu() {
     bool musicPressed = gTouching && inRect(gTp.px, gTp.py, 252, 38, 48, 56);
     if (button(252, 38, 48, 56, "", COL(145, 75, 190, 255), 0.55f)) { gMusicPage = 0; gState = ST_MUSIC; sfxPlay(SFX_UI); }
     float my = musicPressed ? 2 : 0;
-    u32 noteShadow = COL(55, 30, 105, 255), note = COL(255, 243, 195, 255);
-    C2D_DrawEllipseSolid(272, 75 + my, 0.79f, 9, 6, noteShadow);
-    C2D_DrawRectSolid(277, 49 + my, 0.79f, 5, 25, noteShadow);
-    C2D_DrawTriangle(279, 49 + my, noteShadow, 290, 54 + my, noteShadow, 290, 64 + my, noteShadow, 0.79f);
-    C2D_DrawEllipseSolid(271, 73 + my, 0.8f, 8, 5, note);
-    C2D_DrawRectSolid(276, 47 + my, 0.8f, 4, 25, note);
-    C2D_DrawTriangle(278, 47 + my, note, 288, 52 + my, note, 288, 61 + my, note, 0.8f);
+    u32 shade = COL(57, 32, 105, 255), whiteNote = COL(255, 255, 255, 255);
+    for (int layer = 0; layer < 2; layer++) {
+        float dx = layer ? 0 : 2, dy = my + (layer ? 0 : 2), z = layer ? 0.83f : 0.82f;
+        u32 col = layer ? whiteNote : shade;
+        C2D_DrawEllipseSolid(264 + dx, 76 + dy, z, 6, 5, col);
+        C2D_DrawEllipseSolid(282 + dx, 72 + dy, z, 6, 5, col);
+        C2D_DrawRectSolid(268 + dx, 51 + dy, z, 4, 24, col);
+        C2D_DrawRectSolid(286 + dx, 47 + dy, z, 4, 24, col);
+        C2D_DrawTriangle(268 + dx, 51 + dy, col, 290 + dx, 47 + dy, col, 268 + dx, 57 + dy, col, z);
+        C2D_DrawTriangle(290 + dx, 47 + dy, col, 290 + dx, 53 + dy, col, 268 + dx, 57 + dy, col, z);
+    }
     if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.55f, IC_BOOK)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.55f, IC_UP)) { shopEnter(); gState = ST_SHOP; sfxPlay(SFX_UI); }
     if (button(20, 150, 88, 40, "Gacha", COL(150, 80, 200, 255), 0.42f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
@@ -1689,14 +1693,16 @@ static int coopOverlay() {
 }
 
 // ---------------------------------------------------------------- musique de la partie
-static const char* const MUSIC_NAMES[6] = {"Música original", "Route 101", "Surf Theme", "New Bark Town", "Pokémon League Night", "Pallet Town", "Littleroot Town"};
-static void drawMusicTop() {
+static const char* const MUSIC_NAMES[7] = {"Música original", "Route 101", "Surf Theme", "New Bark Town", "Pokémon League Night", "Pallet Town", "Littleroot Town"};
+static void drawMusicTop(u64 now) {
     topBg(); tileBg();
-    text("Música", 200, 25, 0.9f, GOLD, true);
-    text("Elige la música de la partida", 200, 80, 0.52f, WHITE, true);
+    text("Música", 200, 8, 0.85f, GOLD, true);
+    text("Elige la música de la partida", 200, 43, 0.46f, WHITE, true);
+    C2D_DrawEllipseSolid(200, 181, 0.3f, 70, 16, COL(0, 0, 0, 90));
+    sprDraw(39, 0, now, true, 200, 170, nullptr, 2.2f);
+    text("Rondoudou", 200, 181, 0.43f, WHITE, true);
     int selected = gSave.musicChoice <= 6 ? gSave.musicChoice : 0;
-    text(MUSIC_NAMES[selected], 200, 130, 0.58f, GOLD, true);
-    text("Se escucha una muestra al elegir", 200, 175, 0.4f, WHITE, true);
+    text(MUSIC_NAMES[selected], 200, 202, 0.50f, GOLD, true);
 }
 static void drawMusic() {
     bgFill(); headerBar("Música", IC_SOUND);
@@ -1999,7 +2005,7 @@ int main() {
         switch (gState) {
             case ST_MENU: drawMenuTop(now); break;
             case ST_BAG: drawBagTop(now); break;
-            case ST_MUSIC: drawMusicTop(); break;
+            case ST_MUSIC: drawMusicTop(now); break;
             case ST_DEX: drawDexTop(now); break;
             case ST_MISSIONS: drawMissionsTop(); break;
             case ST_STARTMOVE: drawStartTop(); break;
