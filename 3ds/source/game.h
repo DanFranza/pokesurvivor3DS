@@ -235,6 +235,12 @@ u32 rngGet();
 void rngSet(u32 s);
 enum { CN_OFF = 0, CN_HOST, CN_SCAN };
 bool coopOpen(); void coopStop(); void coopClose();
+bool coopOnlineStart(const char* addr, int mode, const char* code, const char* nick);
+const char* coopOnlineCode();
+const char* coopOnlinePeer();
+int coopOnlineError();
+bool coopOnlineActive();
+bool coopOnlineFailed();
 bool coopHost(); void coopScanStep(); int coopMode(); bool coopIsHost(); bool coopLinked();
 void coopHelloSet(const CoopHello& h);
 int coopHandshake(int* me, CoopHello* h2, u32* seed);   // 0 espera · 1 listo · -1 versión distinta
@@ -246,7 +252,14 @@ int coopSched(); int coopDelay(); bool coopReady(int t);
 void coopInputs(int t, CoopIn* out); void coopDone(int t, u32 chk);
 int coopPump();                                  // 0 bien · 1 salió · 2 desincronizado · 3 sin conexión
 void coopLeave();
+int playOrbType(int slot);
+int playOrbCount(int slot);
+const char* playOrbName(int type);
+u32 playOrbColor(int type);
+int playOrbBinding(int button);
+void playOrbAssign(int slot, int button);
 void playUpdate(float dt, u32 down, u32 held, int jx, int jy);
+void playDrawMap(int localPlayer);
 void playDraw(u64 ms);                          // pantalla superior
 void playPreloadSprites();
 PlayState playState();
@@ -304,6 +317,7 @@ struct OnRow { char nick[16]; int val; };
 extern OnRow gOnRows[10]; extern int gOnN, gOnMyRank, gOnTotal;
 bool onlineBusy();
 int onlineState();                                       // 0 libre · 1 en curso · 2 listo · 3 error
+bool onlineNetInit();
 bool onlineQuery(const char* addr, int cat);             // conecta, sube mis marcas y pide el top
 bool onlineFinish();                                     // al llegar el resultado: lo interpreta (true = ok)
 const char* onlineError();

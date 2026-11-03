@@ -62,14 +62,18 @@ bool onlineBusy() { return gSt == 1; }
 int onlineState() { return gSt; }
 const char* onlineError() { return gErr; }
 
+bool onlineNetInit() {
+    if (gSoc) return true;
+    gSocBuf = (u32*)memalign(0x1000, 0x20000);
+    if (!gSocBuf) return false;
+    if (R_FAILED(socInit(gSocBuf, 0x20000))) { free(gSocBuf); gSocBuf = nullptr; return false; }
+    gSoc = true; return true;
+}
+
 bool onlineQuery(const char* addr, int cat) {
     if (gSt == 1) return false;
     reap();
-    if (!gSoc) {
-        gSocBuf = (u32*)memalign(0x1000, 0x20000);
-        if (!gSocBuf || R_FAILED(socInit(gSocBuf, 0x20000))) { strcpy(gErr, "Sin red"); gSt = 3; return false; }
-        gSoc = true;
-    }
+    if (!onlineNetInit()) { strcpy(gErr, "Sin red"); gSt = 3; return false; }
     if (!gSave.nick[0]) { strcpy(gErr, "Elige un pseudo"); gSt = 3; return false; }
     strncpy(gHost, addr, sizeof gHost - 1); gHost[sizeof gHost - 1] = 0;
     snprintf(gReq, sizeof gReq, "HELLO 1 %08x %s %d %d %d %u\nTOP %d\n", (unsigned)gSave.seed, gSave.nick,

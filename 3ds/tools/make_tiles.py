@@ -345,6 +345,25 @@ def tree_sprite(P, v):
     return a, 12, 30
 
 
+def clearing_tree(P, v):
+    # Bosque Umbrío: misma silueta, tamaño y paleta que PAINT.tree de la web.
+    a = Art(30, 40)
+    L, T = P.leaf, P.trunk
+    for y in range(26, 38):
+        for x in range(13, 18):
+            a.set(x, y, T[0 if x in (13, 17) else 1])
+    for x, y in ((12, 37), (18, 37), (11, 38), (19, 38)):
+        a.set(x, y, T[0])
+    for bx, by, br in ((15, 20, 10), (9, 16, 7), (21, 16, 7), (15, 10, 8), (10, 23, 6), (20, 23, 6)):
+        def color(x, y, d, bx=bx, by=by, br=br):
+            lit = ((x - bx) * -0.6 + (y - by) * -0.8) / br
+            idx = 3 if lit > 0.45 else 2 if lit > 0.05 else 1 if lit > -0.45 else 0
+            return L[idx - 1] if H(x, y, 41) < 0.12 and idx > 0 else L[idx]
+        disc(a, bx, by, br, color)
+    a.outline(hx('#14200f'))
+    return a, 15, 39
+
+
 def crystal_sprite(P, v):
     a = Art(24, 32)
     L, D = P.leaf, P.trunk
@@ -429,7 +448,7 @@ def build(i, st):
     ed = edge_strips(P)
     offs = [(0, 0), (24, 0), (0, 24), (0, 0)]
     for v in range(4): cells.append(('edge', v, ed[v].image(), offs[v][0], offs[v][1]))
-    mk = {'tree': tree_sprite, 'crystal': crystal_sprite, 'dead': dead_sprite}[P.prop]
+    mk = clearing_tree if i == 0 else {'tree': tree_sprite, 'crystal': crystal_sprite, 'dead': dead_sprite}[P.prop]
     for v in range(3):
         a, ax, ay = mk(P, v)
         cells.append(('tree', v, a.image(), ax * S, ay * S))

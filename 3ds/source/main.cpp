@@ -16,6 +16,7 @@ static bool gPick2;
 static int gMisPage;
 static int gKecPage, gKecSel = -1;
 static int partner();
+static void coopCancel();
 static int gMonMode, gMonPage;   // detalles del Pokémon: 0 = acciones · 1 = menta · 2 = habilidad · 3 = MT
 static int gDexGen = 1, gDexPage, gDexSel, gDexTop, gDexSort;
 static int gStartChoice[2], gNStart;
@@ -30,6 +31,7 @@ static bool gNewBest, gAfterPause;
 static char gTmp[96];
 static int gAchNew, gAchCat, gAchPage;
 static bool gBondSel[4];
+static int gBottomPage; // 0 ataques, 1 objeto y orbes, 2 mapa
 // cooperativo local
 static bool gCoop, gJoining, gCoopCards;
 static int gCoopMe, gCoopErr, gCoopEnd;          // gCoopErr: 1 versiones distintas · 2 conexión perdida; gCoopEnd: 1 compañero salió · 2 desincronizado · 3 sin conexión
@@ -241,6 +243,7 @@ static void beginRun() {
     gState = ST_LOADING;
 }
 static void doLoadRun() {
+    gBottomPage = 0;
     sprFreeAll();
     gTileBgOk = false;
     if (gCoop) {
@@ -553,18 +556,23 @@ static void drawBlackTop(u64 now) {
 }
 
 // ---------------------------------------------------------------- online comunitario (servidor por dirección, favoritos y clasificaciones)
-static int gOnView, gOnCat, gOnPage, gKbd; static char gOnAddr[48], gOnPend[48];
+static int gOnView, gOnCat, gOnPage, gKbd, gRoomMode; static char gOnAddr[48], gOnPend[48];
 static int favCount() { int n = 0; for (int i = 0; i < 6; i++) if (gSave.fav[i][0]) n++; return n; }
 static int favFind(const char* a) { for (int i = 0; i < 6; i++) if (!strcmp(gSave.fav[i], a)) return i; return -1; }
+static void startOnlineRoom(int mode, const char* code) {
+    gRoomMode = mode;
+    if (coopOnlineStart(gOnAddr, mode, code, gSave.nick)) { gState = ST_COOP; gJoining = false; sfxPlay(SFX_UI); }
+    else msg(T("No se pudo conectar"));
+}
 static void onConnect(const char* addr, int cat) {
-    snprintf(gOnAddr, sizeof gOnAddr, "%s", addr);
+    if (addr != gOnAddr) snprintf(gOnAddr, sizeof gOnAddr, "%s", addr);
     if (!gSave.nick[0]) { snprintf(gOnPend, sizeof gOnPend, "%s", addr); gKbd = 1; return; }
     gOnCat = cat;
     if (!onlineQuery(addr, cat)) { msg(onlineError()); onlineFinish(); }
 }
 static void onlinePoll() {
     int st = onlineState();
-    if (st == 2) { if (onlineFinish()) gOnView = 1; else msg(onlineError()); }
+    if (st == 2) { if (onlineFinish()) { if (gOnView != 2) gOnView = 1; } else msg(onlineError()); }
     else if (st == 3) { msg(onlineError()); onlineFinish(); }
 }
 // El teclado del sistema se abre fuera del fotograma
@@ -572,12 +580,12 @@ static void kbdRun() {
     if (!gKbd) return;
     int k = gKbd; gKbd = 0;
     SwkbdState kb; char buf[64] = {0};
-    swkbdInit(&kb, SWKBD_TYPE_WESTERN, 2, k == 1 ? 12 : 40);
-    swkbdSetHintText(&kb, k == 1 ? T("Pseudo") : "192.168.1.20:25570");
-    swkbdSetInitialText(&kb, k == 1 ? gSave.nick : gOnAddr);
+    swkbdInit(&kb, SWKBD_TYPE_WESTERN, 2, k == 1 ? 12 : k == 3 ? 6 : 40);
+    swkbdSetHintText(&kb, k == 1 ? T("Pseudo") : k == 3 ? T("Código de sala") : "192.168.1.20:25570");
+    swkbdSetInitialText(&kb, k == 1 ? gSave.nick : k == 3 ? "" : gOnAddr);
     if (swkbdInputText(&kb, buf, sizeof buf) != SWKBD_BUTTON_CONFIRM) { gOnPend[0] = 0; return; }
     char o[48]; int n = 0;
-    for (char* c = buf; *c && n < (k == 1 ? 12 : 40); c++) {
+    for (char* c = buf; *c && n < (k == 1 ? 12 : k == 3 ? 6 : 40); c++) {
         bool ok = ((*c >= '0' && *c <= '9') || (*c >= 'A' && *c <= 'Z') || (*c >= 'a' && *c <= 'z')) || *c == '_' || *c == '-' || (k == 2 && (*c == '.' || *c == ':'));
         if (ok) o[n++] = *c;
     }
@@ -586,6 +594,9 @@ static void kbdRun() {
         if (n < 2) { msg("Pseudo no válido"); gOnPend[0] = 0; return; }
         snprintf(gSave.nick, sizeof gSave.nick, "%s", o); saveWrite();
         if (gOnPend[0]) { char a[48]; snprintf(a, sizeof a, "%s", gOnPend); gOnPend[0] = 0; onConnect(a, gOnCat); }
+    } else if (k == 3) {
+        for (int i = 0; i < n; i++) if (o[i] >= 'a' && o[i] <= 'z') o[i] -= 'a' - 'A';
+        if (n != 6) msg(T("Código no válido")); else startOnlineRoom(1, o);
     } else if (n) onConnect(o, gOnCat);
 }
 static void drawOnline() {
@@ -615,7 +626,13 @@ static void drawOnline() {
         }
         if (arrowBtn(6, 206, 40, 28, false, gOnPage > 0)) { gOnPage--; sfxPlay(SFX_UI); }
         if (arrowBtn(52, 206, 40, 28, true, gOnPage < pages - 1)) { gOnPage++; sfxPlay(SFX_UI); }
-    } else {
+    } else if (gOnView == 1) {
+        text(gOnAddr, 160, 27, 0.42f, WHITE, true);
+        if (button(20, 51, 280, 32, "Crear sala privada", COL(60, 170, 80, 255), 0.46f) && !busy) startOnlineRoom(0, "");
+        if (button(20, 88, 280, 32, "Unirse a sala privada", EDGE, 0.46f) && !busy) gKbd = 3;
+        if (button(20, 125, 280, 32, "Unirse a sala pública", EDGE, 0.46f) && !busy) startOnlineRoom(2, "");
+        if (button(20, 162, 280, 32, "Clasificaciones", EDGE, 0.46f) && !busy) { gOnView = 2; onConnect(gOnAddr, gOnCat); }
+    } else if (gOnView == 2) {
         for (int c = 0; c < 4; c++)
             if (button(4 + c * 78, 28, 76, 24, tabs[c], c == gOnCat ? GOLD_BTN : EDGE, 0.38f) && c != gOnCat && !busy) { gOnCat = c; onConnect(gOnAddr, c); }
         panel(6, 58, 308, 34, EDGE, COL(26, 49, 112, 255));
@@ -633,13 +650,13 @@ static void drawOnline() {
         if (button(6, 138, 150, 34, "Cambiar pseudo", EDGE, 0.4f) && !busy) { gKbd = 1; gOnPend[0] = 0; }
     }
     if (gMsgT > 0) text(gMsg, 160, 180, 0.38f, COL(255, 120, 120, 255), true);
-    if (button(214, 206, 100, 28, gOnView ? "Servidores" : "Volver", COL(180, 80, 80, 255), 0.45f)) { if (gOnView) gOnView = 0; else gState = ST_COOPSEL; sfxPlay(SFX_UI); }
+    if (button(214, 206, 100, 28, gOnView == 2 ? "Volver" : gOnView == 1 ? "Servidores" : "Volver", COL(180, 80, 80, 255), 0.45f)) { if (gOnView == 2) gOnView = 1; else if (gOnView == 1) gOnView = 0; else gState = ST_COOPSEL; sfxPlay(SFX_UI); }
 }
 static void drawOnlineTop() {
     topBg();
     text("Clasificación", 200, 8, 0.7f, GOLD, true);
     static const char* tabs[4] = {"Tiempo", "Bajas", "Nivel", "Victorias"};
-    if (gOnView == 0 || !gOnN) {
+    if (gOnView != 2 || !gOnN) {
         text(onlineBusy() ? "Conectando..." : "Elige un servidor por su dirección", 200, 110, 0.5f, WHITE, true);
         return;
     }
@@ -1100,6 +1117,7 @@ static void drawLoadoutBottom() {
     }
     if (button(222, 196, 90, 36, gAfterPause ? "Abandonar" : "Volver", COL(180, 80, 80, 255), 0.45f)) {
         if (gAfterPause) { gRun = playStats(); gNewBest = false; gAfterPause = false; gState = ST_OVER; musicPlay(MUS_MENU); }
+        else if (gCoop) coopCancel();
         else gState = ST_MENU;
     }
 }
@@ -1125,8 +1143,6 @@ static void drawLoadoutTop(u64 ms) {
 }
 
 // ---------------------------------------------------------------- partida
-static bool gJoy;
-static float gJx0, gJy0;
 static void readJoy(int& jx, int& jy, u32 held) {
     circlePosition cp;
     hidCircleRead(&cp);
@@ -1135,50 +1151,78 @@ static void readJoy(int& jx, int& jy, u32 held) {
     if (held & KEY_DRIGHT) x = 1;
     if (held & KEY_DUP) y = -1;
     if (held & KEY_DDOWN) y = 1;
-    if (gTouching) {
-        if (!gJoy && gTp.py < 168) { gJoy = true; gJx0 = gTp.px; gJy0 = gTp.py; }
-        if (gJoy) {
-            float dx = gTp.px - gJx0, dy = gTp.py - gJy0, l = sqrtf(dx * dx + dy * dy);
-            if (l > 50) { gJx0 += dx / l * (l - 50); gJy0 += dy / l * (l - 50); dx = gTp.px - gJx0; dy = gTp.py - gJy0; l = 50; }
-            if (l > 6) { x = dx / 50; y = dy / 50; }
-        }
-    } else gJoy = false;
     jx = (int)(clampf(x, -1, 1) * 100);
     jy = (int)(clampf(y, -1, 1) * 100);
 }
 static void drawPlayBottom() {
     bgFill();
-    char b[64];
-    snprintf(b, sizeof b, "Nv %d", playLevel()); text(b, 8, 0, 0.55f, WHITE);
-    int secs = (int)playTime();
-    snprintf(b, sizeof b, "%02d:%02d", secs / 60, secs % 60); text(b, 160, 0, 0.55f, WHITE, true);
-    snprintf(b, sizeof b, "KO %d", playKills()); text(b, 312, 0, 0.55f, COL(255, 230, 120, 255), true);
-    C2D_DrawRectSolid(8, 26, 0.1f, 304, 8, COL(0, 0, 0, 160));
-    C2D_DrawRectSolid(8, 26, 0.2f, 304 * clampf(playXpFrac(), 0, 1), 8, COL(80, 180, 255, 255));
-    C2D_DrawRectSolid(8, 38, 0.1f, 304, 8, COL(0, 0, 0, 160));
-    C2D_DrawRectSolid(8, 38, 0.2f, 304 * clampf(playHpFrac(), 0, 1), 8, COL(90, 220, 90, 255));
-    for (int i = 0; i < 4; i++) {
-        float x = 8 + i * 78, y = 172;
-        bool has = gMoves[i].id >= 0;
-        bool act = has && playIsActive(i);
-        panel(x, y, 72, 50, act ? WHITE : (has ? typeColorDark(MOVES[gMoves[i].id].type) : EDGE), has ? typeColorDark(MOVES[gMoves[i].id].type) : PANEL);
-        if (!has) continue;
-        if (playGroupSize(i) > 1) text("+", x + 36, y + 1, 0.45f, COL(255, 140, 220, 255), true);
-        u32 c = typeColor(MOVES[gMoves[i].id].type);
-        float rdy = 1 - playCdFrac(i);
-        C2D_DrawRectSolid(x + 3, y + 43, 0.3f, 66 * clampf(rdy, 0, 1), 4, rdy >= 1 ? COL(255, 255, 255, 255) : c);
-        text(BTN_NAMES[i], x + 5, y, 0.6f, c);
-        textWrap(moveName(gMoves[i]), x + 6, y + 22, 62, 0.34f, WHITE);
-        snprintf(b, sizeof b, "Nv%d", gMoves[i].lvl);
-        text(b, x + 66, y + 2, 0.34f, COL(255, 230, 120, 255), true);
-        if (tapIn(x, y, 72, 50)) playFireButton(i);
+    static const char* const pages[3] = {"Ataques", "Objeto y orbes", "Mapa"};
+    const float widths[3] = {96, 126, 86};
+    const float xs[3] = {4, 101, 229};
+    for (int i = 0; i < 3; i++) {
+        if (button(xs[i], 2, widths[i], 23, pages[i], i == gBottomPage ? GOLD_BTN : EDGE, 0.37f)) {
+            if (gBottomPage != i) { gBottomPage = i; sfxPlay(SFX_UI); }
+        }
     }
-    if (playItem() >= 0) { snprintf(b, sizeof b, "Objeto: %s", itemName(playItem())); text(b, 160, 50, 0.38f, COL(255, 150, 210, 255), true); }
-    text("START: pausa / ordenar ataques", 160, 224, 0.4f, COL(150, 170, 220, 255), true);
-    if (gTouching && gJoy) {
-        C2D_DrawCircleSolid(gJx0, gJy0, 0.3f, 50, COL(255, 255, 255, 36));
-        C2D_DrawCircleSolid(clampf(gTp.px, 0, 320), clampf(gTp.py, 0, 168), 0.4f, 18, COL(255, 255, 255, 140));
-    } else text("Arrastra aquí para moverte", 160, 90, 0.4f, COL(90, 110, 160, 255), true);
+    if (gBottomPage == 2) {
+        playDrawMap(gCoop ? gCoopMe : 0);
+        text("F Grieta  M Meowth  G Gholdengo", 12, 195, 0.34f, WHITE);
+        text("P Perdido  D Destino  Blanco: tú", 12, 214, 0.34f, WHITE);
+        return;
+    }
+    char b[64];
+    if (gBottomPage == 0) {
+        snprintf(b, sizeof b, "Nv %d", playLevel()); text(b, 8, 25, 0.42f, WHITE);
+        int secs = (int)playTime();
+        snprintf(b, sizeof b, "%02d:%02d", secs / 60, secs % 60); text(b, 160, 25, 0.42f, WHITE, true);
+        snprintf(b, sizeof b, "KO %d", playKills()); text(b, 280, 25, 0.42f, COL(255, 230, 120, 255), true);
+        C2D_DrawRectSolid(8, 45, 0.1f, 304, 8, COL(0, 0, 0, 160));
+        C2D_DrawRectSolid(8, 45, 0.2f, 304 * clampf(playXpFrac(), 0, 1), 8, COL(80, 180, 255, 255));
+        C2D_DrawRectSolid(8, 57, 0.1f, 304, 8, COL(0, 0, 0, 160));
+        C2D_DrawRectSolid(8, 57, 0.2f, 304 * clampf(playHpFrac(), 0, 1), 8, COL(90, 220, 90, 255));
+        for (int i = 0; i < 4; i++) {
+            float x = 8 + (i % 2) * 154, y = 70 + (i / 2) * 76;
+            bool has = gMoves[i].id >= 0;
+            bool act = has && playIsActive(i);
+            panel(x, y, 150, 70, act ? WHITE : (has ? typeColorDark(MOVES[gMoves[i].id].type) : EDGE), has ? typeColorDark(MOVES[gMoves[i].id].type) : PANEL);
+            if (!has) { text("vacío", x + 75, y + 22, 0.43f, COL(150, 170, 220, 255), true); continue; }
+            u32 c = typeColor(MOVES[gMoves[i].id].type);
+            text(BTN_NAMES[i], x + 7, y + 1, 0.62f, c);
+            snprintf(b, sizeof b, "Nv %d", gMoves[i].lvl);
+            text(b, x + 126, y + 3, 0.4f, COL(255, 230, 120, 255), true);
+            if (playGroupSize(i) > 1) text("+", x + 91, y + 2, 0.45f, COL(255, 140, 220, 255), true);
+            textWrap(moveName(gMoves[i]), x + 8, y + 25, 134, 0.46f, WHITE);
+            float rdy = 1 - playCdFrac(i);
+            C2D_DrawRectSolid(x + 5, y + 62, 0.2f, 140, 4, COL(0, 0, 0, 150));
+            C2D_DrawRectSolid(x + 5, y + 62, 0.3f, 140 * clampf(rdy, 0, 1), 4, rdy >= 1 ? WHITE : c);
+            if (tapIn(x, y, 150, 70)) playFireButton(i);
+        }
+        if (!gCoop) text("START: pausa / ordenar ataques", 160, 224, 0.34f, COL(150, 170, 220, 255), true);
+        return;
+    }
+    panel(8, 30, 304, 46, EDGE, PANEL);
+    text("Objeto equipado", 16, 31, 0.38f, COL(170, 195, 245, 255));
+    text(playItem() >= 0 ? itemName(playItem()) : T("Ninguno"), 16, 48, 0.5f, WHITE);
+    if (gCoop) {
+        text("Orbes no disponibles en cooperativo", 160, 120, 0.4f, COL(170, 195, 245, 255), true);
+        return;
+    }
+    for (int i = 0; i < 4; i++) {
+        float x = 8 + (i % 2) * 154, y = 82 + (i / 2) * 70;
+        int type = playOrbType(i);
+        panel(x, y, 150, 64, type >= 0 ? (playOrbColor(type) | 0xff000000u) : EDGE, PANEL);
+        if (type < 0) { text("vacío", x + 75, y + 19, 0.42f, COL(150, 170, 220, 255), true); continue; }
+        textWrap(playOrbName(type), x + 6, y + 3, 86, 0.4f, WHITE);
+        snprintf(b, sizeof b, "x%d", playOrbCount(i)); text(b, x + 8, y + 40, 0.45f, WHITE);
+        for (int k = 0; k < 2; k++) {
+            float bx = x + 87 + k * 30;
+            bool selected = playOrbBinding(k) == i;
+            panel(bx, y + 34, 27, 23, selected ? WHITE : EDGE, selected ? (playOrbColor(type) | 0xff000000u) : PANEL);
+            text(k == 0 ? "L" : "R", bx + 13, y + 34, 0.42f, WHITE, true);
+            if (tapIn(bx, y + 34, 27, 23)) { playOrbAssign(i, k); sfxPlay(SFX_UI); }
+        }
+    }
+    text("Toca L o R para asignar", 160, 224, 0.36f, COL(150, 170, 220, 255), true);
 }
 static void drawLevelUp() {
     bgFill();
@@ -1528,13 +1572,24 @@ static void drawCoopSel() {
     }
     text("Dos consolas cercanas, sin internet", 160, 104, 0.36f, COL(170, 195, 245, 255), true);
     if (button(30, 124, 260, 56, "Servidores comunitarios", COL(40, 130, 160, 255), 0.55f, IC_FRIENDS)) { gOnView = 0; gOnPage = 0; gState = ST_ONLINE; sfxPlay(SFX_UI); }
-    text("Pseudos y clasificaciones", 160, 184, 0.36f, COL(170, 195, 245, 255), true);
+    text("Clasificaciones y partidas para dos", 160, 184, 0.36f, COL(170, 195, 245, 255), true);
     if (gMsgT > 0) text(gMsg, 160, 198, 0.38f, COL(255, 120, 120, 255), true);
     if (button(100, 208, 120, 26, "Atrás", COL(160, 80, 80, 255), 0.5f)) { gState = ST_MENU; sfxPlay(SFX_UI); }
 }
 static void drawCoopLobby() {
     bgFill();
-    text("Cooperativo local · 2 jugadores", 160, 6, 0.5f, GOLD, true);
+    text(coopOnlineActive() ? "Cooperativo en línea · 2 jugadores" : "Cooperativo local · 2 jugadores", 160, 6, 0.5f, GOLD, true);
+    if (coopOnlineActive()) {
+        bool failed = coopOnlineFailed();
+        const char* err = coopOnlineError() == 1 ? "Sala no encontrada" : coopOnlineError() == 2 ? "Versiones del juego distintas" : "Conexión perdida";
+        text(failed ? err : gRoomMode == 0 ? "Esperando a tu amigo…" : "Buscando compañero…", 160, 58, 0.55f, WHITE, true);
+        if (!failed && gRoomMode == 0 && coopOnlineCode()[0]) {
+            text("Código de sala", 160, 96, 0.4f, WHITE, true);
+            text(coopOnlineCode(), 160, 116, 0.9f, GOLD, true);
+        } else if (!failed) text("Ambos deben elegir el mismo servidor", 160, 110, 0.4f, COL(170, 195, 245, 255), true);
+        if (button(80, 198, 160, 30, "Atrás", COL(160, 80, 80, 255), 0.55f)) { coopClose(); gState = ST_ONLINE; sfxPlay(SFX_UI); }
+        return;
+    }
     int mode = coopMode();
     if (mode == CN_OFF && !gJoining) {
         if (button(40, 40, 240, 48, "Crear sala", COL(60, 170, 80, 255), 0.7f)) { if (coopHost()) sfxPlay(SFX_UI); else msg("No se pudo crear la sala"); }
@@ -1556,6 +1611,7 @@ static void drawCoopWait() {
     else if (gCoopErr == 2) text("Conexión perdida", 160, 80, 0.6f, COL(255, 120, 120, 255), true);
     else {
         text("Conectado", 160, 60, 0.7f, COL(120, 255, 140, 255), true);
+        if (coopOnlineActive() && coopOnlinePeer()[0]) { snprintf(gTmp, sizeof gTmp, "%s: %s", T("Compañero"), coopOnlinePeer()); text(gTmp, 160, 80, 0.4f, WHITE, true); }
         text("Esperando al compañero…", 160, 100, 0.5f, WHITE, true);
     }
     if (button(80, 180, 160, 36, "Cancelar", COL(160, 80, 80, 255), 0.6f)) coopCancel();
@@ -1740,7 +1796,7 @@ int main() {
             if (down & KEY_L) gSave.vol = clampf(gSave.vol - 0.1f, 0, 1);
             if (down & KEY_R) gSave.vol = clampf(gSave.vol + 0.1f, 0, 1);
         }
-        if (gState == ST_PLAY && !gCoop && (down & KEY_START)) { gState = ST_PAUSE; gAfterPause = true; gSelBtn = 3; gSelMove = -1; gJoy = false; }
+        if (gState == ST_PLAY && !gCoop && (down & KEY_START)) { gState = ST_PAUSE; gAfterPause = true; gSelBtn = 3; gSelMove = -1; }
         else if (gState == ST_PAUSE && (down & KEY_START)) { gState = ST_PLAY; gAfterPause = false; }
         if (gState == ST_DEX) { if (down & KEY_R) gDexTop = 1; if (down & KEY_L) gDexTop = 0; }
         if (gState == ST_LOADOUT || gState == ST_PAUSE)
@@ -1764,7 +1820,7 @@ int main() {
             if (ov != 1) gCoopCards = false;
             int jx = 0, jy = 0;
             bool ts = gTouching;
-            if (ov) { gTouching = false; gJoy = false; }
+            if (ov) { gTouching = false; }
             readJoy(jx, jy, held);
             gTouching = ts;
             gCoopBtn |= playCoopTakeBtn();
@@ -1791,9 +1847,9 @@ int main() {
             int jx = 0, jy = 0;
             readJoy(jx, jy, held);
             playUpdate(dt, down, held, jx, jy);
-            if (playState() == PS_LEVELUP) { playBuildCards(gCards); gState = ST_LEVELUP; gJoy = false; }
-            else if (playState() == PS_BOND) { gState = ST_BOND; gJoy = false; for (int i = 0; i < 4; i++) gBondSel[i] = false; }
-            else if (playState() == PS_ITEM) { gState = ST_ITEM; gJoy = false; }
+            if (playState() == PS_LEVELUP) { playBuildCards(gCards); gState = ST_LEVELUP; }
+            else if (playState() == PS_BOND) { gState = ST_BOND; for (int i = 0; i < 4; i++) gBondSel[i] = false; }
+            else if (playState() == PS_ITEM) { gState = ST_ITEM; }
             else if (playState() == PS_OVER || playState() == PS_WIN) { finishRun(); gState = ST_OVER; }
         }
         audioUpdate();

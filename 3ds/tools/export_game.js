@@ -81,8 +81,8 @@ if (unknownKinds.length) console.warn('tipos de movimiento desconocidos', unknow
 {
   const NEED = ['hp', 'atk', 'spd', 'cd', 'def', 'rgn', 'mag', 'xp'];
   const EVO = G.Moves.EVO;
-  out.push('static const short EVO_NEED[NMOVES] = {' + ids.map(id => EVO[id] ? NEED.indexOf(EVO[id][1]) : -1).join(',') + '};');
-  out.push('static const char* EVO_NAME[NMOVES] = {' + ids.map(id => S(EVO[id] ? EVO[id][0] : '')).join(',') + '};');
+  out.push('static const short EVO_NEED[NMOVES] = {' + ids.map(id => EVO[id] ? NEED.indexOf(EVO[id]) : -1).join(',') + '};');
+  out.push('static const char* EVO_NAME[NMOVES] = {' + ids.map(id => S(EVO[id] ? G.Moves.BY_ID[id].name + ' +' : '')).join(',') + '};');
   const EM = G.__evoMods;
   out.push('struct EvoMod { UpMod m[6]; unsigned char n; const char* text; };');
   out.push('static const EvoMod EVO_MODS[' + KINDS.length + '] = {');
@@ -115,7 +115,8 @@ out.push(`#define DEX_N ${dexList.length}`, 'static const DexE DEX[DEX_N] = {');
 const dexIdx = {};
 dexList.forEach((p, i) => { dexIdx[p.dex] = i; });
 for (const p of dexList) {
-  if (p.dex === 373) p.rarity = 4;   // Salamence: épico en la 3DS
+  if ([149, 248, 289, 373, 376, 445, 635, 706].includes(p.dex)) { p.rarity = 4; p.leg = false; } // épicos en la 3DS
+  if (p.dex === 808 || p.dex === 809) { p.rarity = p.dex === 808 ? 1 : 2; p.leg = false; }
   let start = 0;
   try { start = MI[G.Moves.startFor(G.STARTERS.find(x => x.dex === p.dex) || p)] || 0; } catch (e) { /* sin movimiento inicial */ }
   const beh = Math.max(0, BEH.indexOf(G.__beh(p)));

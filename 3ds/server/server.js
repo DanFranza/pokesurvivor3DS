@@ -6,7 +6,7 @@
 //   S→C:  ROW <puesto> <pseudo> <valor> ... END <miPuesto> <total>      |   ERR <motivo>
 // Categorías: 0 tiempo (s) · 1 bajas · 2 nivel · 3 victorias.
 // Los datos se guardan en ranking.json junto al servidor.
-const net = require('net'), fs = require('fs'), path = require('path');
+const net = require('net'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 const PORT = parseInt(process.argv[2] || process.env.PORT || '25570', 10);
 const FILE = path.join(__dirname, 'ranking.json');
 const PROTO = 1, MAXP = 20000, TOPN = 10;
@@ -51,6 +51,50 @@ function top(cat, id) {
   return out.join('\n');
 }
 
+// Les salles privées et les files publiques sont indépendantes, par version du jeu.
+const publicWaiting = new Map(), privateRooms = new Map();
+const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+function newRoomCode() {
+  for (let tries = 0; tries < 100; tries++) {
+    let code = '';
+    for (let i = 0; i < 6; i++) code += alphabet[crypto.randomInt(alphabet.length)];
+    if (!privateRooms.has(code)) return code;
+  }
+  return null;
+}
+function pair(peer, sock, nick) {
+  peer.write(`PAIR0 ${nick}\n`); sock.write(`PAIR1 ${peer.gameNick}\n`);
+  peer.pipe(sock); sock.pipe(peer);
+  peer.once('close', () => sock.destroy());
+  sock.once('close', () => peer.destroy());
+}
+function joinGame(sock, args) {
+  const mode = args[1], version = args[2], nick = clean(args[3]);
+  if (!['PUBLIC', 'CREATE', 'JOIN'].includes(mode) || !/^[0-9a-f]{8}$/i.test(version || '') || nick.length < 2 ||
+      (mode === 'JOIN' ? args.length !== 5 || !/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$/.test(args[4] || '') : args.length !== 4)) {
+    sock.end('ERR BAD\n'); return;
+  }
+  sock.setTimeout(0); sock.setNoDelay(true); sock.gameNick = nick;
+  if (mode === 'CREATE') {
+    const code = newRoomCode();
+    if (!code) { sock.end('ERR FULL\n'); return; }
+    const entry = { sock, version }; privateRooms.set(code, entry);
+    sock.once('close', () => { if (privateRooms.get(code) === entry) privateRooms.delete(code); });
+    sock.write(`ROOM ${code}\n`); return;
+  }
+  if (mode === 'JOIN') {
+    const code = args[4], entry = privateRooms.get(code);
+    if (!entry || entry.sock.destroyed) { sock.end('ERR ROOM\n'); return; }
+    if (entry.version !== version) { sock.end('ERR VERSION\n'); return; }
+    privateRooms.delete(code); pair(entry.sock, sock, nick); return;
+  }
+  const peer = publicWaiting.get(version);
+  if (peer && !peer.destroyed) { publicWaiting.delete(version); pair(peer, sock, nick); }
+  else {
+    publicWaiting.set(version, sock);
+    sock.once('close', () => { if (publicWaiting.get(version) === sock) publicWaiting.delete(version); });
+  }
+}
 const hits = new Map();
 setInterval(() => hits.clear(), 60000);
 
@@ -67,7 +111,12 @@ net.createServer(sock => {
     let i;
     while ((i = buf.indexOf('\n')) >= 0) {
       const a = buf.slice(0, i).trim().split(/\s+/); buf = buf.slice(i + 1);
-      if (a[0] === 'HELLO') {
+      if (a[0] === 'PLAY' && !id) {
+        if (buf.length) return sock.destroy();
+        sock.removeAllListeners('data');
+        joinGame(sock, a);
+        return;
+      } else if (a[0] === 'HELLO') {
         const r = hello(a);
         if (typeof r === 'string') { sock.end(r + '\n'); return; }
         id = r.id;

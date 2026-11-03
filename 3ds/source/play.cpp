@@ -141,11 +141,12 @@ static char gBanner[80];
 static int gKills, gBossesDown, gCoins, gT1, gT10, gNextId, gChar, gSet, gNextBoss;
 static int gKillsType[18], gChests, gEvolves, gRifts;
 static float gCamX, gCamY;
-// orbes de donjon: hasta 2 distintos, 3 de cada uno (R = casilla 1, L = casilla 2)
+// Orbes: cuatro tipos distintos, hasta tres unidades por tipo.
 enum { OB_SLEEP, OB_SLOW, OB_BLOW, OB_FOCUS, OB_LIGHT, OB_QUICK, OB_N };
 static const char* const ORB_NAME[OB_N] = {"Orbe Sueño", "Orbe Lentitud", "Orbe Soplo", "Orbe Concentración", "Orbe Luz", "Orbe Veloz"};
 static const u32 ORB_RGB[OB_N] = {0x8f7bff, 0x4fd0ff, 0x6fe08a, 0xff5a4f, 0xffe55a, 0xffa23d};
-static int gOrbT[2] = {-1, -1}, gOrbN[2];
+static int gOrbT[4] = {-1, -1, -1, -1}, gOrbN[4];
+static int gOrbBind[2] = {-1, -1}; // L, R
 static float gOrbFocusT, gOrbLightT, gVW = 400, gVH = 240, gZoom = 1;
 static Def gCast[6][8]; static int gNCast[6];
 static Def gBossDef[5];
@@ -199,6 +200,7 @@ static bool wxHurts(int t1, int t2) {
 static float wxSpeed(int t1, int t2) { return gWx == 4 && !(t1 == 5 || t2 == 5) ? 1 - 0.1f * wxLevel() : 1; }
 static float gTargetD;
 static u8 gBroken[512][2]; static int gNBroken;
+static int gTrapBroken[512][2], gNTrapBroken;
 static bool gLiqGrid[18][24];
 static int gTierNow;
 static u64 gMs;
@@ -372,6 +374,14 @@ static int propAt(int tx, int ty, int* var) {
     if (c.kind < 0) { int v = 0; c.kind = (s8)propRaw(tx, ty, &v); c.var = (s8)v; }
     if (var) *var = c.var;
     return c.kind;
+}
+// Trampas de suelo independientes de los objetos sólidos.
+static int trapAt(int tx, int ty) {
+    if (gArena || (float)tx * tx + (float)ty * ty <= 144) return -1;
+    if ((hash2(tx, ty, wseed() + 909) & 0xffff) >= 138) return -1;
+    for (int i = 0; i < gNTrapBroken; i++) if (gTrapBroken[i][0] == tx && gTrapBroken[i][1] == ty) return -1;
+    if (liquidTile(tx, ty) || propAt(tx, ty, nullptr) != PR_NONE) return -1;
+    return hash2(tx, ty, wseed() + 910) % 3;
 }
 static float propR(int k) { return k == PR_TREE ? 8.0f : (k == PR_ROCK || k == PR_AROCK || k == PR_PUMPKIN) ? 11.0f : 9.0f; }
 static void propPos(int tx, int ty, float* x, float* y) { *x = tx * TS + 16; *y = ty * TS + 27; }
@@ -1739,23 +1749,37 @@ void playItemChoose(bool takeNew) {
     gItemNew = -1; if (gNP == 1) gPS = PS_RUN;
 }
 
+int playOrbType(int slot) { return slot >= 0 && slot < 4 ? gOrbT[slot] : -1; }
+int playOrbCount(int slot) { return slot >= 0 && slot < 4 ? gOrbN[slot] : 0; }
+const char* playOrbName(int type) { return type >= 0 && type < OB_N ? ORB_NAME[type] : ""; }
+u32 playOrbColor(int type) { return type >= 0 && type < OB_N ? ORB_RGB[type] : 0; }
+int playOrbBinding(int button) { return button >= 0 && button < 2 ? gOrbBind[button] : -1; }
+void playOrbAssign(int slot, int button) {
+    if (gNP != 1 || slot < 0 || slot >= 4 || button < 0 || button >= 2 || gOrbT[slot] < 0) return;
+    int other = 1 - button;
+    if (gOrbBind[other] == slot) gOrbBind[other] = gOrbBind[button];
+    gOrbBind[button] = slot;
+}
 static bool orbCanTake(int t) {
-    for (int i = 0; i < 2; i++) if (gOrbT[i] == t && gOrbN[i] < 3) return true;
-    for (int i = 0; i < 2; i++) if (gOrbT[i] < 0) return true;
+    for (int i = 0; i < 4; i++) if (gOrbT[i] == t) return gOrbN[i] < 3;
+    for (int i = 0; i < 4; i++) if (gOrbT[i] < 0) return true;
     return false;
 }
 static void orbTake(int t) {
     int s = -1;
-    for (int i = 0; i < 2; i++) if (gOrbT[i] == t) s = i;
-    if (s < 0) for (int i = 0; i < 2; i++) if (gOrbT[i] < 0) { s = i; gOrbT[i] = t; gOrbN[i] = 0; break; }
-    if (s < 0) return;
+    for (int i = 0; i < 4; i++) if (gOrbT[i] == t) s = i;
+    if (s < 0) for (int i = 0; i < 4; i++) if (gOrbT[i] < 0) { s = i; gOrbT[i] = t; gOrbN[i] = 0; break; }
+    if (s < 0 || gOrbN[s] >= 3) return;
     gOrbN[s]++;
+    if (gOrbBind[0] < 0 && gOrbBind[1] != s) gOrbBind[0] = s;
+    else if (gOrbBind[1] < 0 && gOrbBind[0] != s) gOrbBind[1] = s;
     fxText(P.x, P.y - 30, T(ORB_NAME[t]), ORB_RGB[t], 0.5f); sfxPlay(SFX_RARE);
 }
 static void orbUse(int s) {
+    if (s < 0 || s >= 4) return;
     int t = gOrbT[s];
     if (t < 0 || gOrbN[s] <= 0) return;
-    gOrbN[s]--; if (gOrbN[s] <= 0) gOrbT[s] = -1;
+    gOrbN[s]--; if (gOrbN[s] <= 0) { gOrbT[s] = -1; for (int i = 0; i < 2; i++) if (gOrbBind[i] == s) gOrbBind[i] = -1; }
     fxRing(P.x, P.y - 8, 8, 280, ORB_RGB[t], 0.6f, 6);
     fxText(P.x, P.y - 34, T(ORB_NAME[t]), ORB_RGB[t], 0.6f);
     sfxPlay(SFX_RARE);
@@ -1802,7 +1826,7 @@ static void updatePickups(float dt) {
                     fxRing(P.x, P.y - 8, 10, 270, 0xff9a3d, 0.6f, 6); fxRing(P.x, P.y - 8, 6, 180, 0xffe070, 0.45f, 4);
                     fxText(P.x, P.y - 30, "¡Bomba!", 0xff9a3d, 0.7f); sfxPlay(SFX_BOOM); gShake = fmaxf(gShake, 0.5f);
                     for (int k = 0; k < MAXE; k++) {
-                        Enemy& o = gE[k]; if (!o.on || o.beh == B_THIEF) continue;
+                        Enemy& o = gE[k]; if (!o.on) continue;
                         float ex = o.x - P.x, ey = o.y - P.y, ed = sqrtf(ex * ex + ey * ey);
                         if (ed > 270) continue;
                         if (ed > 0.01f) { o.kx += ex / ed * 280; o.ky += ey / ed * 280; }
@@ -1817,6 +1841,7 @@ static void updatePickups(float dt) {
 
 static void updatePlayer(float dt, float jx, float jy) {
     float spd = P.spd * P.spdMul * (P.buffSpdT > 0 ? 1 + P.buffSpd : 1) * wxSpeed(pdex().t1, pdex().t2);
+    if (P.slowT > 0) { spd *= 0.5f; P.slowT = fmaxf(0, P.slowT - dt); }
     if (gJ && spd > 130) spd = 130 + (spd - 130) * 0.25f;
     if (P.buffSpdT > 0) P.buffSpdT -= dt;
     if (P.buffAtkT > 0) P.buffAtkT -= dt;
@@ -1936,6 +1961,36 @@ static void updateMoves(float dt, u32 down) {
     gManualDown = 0;
 }
 
+// Vista local del mundo procedural. Los marcadores siguen a los eventos activos.
+static void mapMark(float wx, float wy, float px, float py, const char* label, u32 color) {
+    float x = clampf(160 + (wx - px) * (9.0f / 64), 20, 300);
+    float y = clampf(113 + (wy - py) * (9.0f / 64), 38, 188);
+    C2D_DrawCircleSolid(x, y, 0.65f, 7, COL(0, 0, 0, 230));
+    C2D_DrawCircleSolid(x, y, 0.66f, 5, color);
+    text(label, x, y - 8, 0.32f, COL(255, 255, 255, 255), true);
+}
+void playDrawMap(int localPlayer) {
+    int who = localPlayer >= 0 && localPlayer < gNP ? localPlayer : 0;
+    float px = gC[who].p.x, py = gC[who].p.y;
+    // 32 x 18 muestras, centradas en el jugador, sobre un mundo sin límites fijos.
+    for (int j = 0; j < 18; j++) for (int i = 0; i < 32; i++) {
+        float wx = px + (i - 15.5f) * 64, wy = py + (j - 8.5f) * 64;
+        int tx = (int)floorf(wx / TS), ty = (int)floorf(wy / TS);
+        u32 c = liquidTile(tx, ty) ? COL(48, 104, 165, 255) : COL(65, 102, 72, 255);
+        if (!liquidTile(tx, ty) && propAt(tx, ty, nullptr) != PR_NONE) c = COL(43, 70, 48, 255);
+        C2D_DrawRectSolid(16 + i * 9, 32 + j * 9, 0.3f, 9, 9, c);
+    }
+    if (gPortal && !gArena) mapMark(gPortalX, gPortalY, px, py, "F", COL(184, 89, 255, 255));
+    for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].beh == B_THIEF)
+        mapMark(gE[i].x, gE[i].y, px, py, gE[i].st == 1 ? "G" : "M", gE[i].st == 1 ? COL(255, 176, 42, 255) : COL(255, 235, 90, 255));
+    if (gLost.on && !gArena) {
+        mapMark(gLost.tx, gLost.ty, px, py, "D", COL(50, 225, 130, 255));
+        mapMark(gLost.x, gLost.y, px, py, "P", COL(120, 255, 185, 255));
+    }
+    mapMark(px, py, px, py, "", COL(255, 255, 255, 255));
+    if (gNP > 1 && !gC[1 - who].dead) mapMark(gC[1 - who].p.x, gC[1 - who].p.y, px, py, "2", COL(90, 200, 255, 255));
+}
+
 // ---------------------------------------------------------------- eventos: ladrón de monedas y grieta
 static bool freeSpot(float x, float y) {
     int tx = (int)floorf(x / TS), ty = (int)floorf(y / TS);
@@ -1961,7 +2016,7 @@ static void thiefSpawn() {
     Enemy& e = gE[s];
     e.hp = e.maxHp = 60 * (1 + gTime / 95) * (gold ? 1.5f : 1);
     e.spd = 92; e.dmg = 0; e.xp = 0; e.st = gold ? 1 : 0; e.t = 0; e.t2 = 0;
-    char b[48]; snprintf(b, sizeof b, "¡%s con monedas! ¡Atrápalo!", pname(di)); banner(b, 3.4f);
+    char b[48]; snprintf(b, sizeof b, T(gold ? "¡%s con tickets! ¡Atrápalo!" : "¡%s con monedas! ¡Atrápalo!"), pname(di)); banner(b, 3.4f);
     sfxPlay(SFX_RARE);
     fxRing(x, y - 8, 6, 50, 0xffd23f, 0.5f, 3);
 }
@@ -2239,6 +2294,51 @@ static void judgeUpdate(float dt) {
     if (gNP == 1 && (P.hp <= 0 || gArenaDead)) { gPS = PS_OVER; sfxPlay(SFX_OVER); }
 }
 
+// Los mismos efectos que en la web; también afectan a los enemigos cercanos.
+static bool trapAbility(const Ctx& c, bool sticky) {
+    if (c.abil < 0) return false;
+    const char* n = ABIL[c.abil].n[1];
+    if (!strcmp(n, "Levitate") || !strcmp(n, "Magic Guard")) return true;
+    if (!sticky) return false;
+    static const char* const names[] = {"Limber", "Own Tempo", "Oblivious", "Inner Focus", "Clear Body", "White Smoke", "Full Metal Body", "Insomnia", "Vital Spirit", "Early Bird", "Shield Dust", "Sweet Veil"};
+    for (const char* name : names) if (!strcmp(n, name)) return true;
+    return false;
+}
+static void triggerTrap(int tx, int ty, int kind) {
+    if (gNTrapBroken >= 512) return;
+    gTrapBroken[gNTrapBroken][0] = tx; gTrapBroken[gNTrapBroken++][1] = ty;
+    float x = tx * TS + 16, y = ty * TS + 19;
+    u32 col = kind == 0 ? 0xc86bdc : kind == 1 ? 0x8bd94a : 0xff7b3d;
+    fxRing(x, y, 6, 74, col, 0.5f, kind == 2 ? 7 : 4);
+    fxBurst(x, y, col, kind == 2 ? 40 : 22, kind == 2 ? 260 : 140);
+    sfxPlay(kind == 2 ? SFX_BOOM : SFX_HIT);
+    int level = gC[0].p.level;
+    for (int i = 0; i < MAXE; i++) {
+        Enemy& e = gE[i]; if (!e.on || distf(x, y, e.x, e.y - 8) >= 74) continue;
+        Sc sc(nearPlayer(e.x, e.y));
+        if (kind == 0) { e.poison = fmaxf(e.poison, 5); e.poiT = fmaxf(e.poiT, 4); damageEnemyRaw(e, 14 + level * 3); }
+        else if (kind == 1) { e.slow = fmaxf(e.slow, 0.65f); e.slowT = fmaxf(e.slowT, 4.5f); damageEnemyRaw(e, 4); }
+        else damageEnemyRaw(e, 90 + level * 18);
+    }
+    for (int i = 0; i < gNP; i++) {
+        Sc sc(i);
+        if (gCur->dead || distf(x, y, P.x, P.y) >= 74 * 0.7f || trapAbility(*gCur, kind == 1)) continue;
+        if (kind == 1) { P.slowT = 3.5f; fxText(P.x, P.y - 28, T("¡Pegajoso!"), col, 0.6f); }
+        else { P.invuln = 0; hurtPlayer(P.maxHp * (kind == 0 ? 0.1f : 0.2f), -1, -1, true); }
+    }
+}
+static void checkTrapAt(float x, float y) {
+    int tx = (int)floorf(x / TS), ty = (int)floorf(y / TS);
+    for (int j = ty - 1; j <= ty + 1; j++) for (int i = tx - 1; i <= tx + 1; i++) {
+        int k = trapAt(i, j); if (k >= 0 && distf(x, y, i * TS + 16, j * TS + 19) < 13) triggerTrap(i, j, k);
+    }
+}
+static void trapsUpdate() {
+    if (gArena || gNTrapBroken >= 512) return;
+    for (int i = 0; i < gNP; i++) if (!gC[i].dead) checkTrapAt(gC[i].p.x, gC[i].p.y);
+    for (int i = 0; i < MAXE; i++) if (gE[i].on && !gE[i].boss && DEX[gE[i].di].t1 != 9 && DEX[gE[i].di].t2 != 9) checkTrapAt(gE[i].x, gE[i].y - 8);
+}
+
 struct BigP { int tx, ty; float t; bool used; };
 static BigP gBigP[6];
 static const float CHEST_TIME = 3.5f;
@@ -2289,6 +2389,7 @@ static void eventsUpdate(float dt) {
         else if (gArenaT > 120) riftExit(false, false);
         return;
     }
+    trapsUpdate();
     bigChestUpdate(dt);
     bool boss = anyBoss();
     // clima
@@ -2370,7 +2471,7 @@ static void biomeStep() {
     int setNow = ((int)(gTime / 300)) % 3;
     static int lastBiome = -1;
     if (setNow != lastBiome) {
-        if (lastBiome >= 0) { gSet = (gChar % 3 + setNow) % 3 + (gHwRun ? 21 : 0); tilesLoad(gSet); banner(TILESET_NAMES[gSet], 3.0f); }
+        if (lastBiome >= 0) { gSet = setNow + (gHwRun ? 21 : 0); tilesLoad(gSet); banner(TILESET_NAMES[gSet], 3.0f); }
         lastBiome = setNow;
     }
     if (gTime < 0.05f) lastBiome = -1;
@@ -2400,8 +2501,8 @@ void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
 
     biomeStep();
     if (gNP == 1) {
-        if (down & KEY_R) orbUse(0);
-        if (down & KEY_L) orbUse(1);
+        if (down & KEY_R) orbUse(gOrbBind[1]);
+        if (down & KEY_L) orbUse(gOrbBind[0]);
         if (gOrbFocusT > 0) gOrbFocusT -= dt;
         if (gOrbLightT > 0) gOrbLightT -= dt;
         gZoom += ((gOrbLightT > 0 ? 0.7f : 1.0f) - gZoom) * clampf(dt * 4, 0, 1);
@@ -2513,14 +2614,14 @@ bool playCoopActive() { return gNP > 1; }
 static void resetWorld(int charIdx) {
     memset(gE, 0, sizeof gE); memset(gS, 0, sizeof gS); memset(gES, 0, sizeof gES); memset(gH, 0, sizeof gH);
     memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF); memset(gFx, 0, sizeof gFx);
-    memset(gBigP, 0, sizeof gBigP); gNBroken = 0; pcInvalidate(); gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
+    memset(gBigP, 0, sizeof gBigP); gNBroken = 0; gNTrapBroken = 0; pcInvalidate(); gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
     memset(gKillsType, 0, sizeof gKillsType); gChests = gEvolves = gRifts = 0;
     gNextBoss = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gTickN = 0;
     gArena = gArenaDead = gPortal = false; gThiefN = 0; gThiefT = frange(120, 240); gLost.on = false; gLostT = frange(150, 210); gRiftChk = 30; gRiftMiss = 0;
     gJ = 0; ARENA_H = 320; gJNs = 0; gJSecT = 0; gHazTru = false;
     gWx = 0; gWxChk = 60; gWxChip = 2;
     gHwRun = gNP <= 1 && hwOn(); gCandy = gCandyDrop = 0;
-    gChar = charIdx; gSet = charIdx % 3 + (gHwRun ? 21 : 0);
+    gChar = charIdx; gSet = gHwRun ? 21 : 0;
 }
 // jugador nuevo: estadísticas de su Pokémon + sus mejoras permanentes
 static void ctxInit(int ci, int di, const u8* perm, const int* startMoves, int nStart, bool shiny, int nat, int abil) {
@@ -2565,7 +2666,7 @@ static void finishReset() {
     banner(TILESET_NAMES[gSet], 3.0f);
 }
 void playReset(int charIdx, const int* startMoves, int nStart) {
-    gOrbT[0] = gOrbT[1] = -1; gOrbN[0] = gOrbN[1] = 0; gOrbFocusT = gOrbLightT = 0; gZoom = 1; gVW = TOP_W; gVH = TOP_H;
+    for (int i = 0; i < 4; i++) { gOrbT[i] = -1; gOrbN[i] = 0; } gOrbBind[0] = gOrbBind[1] = -1; gOrbFocusT = gOrbLightT = 0; gZoom = 1; gVW = TOP_W; gVH = TOP_H;
     gNP = 1; gLoc = 0; gCur = &gC[0]; gCi = 0; gMovesL = gC[0].moves;
     memset(gC, 0, sizeof gC);
     resetWorld(charIdx);
@@ -2892,7 +2993,7 @@ static void drawWorldTiles(float cx, float cy) {
                 tileDraw(T.liquid[((h >> 4) + liqAnim) & 1], sx, sy, 0.1f);
                 continue;
             }
-            if ((h & 15) == 0) tileDraw(T.dirt[(h >> 8) & 1], sx, sy, 0.1f);
+            if (gSet == 0 ? vnoise(tx / 7.0f, ty / 7.0f, 31) > 0.65f : (h & 15) == 0) tileDraw(T.dirt[(h >> 8) & 1], sx, sy, 0.1f);
             else tileDraw(T.floor[(h >> 4) & 3], sx, sy, 0.1f);
             if (gLiqGrid[j - 1][i]) tileDraw(T.edge[0], sx + T.edge[0].ax, sy + T.edge[0].ay, 0.12f);
             if (gLiqGrid[j][i + 1]) tileDraw(T.edge[1], sx + T.edge[1].ax, sy + T.edge[1].ay, 0.12f);
@@ -2900,6 +3001,28 @@ static void drawWorldTiles(float cx, float cy) {
             if (gLiqGrid[j][i - 1]) tileDraw(T.edge[3], sx + T.edge[3].ax, sy + T.edge[3].ay, 0.12f);
             if (((h >> 12) & 15) < 2) tileDraw(T.deco[(h >> 16) % 6], sx, sy, 0.15f);
         }
+    }
+}
+
+static void drawTrap(int tx, int ty, int kind, float cx, float cy) {
+    static const u32 edge[3] = {0xb45ec4, 0x8bd94a, 0xff7b3d};
+    static const u32 light[3] = {0xe6a3f0, 0xd2ff9a, 0xffd08a};
+    static const char* const sym[3][9] = {
+        {"..####..", ".#....#.", ".#.##.#.", "..#..#..", "..####..", "..#..#..", "........", "........", "........"},
+        {".#......", ".#...#..", "#.#..#..", ".#..#.#.", ".....#..", "...#....", "..#.#...", "...#....", "........"},
+        {"...##...", "..#..#..", ".#....#.", ".#.##.#.", ".#.##.#.", ".#....#.", "..#..#..", "...##...", "........"},
+    };
+    float x = tx * TS + 16 - cx - 14, y = ty * TS + 19 - cy - 14;
+    for (int py = 0; py < 14; py++) for (int px = 0; px < 14; px++) {
+        u32 c;
+        if ((px == 0 || px == 13) && (py == 0 || py == 13)) continue;
+        if (px == 0 || px == 13 || py == 0 || py == 13) c = 0x0c0812;
+        else if (px == 1 || px == 12 || py == 1 || py == 12) c = edge[kind];
+        else { c = (px + py) % 2 ? 0x2a2238 : 0x3b3150;
+            int sy = py - (kind == 2 ? 3 : 4), sx = px - 3;
+            if (sy >= 0 && sy < 9 && sx >= 0 && sx < 8 && sym[kind][sy][sx] == '#') c = light[kind];
+        }
+        C2D_DrawRectSolid(x + px * 2, y + py * 2, 0.2f, 2, 2, rgbA(c, 255));
     }
 }
 
@@ -3060,6 +3183,11 @@ void playDraw(u64 ms) {
     C2D_DrawRectSolid(0, 0, 0, gVW, gVH, rgbA(TILESET_FLOOR_RGBA[gSet] >> 8, 255));
     drawWorldTiles(cx, cy);
     drawFieldsGround(cx, cy);
+    int trapX0 = (int)floorf(cx / TS) - 1, trapX1 = (int)floorf((cx + gVW) / TS) + 1;
+    int trapY0 = (int)floorf(cy / TS) - 1, trapY1 = (int)floorf((cy + gVH) / TS) + 1;
+    for (int ty = trapY0; ty <= trapY1; ty++) for (int tx = trapX0; tx <= trapX1; tx++) {
+        int k = trapAt(tx, ty); if (k >= 0) drawTrap(tx, ty, k, cx, cy);
+    }
 
     // objetos ordenados por y
     int n = 0;
@@ -3171,14 +3299,6 @@ void playDraw(u64 ms) {
     C2D_ViewReset();
     if (gHwRun) C2D_DrawRectSolid(0, 0, 0.72f, TOP_W, TOP_H, COL(14, 6, 40, 110));   // noche
     // HUD superior mínimo
-    for (int i = 0; i < 2; i++) if (gNP == 1 && gOrbT[i] >= 0) {
-        char b[32];
-        float ox = 4 + i * 96, oy = TOP_H - 16;
-        C2D_DrawRectSolid(ox, oy, 0.8f, 92, 14, COL(0, 0, 0, 140));
-        circle(ox + 8, oy + 7, 5, rgbA(ORB_RGB[gOrbT[i]], 255), 0.82f);
-        snprintf(b, sizeof b, "%s ×%d", i ? "L" : "R", gOrbN[i]); text(b, ox + 16, oy - 2, 0.38f, COL(255, 255, 255, 255));
-        text(ORB_NAME[gOrbT[i]], ox + 40, oy - 2, 0.3f, rgbA(ORB_RGB[gOrbT[i]], 255));
-    }
     float bx = TOP_W / 2;
     char b[48];
     C2D_DrawRectSolid(0, 0, 0.8f, TOP_W, 14, COL(0, 0, 0, 120));

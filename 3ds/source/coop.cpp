@@ -2,12 +2,18 @@
 // Las dos consolas ejecutan la misma simulación y sólo se intercambian las entradas (lockstep).
 #include "game.h"
 #include <malloc.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/tcp.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <errno.h>
 
 #define WLANID  0x50534D32u
 #define CHAN    1
 #define DELAY   3                         // ticks de retardo de entrada
 #define RING    256
-#define PROTO   (0x50530100u ^ (u32)DEX_N ^ ((u32)NMOVES << 16))
+#define PROTO   (0x50530300u ^ (u32)DEX_N ^ ((u32)NMOVES << 16))
 
 enum { PK_INPUT = 1, PK_HELLO = 2, PK_BYE = 3, PK_START = 4 };
 static const char PASS[] = "PokeSurvivor3DS";
@@ -33,6 +39,84 @@ static int gLastChkT = -1; static u32 gLastChkV;
 static bool gDesync, gPeerLeft, gPeerIn;
 static u16 gCmdQ[8]; static int gCmdN, gInFlight;
 
+// El servidor empareja dos clientes y reenvía los paquetes con longitud de 2 bytes.
+static bool gRemote, gRemoteReady, gRemoteBad, gRemoteConnecting;
+static int gRemoteFd = -1;
+static u8 gRemoteRx[16384], gRemoteTx[16384];
+static size_t gRxN, gTxN;
+static u64 gConnectAt;
+static char gRoomCode[7], gPeerNick[13];
+static int gRemoteError;
+static void remotePoll() {
+    if (!gRemote || gRemoteBad || gRemoteFd < 0) return;
+    if (gRemoteConnecting) {
+        pollfd p = {gRemoteFd, POLLOUT, 0};
+        int r = poll(&p, 1, 0);
+        if (r <= 0) { if (osGetTime() - gConnectAt > 8000) gRemoteBad = true; return; }
+        int err = 0; socklen_t len = sizeof err;
+        if (getsockopt(gRemoteFd, SOL_SOCKET, SO_ERROR, &err, &len) < 0 || err) { gRemoteBad = true; return; }
+        gRemoteConnecting = false;
+    }
+    while (gTxN) {
+        ssize_t n = send(gRemoteFd, gRemoteTx, gTxN, 0);
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) break;
+        if (n <= 0) { gRemoteBad = true; return; }
+        memmove(gRemoteTx, gRemoteTx + n, gTxN - n); gTxN -= n;
+    }
+    bool closed = false;
+    while (gRxN < sizeof gRemoteRx) {
+        ssize_t n = recv(gRemoteFd, gRemoteRx + gRxN, sizeof gRemoteRx - gRxN, 0);
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) break;
+        if (n <= 0) { closed = true; break; }
+        gRxN += n;
+    }
+    while (!gRemoteReady) {
+        size_t end = 0; while (end < gRxN && gRemoteRx[end] != '\n') end++;
+        if (end == gRxN) { if (gRxN > 80) gRemoteBad = true; break; }
+        char line[82]; if (end >= sizeof line) { gRemoteBad = true; break; }
+        memcpy(line, gRemoteRx, end); line[end] = 0;
+        memmove(gRemoteRx, gRemoteRx + end + 1, gRxN - end - 1); gRxN -= end + 1;
+        if (!strncmp(line, "ROOM ", 5) && strlen(line + 5) == 6) snprintf(gRoomCode, sizeof gRoomCode, "%s", line + 5);
+        else if (!strncmp(line, "PAIR", 4) && (line[4] == '0' || line[4] == '1') && line[5] == ' ' && line[6]) {
+            gIsHost = line[4] == '0'; snprintf(gPeerNick, sizeof gPeerNick, "%.12s", line + 6); gRemoteReady = true;
+        } else if (!strcmp(line, "ERR ROOM")) { gRemoteError = 1; gRemoteBad = true; }
+        else if (!strcmp(line, "ERR VERSION")) { gRemoteError = 2; gRemoteBad = true; }
+        else { gRemoteError = 3; gRemoteBad = true; }
+    }
+    if (closed || gRxN == sizeof gRemoteRx) gRemoteBad = true;
+}
+bool coopOnlineStart(const char* addr, int mode, const char* code, const char* nick) {
+    if (!onlineNetInit()) return false;
+    char host[48]; snprintf(host, sizeof host, "%s", addr);
+    int port = 25570; char* sep = strrchr(host, ':');
+    if (sep) { *sep++ = 0; port = atoi(sep); }
+    if (!*host || port < 1 || port > 65535) return false;
+    char ps[8]; snprintf(ps, sizeof ps, "%d", port);
+    addrinfo hint = {}; hint.ai_family = AF_INET; hint.ai_socktype = SOCK_STREAM;
+    addrinfo* ai = nullptr;
+    if (getaddrinfo(host, ps, &hint, &ai) != 0 || !ai) return false;
+    int fd = socket(ai->ai_family, ai->ai_socktype, 0);
+    if (fd < 0) { freeaddrinfo(ai); return false; }
+    int noDelay = 1; setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &noDelay, sizeof noDelay);
+    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
+    int r = connect(fd, ai->ai_addr, ai->ai_addrlen); freeaddrinfo(ai);
+    if (r < 0 && errno != EINPROGRESS && errno != EAGAIN) { closesocket(fd); return false; }
+    gRemoteFd = fd; gRemote = gOpen = true; gRemoteReady = gRemoteBad = false;
+    gRemoteConnecting = r < 0; gConnectAt = osGetTime(); gMode = CN_SCAN;
+    gRxN = 0; gRoomCode[0] = gPeerNick[0] = 0; gRemoteError = 0;
+    const char* kind = mode == 0 ? "CREATE" : mode == 1 ? "JOIN" : "PUBLIC";
+    int n = mode == 1 ? snprintf((char*)gRemoteTx, sizeof gRemoteTx, "PLAY %s %08x %s %s\n", kind, (unsigned)PROTO, nick, code)
+                      : snprintf((char*)gRemoteTx, sizeof gRemoteTx, "PLAY %s %08x %s\n", kind, (unsigned)PROTO, nick);
+    if (n <= 0 || (size_t)n >= sizeof gRemoteTx) { closesocket(fd); gOpen = gRemote = false; gRemoteFd = -1; gMode = CN_OFF; return false; }
+    gTxN = (size_t)n;
+    return true;
+}
+const char* coopOnlineCode() { return gRoomCode; }
+const char* coopOnlinePeer() { return gPeerNick; }
+int coopOnlineError() { return gRemoteError; }
+bool coopOnlineActive() { return gRemote; }
+bool coopOnlineFailed() { if (gRemote) remotePoll(); return gRemoteBad; }
+
 bool coopOpen() {
     if (gOpen) return true;
     if (R_FAILED(udsInit(0x3000, nullptr))) return false;
@@ -41,6 +125,7 @@ bool coopOpen() {
 }
 void coopStop() {
     if (!gOpen) return;
+    if (gRemote) { if (gRemoteFd >= 0) closesocket(gRemoteFd); gRemoteFd = -1; gRemote = gRemoteReady = gRemoteBad = false; gOpen = false; gMode = CN_OFF; return; }
     if (gMode == CN_HOST) udsDestroyNetwork();
     else if (gMode != CN_OFF) udsDisconnectNetwork();
     if (gMode == CN_HOST || gMode != CN_OFF) udsUnbind(&gBind);
@@ -48,8 +133,9 @@ void coopStop() {
 }
 void coopClose() {
     if (!gOpen) return;
+    bool remote = gRemote;
     coopStop();
-    udsExit();
+    if (!remote) udsExit();
     gOpen = false;
 }
 bool coopHost() {
@@ -74,13 +160,20 @@ int coopMode() { return gMode; }
 bool coopIsHost() { return gIsHost; }
 bool coopLinked() {
     if (!gOpen || gMode == CN_OFF) return false;
+    if (gRemote) { remotePoll(); return gRemoteReady && !gRemoteBad; }
     udsConnectionStatus st;
     if (R_FAILED(udsGetConnectionStatus(&st))) return false;
     return st.total_nodes >= 2;
 }
 
 // ---------------------------------------------------------------- paquetes
-static void sendPkt(const void* b, size_t n) { udsSendTo(gPeer, CHAN, UDS_SENDFLAG_Default, b, n); }
+static void sendPkt(const void* b, size_t n) {
+    if (!gRemote) { udsSendTo(gPeer, CHAN, UDS_SENDFLAG_Default, b, n); return; }
+    if (!gRemoteReady || gRemoteBad || n > 256 || gTxN + n + 2 > sizeof gRemoteTx) { gRemoteBad = true; return; }
+    gRemoteTx[gTxN++] = (u8)(n >> 8); gRemoteTx[gTxN++] = (u8)n;
+    memcpy(gRemoteTx + gTxN, b, n); gTxN += n;
+    remotePoll();
+}
 static void put32(u8*& p, u32 v) { memcpy(p, &v, 4); p += 4; }
 static u32 get32(const u8*& p) { u32 v; memcpy(&v, p, 4); p += 4; return v; }
 
@@ -128,9 +221,17 @@ static void recvAll() {
     if (!gOpen || gMode == CN_OFF) return;
     static u8 buf[UDS_DATAFRAME_MAXSIZE];
     for (int guard = 0; guard < 40; guard++) {
-        if (!udsWaitDataAvailable(&gBind, false, false)) break;
         size_t got = 0; u16 src = 0;
-        if (R_FAILED(udsPullPacket(&gBind, buf, sizeof buf, &got, &src)) || got == 0) break;
+        if (gRemote) {
+            remotePoll(); if (gRemoteBad || gRxN < 2) break;
+            got = ((size_t)gRemoteRx[0] << 8) | gRemoteRx[1];
+            if (!got || got > sizeof buf) { gRemoteBad = true; break; }
+            if (gRxN < got + 2) break;
+            memcpy(buf, gRemoteRx + 2, got); memmove(gRemoteRx, gRemoteRx + got + 2, gRxN - got - 2); gRxN -= got + 2;
+        } else {
+            if (!udsWaitDataAvailable(&gBind, false, false)) break;
+            if (R_FAILED(udsPullPacket(&gBind, buf, sizeof buf, &got, &src)) || got == 0) break;
+        }
         gLastRx = osGetTime();
         const u8* p = buf + 1;
         switch (buf[0]) {
