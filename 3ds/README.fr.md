@@ -10,6 +10,8 @@ Portage natif pour Nintendo 3DS réalisé par **Dan Franza**, à partir du jeu o
 
 [Télécharger PokéSurvivor 3DS avec ses licences et crédits](distribution/pokesurvivor3ds.zip). Décompressez l’archive, puis copiez le fichier `pokesurvivor3ds.3dsx` dans le dossier `3ds` de la carte SD. Conservez les documents joints avec le jeu lorsque vous le partagez.
 
+**Version CIA expérimentale :** [télécharger le CIA avec les licences et crédits](distribution/pokesurvivor3ds-cia.zip) ou [le fichier CIA seul](distribution/pokesurvivor3ds.cia). Installez-le avec un installateur CIA sur une console compatible. Cette version n’a pas encore été testée sur console.
+
 ## Compilation
 
 Prérequis : devkitPro (`3ds-dev`), Node.js et Python avec Pillow.
