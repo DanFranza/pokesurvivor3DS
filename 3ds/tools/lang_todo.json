@@ -2174,5 +2174,16 @@
  "Bosque Encantado": "Enchanted Forest",
  "Huerto de Calabazas": null,
  "Cementerio Embrujado": null,
- "Bosque Tenebroso": null
+ "Bosque Tenebroso": null,
+ "Mochila": "Bag",
+ "Amuletos": "Charms",
+ "Tu inventario y tus amuletos": "Your inventory and charms",
+ "No tienes MT": "No TMs owned",
+ "Se usa desde la colección": "Use from your collection",
+ "Amuleto Iris": "Shiny Charm",
+ "Shiny: 2 %": "Shiny: 2 %",
+ "Completa la Pokédex": "Complete the Pokédex",
+ "Orden: Favoritos": "Sort: Favorites",
+ "Clasificaciones": "Rankings",
+ "¡Pegajoso!": "Sticky!"
 }

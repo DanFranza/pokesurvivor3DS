@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BLACK, ST_ONLINE, ST_COOPSEL, ST_OPTIONS, ST_QUIZ };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BLACK, ST_ONLINE, ST_COOPSEL, ST_OPTIONS, ST_QUIZ, ST_BAG };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -14,6 +14,7 @@ static int gSel;
 static int gPage, gShopPage, gGen = 1, gBanPage;
 static bool gPick2;
 static int gMisPage;
+static int gBagTab, gBagPage;
 static int gKecPage, gKecSel = -1;
 static int partner();
 static void coopCancel();
@@ -606,7 +607,7 @@ static void drawOnline() {
     bool busy = onlineBusy();
     if (gOnView == 0) {
         panel(6, 26, 308, 30, EDGE, COL(26, 49, 112, 255));
-        snprintf(gTmp, sizeof gTmp, "Pseudo: %s", gSave.nick[0] ? gSave.nick : "—");
+        snprintf(gTmp, sizeof gTmp, T("Pseudo: %s"), gSave.nick[0] ? gSave.nick : "—");
         text(gTmp, 14, 33, 0.5f, WHITE);
         if (button(222, 29, 88, 24, "Cambiar", EDGE, 0.42f) && !busy) { gKbd = 1; gOnPend[0] = 0; }
         if (button(6, 60, 308, 34, busy ? "Conectando..." : "Escribir dirección", COL(40, 160, 170, 255), 0.5f, IC_FRIENDS) && !busy) { gKbd = 2; gOnPend[0] = 0; }
@@ -827,9 +828,10 @@ static void drawMenu() {
     if (button(116, 150, 88, 40, "Trofeos", COL(200, 140, 40, 255), 0.38f, IC_TROPHY)) { missionsRefresh(); gMisPage = 0; gState = ST_MISSIONS; sfxPlay(SFX_UI); }
     if (button(212, 150, 88, 40, "Kecleon", COL(110, 170, 70, 255), 0.4f, IC_COIN)) { gKecPage = 0; gState = ST_KECLEON; sfxPlay(SFX_UI); }
     if (missionClaimable()) { C2D_DrawCircleSolid(194, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(194, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 194, 145, 0.45f, WHITE, true); }
-    if (button(20, 198, 140, 24, "Mercado Negro", COL(90, 40, 120, 255), 0.4f)) { gBmRes = -1; gBmPage = 0; gState = ST_BLACK; sfxPlay(SFX_UI); }
-    if (button(166, 198, 134, 24, "Opciones", COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_OPTIONS; sfxPlay(SFX_UI); }
-    snprintf(gTmp, sizeof gTmp, "START: salir · Volumen %d%% (L/R)", (int)(gSave.vol * 100 + 0.5f));
+    if (button(20, 198, 100, 24, "Mercado Negro", COL(90, 40, 120, 255), 0.33f)) { gBmRes = -1; gBmPage = 0; gState = ST_BLACK; sfxPlay(SFX_UI); }
+    if (button(124, 198, 70, 24, "Mochila", COL(130, 95, 65, 255), 0.4f)) { gBagTab = gBagPage = 0; sprFreeAll(); gState = ST_BAG; sfxPlay(SFX_UI); }
+    if (button(198, 198, 102, 24, "Opciones", COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_OPTIONS; sfxPlay(SFX_UI); }
+    snprintf(gTmp, sizeof gTmp, T("START: salir · Volumen %d%% (L/R)"), (int)(gSave.vol * 100 + 0.5f));
     text(gTmp, 160, 224, 0.34f, COL(140, 165, 220, 255), true);
 }
 static void drawMenuTop(u64 ms) {
@@ -845,7 +847,7 @@ static void drawMenuTop(u64 ms) {
     text(pname(di), 200, 190, 0.5f, WHITE, true);
     int own = 0;
     for (int i = 0; i < DEX_N; i++) own += gSave.owned[i];
-    snprintf(gTmp, sizeof gTmp, "Mejor tiempo %02d:%02d · Partidas %d · Colección %d/%d", gSave.best / 60, gSave.best % 60, gSave.runs, own, DEX_N);
+    snprintf(gTmp, sizeof gTmp, T("Mejor tiempo %02d:%02d · Partidas %d · Colección %d/%d"), gSave.best / 60, gSave.best % 60, gSave.runs, own, DEX_N);
     text(gTmp, 200, 218, 0.38f, WHITE, true);
     char hw[64];
     if (hwCountdown(hw, sizeof hw)) text(hw, 200, 66, 0.45f, COL(255, 150, 50, 255), true);
@@ -854,8 +856,8 @@ static void drawMenuTop(u64 ms) {
 // ---------------------------------------------------------------- Pokémon (Pokédex por regiones)
 static int dexOfGen(int gen, int* out) {
     int n = 0;
-    for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gen) out[n++] = i;
-    if (gDexSort)       // por rareza (la más alta primero), estable
+    for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gen && (gDexSort != 2 || (gSave.owned[i] && gSave.favoriteMon[i]))) out[n++] = i;
+    if (gDexSort == 1)  // por rareza (la más alta primero), estable
         for (int i = 1; i < n; i++) { int v = out[i], j = i; while (j > 0 && DEX[out[j - 1]].rarity < DEX[v].rarity) { out[j] = out[j - 1]; j--; } out[j] = v; }
     return n;
 }
@@ -870,6 +872,8 @@ static void drawDex(u64 ms) {
     }
     static int list[DEX_N];
     int n = dexOfGen(gDexGen, list);
+    if (gDexSort == 2 && n > 0 && (DEX[gDexSel].gen != gDexGen || !gSave.owned[gDexSel] || !gSave.favoriteMon[gDexSel])) gDexSel = list[0];
+    if (gDexSort == 2 && !n) text("Sin favoritos", 160, 83, 0.52f, WHITE, true);
     int pages = (n + 17) / 18;
     if (gDexPage >= pages) gDexPage = pages - 1;
     if (gDexPage < 0) gDexPage = 0;
@@ -887,7 +891,7 @@ static void drawDex(u64 ms) {
         } else text("?", x + 25, y + 8, 0.7f, COL(110, 130, 180, 255), true);
         if (tapIn(x, y, 50, 44)) { gDexSel = di; sfxPlay(SFX_UI); }
     }
-    bool own = gSave.owned[gDexSel] && sprHas(DEX_NUM[gDexSel]);
+    bool own = (gDexSort != 2 || n > 0) && gSave.owned[gDexSel] && sprHas(DEX_NUM[gDexSel]);
     if (own && button(6, 168, 100, 26, validPartner(gDexSel) && gSave.lastChar == gDexSel ? "Compañero actual" : "Elegir compañero", GOLD_BTN, 0.34f)) {
         gSave.lastChar = gDexSel; saveWrite(); sfxPlay(SFX_LEVEL);
     }
@@ -898,7 +902,7 @@ static void drawDex(u64 ms) {
     if (own && button(214, 168, 100, 26, "Detalles", COL(90, 110, 190, 255), 0.4f)) { gDexTop = 1; gMonMode = 0; gMonPage = 0; sfxPlay(SFX_UI); }
     if (arrowBtn(6, 204, 50, 30, false, gDexPage > 0)) { gDexPage--; sprFreeAll(); sfxPlay(SFX_UI); }
     if (arrowBtn(264, 204, 50, 30, true, gDexPage < pages - 1)) { gDexPage++; sprFreeAll(); sfxPlay(SFX_UI); }
-    if (button(60, 204, 98, 30, gDexSort ? "Orden: Rareza" : "Orden: N.º", gDexSort ? COL(200, 110, 40, 255) : EDGE, 0.4f)) { gDexSort ^= 1; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
+    if (button(60, 204, 98, 30, gDexSort == 2 ? "Orden: Favoritos" : gDexSort == 1 ? "Orden: Rareza" : "Orden: N.º", gDexSort ? COL(200, 110, 40, 255) : EDGE, 0.35f)) { gDexSort = (gDexSort + 1) % 3; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(162, 204, 98, 30, "Volver", COL(180, 80, 80, 255), 0.4f)) { gState = ST_MENU; sprFreeAll(); }
     int have = 0;
     for (int i = 0; i < n; i++) have += gSave.owned[list[i]];
@@ -911,16 +915,16 @@ static void drawDex(u64 ms) {
 static void drawDexMoves(int di) {
     const DexE& p = DEX[di];
     panel(8, 28, 384, 196, WHITE, COL(26, 49, 112, 255));
-    snprintf(gTmp, sizeof gTmp, "Movimientos de %s", pname(di));
+    snprintf(gTmp, sizeof gTmp, T("Movimientos de %s"), pname(di));
     text(gTmp, 200, 28, 0.5f, GOLD, true);
     const NatureE& nt = NATURES[monNature(di)];
     static const char* SN[5] = {"Ataque", "Atq.Esp", "Defensa", "Def.Esp", "Velocidad"};
     char nb[96];
-    if (nt.up >= 0) snprintf(nb, sizeof nb, "Naturaleza: %s (+%s −%s)", natureName(monNature(di)), T(SN[nt.up]), T(SN[nt.down]));
-    else snprintf(nb, sizeof nb, "Naturaleza: %s", natureName(monNature(di)));
+    if (nt.up >= 0) snprintf(nb, sizeof nb, T("Naturaleza: %s (+%s −%s)"), natureName(monNature(di)), T(SN[nt.up]), T(SN[nt.down]));
+    else snprintf(nb, sizeof nb, T("Naturaleza: %s"), natureName(monNature(di)));
     text(nb, 18, 44, 0.52f, WHITE);
     int ab = monAbil(di);
-    snprintf(gTmp, sizeof gTmp, "Habilidad: %s", abilName(ab));
+    snprintf(gTmp, sizeof gTmp, T("Habilidad: %s"), abilName(ab));
     text(gTmp, 18, 62, 0.52f, GOLD);
     char dsc[200]; abilDesc(ab, di, dsc, sizeof dsc);
     textWrap(dsc, 18, 81, 360, 0.42f, COL(170, 200, 255, 255));
@@ -948,19 +952,21 @@ static void drawMonBottom(int di) {
     text(gTmp, 160, 28, 0.5f, WHITE, true);
     if (button(214, 204, 100, 30, "Volver", COL(180, 80, 80, 255), 0.5f)) { if (gMonMode) gMonMode = 0; else gDexTop = 0; return; }
     if (gMonMode == 0) {
-        snprintf(gTmp, sizeof gTmp, "Menta ×%d", gSave.bag[BAG_MINT]);
-        if (button(10, 56, 300, 30, gTmp, COL(70, 150, 90, 255), 0.5f)) { if (gSave.bag[BAG_MINT]) { gMonMode = 1; sfxPlay(SFX_UI); } else msg("No tienes Mentas: cómpralas a Kecleon"); }
-        snprintf(gTmp, sizeof gTmp, "Cápsula ×%d  ·  Parche ×%d", gSave.bag[BAG_CAP], gSave.bag[BAG_CAPH]);
-        if (button(10, 92, 300, 30, gTmp, COL(150, 90, 190, 255), 0.42f)) {
+        snprintf(gTmp, sizeof gTmp, T("Menta ×%d"), gSave.bag[BAG_MINT]);
+        if (button(10, 46, 300, 26, gTmp, COL(70, 150, 90, 255), 0.5f)) { if (gSave.bag[BAG_MINT]) { gMonMode = 1; sfxPlay(SFX_UI); } else msg("No tienes Mentas: cómpralas a Kecleon"); }
+        snprintf(gTmp, sizeof gTmp, T("Cápsula ×%d  ·  Parche ×%d"), gSave.bag[BAG_CAP], gSave.bag[BAG_CAPH]);
+        if (button(10, 76, 300, 26, gTmp, COL(150, 90, 190, 255), 0.42f)) {
             int s[3];
             if ((gSave.bag[BAG_CAP] || gSave.bag[BAG_CAPH]) && monAbilChoices(di, s, gSave.bag[BAG_CAPH] > 0)) { gMonMode = 2; sfxPlay(SFX_UI); }
             else msg("Sin cápsulas o sin habilidades que elegir");
         }
         int tm = 0; for (int i = 0; i < NTM; i++) tm += gSave.tms[i] && monCanLearn(di, i);
-        snprintf(gTmp, sizeof gTmp, "Enseñar una MT (%d disponibles)", tm);
-        if (button(10, 128, 300, 30, gTmp, COL(200, 130, 50, 255), 0.45f)) { if (tm) { gMonMode = 3; gMonPage = 0; sfxPlay(SFX_UI); } else msg("Ninguna MT que pueda aprender"); }
-        if (permLvOf(gDexSel, PU_BAN) > 0 && button(10, 164, 300, 26, "Vetar movimientos", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; sfxPlay(SFX_UI); }
-        else if (permLvOf(gDexSel, PU_BAN) <= 0) text("Consíguelas en la tienda de Kecleon.", 160, 168, 0.36f, COL(170, 200, 255, 255), true);
+        snprintf(gTmp, sizeof gTmp, T("Enseñar una MT (%d disponibles)"), tm);
+        if (button(10, 106, 300, 26, gTmp, COL(200, 130, 50, 255), 0.45f)) { if (tm) { gMonMode = 3; gMonPage = 0; sfxPlay(SFX_UI); } else msg("Ninguna MT que pueda aprender"); }
+        if (button(10, 136, 300, 26, gSave.favoriteMon[di] ? "Quitar favorito" : "Añadir favorito", gSave.favoriteMon[di] ? COL(160, 120, 40, 255) : COL(70, 120, 180, 255), 0.45f, IC_STAR)) {
+            gSave.favoriteMon[di] ^= 1; saveWrite(); sfxPlay(SFX_UI);
+        }
+        if (permLvOf(gDexSel, PU_BAN) > 0 && button(10, 166, 300, 26, "Vetar movimientos", COL(160, 80, 80, 255), 0.42f, IC_BAN)) { gState = ST_BAN; gBanPage = 0; sfxPlay(SFX_UI); }
     } else if (gMonMode == 1) {
         text("Elige la nueva naturaleza", 160, 44, 0.42f, GOLD, true);
         for (int i = 0; i < NNAT; i++) {
@@ -1005,8 +1011,11 @@ static void drawDexTop(u64 ms) {
     topBg();
     tileBg();
     const DexE& p = DEX[gDexSel];
+    if (gDexSort == 2 && (p.gen != gDexGen || !gSave.owned[gDexSel] || !gSave.favoriteMon[gDexSel]) && gDexTop == 0) {
+        text("Sin favoritos", 200, 100, 0.65f, WHITE, true); return;
+    }
     bool own = gSave.owned[gDexSel] && sprHas(DEX_NUM[gDexSel]);
-    snprintf(gTmp, sizeof gTmp, "Pokédex — %s", GACHA_GEN_NAMES[p.gen - 1]);
+    snprintf(gTmp, sizeof gTmp, T("Pokédex — %s"), GACHA_GEN_NAMES[p.gen - 1]);
     text(gTmp, 200, 2, 0.6f, GOLD, true);
     if (own && gDexTop == 1) { drawDexMoves(gDexSel); return; }
     panel(14, 28, 160, 196, WHITE, COL(26, 49, 112, 255));
@@ -1026,11 +1035,11 @@ static void drawDexTop(u64 ms) {
     typeChip(192, 38, p.t1);
     typeChip(254, 38, p.t2);
     text(rn[p.rarity], 192, 58, 0.45f, rarityColor(p.rarity));
-    snprintf(gTmp, sizeof gTmp, "PS %d    Velocidad %d", p.hp, p.spd); text(gTmp, 192, 80, 0.42f, WHITE);
-    snprintf(gTmp, sizeof gTmp, "Ataque %d    Atq.Esp %d", (int)(p.pa * 100), (int)(p.sa * 100)); text(gTmp, 192, 98, 0.42f, WHITE);
-    snprintf(gTmp, sizeof gTmp, "Defensa %d    Def.Esp %d", p.df, p.sd); text(gTmp, 192, 116, 0.42f, WHITE);
+    snprintf(gTmp, sizeof gTmp, T("PS %d    Velocidad %d"), p.hp, p.spd); text(gTmp, 192, 80, 0.42f, WHITE);
+    snprintf(gTmp, sizeof gTmp, T("Ataque %d    Atq.Esp %d"), (int)(p.pa * 100), (int)(p.sa * 100)); text(gTmp, 192, 98, 0.42f, WHITE);
+    snprintf(gTmp, sizeof gTmp, T("Defensa %d    Def.Esp %d"), p.df, p.sd); text(gTmp, 192, 116, 0.42f, WHITE);
     int dm = p.start;
-    snprintf(gTmp, sizeof gTmp, "Mov. inicial: %s", T(MOVES[dm].name)); text(gTmp, 192, 140, 0.42f, typeColorLight(MOVES[dm].type));
+    snprintf(gTmp, sizeof gTmp, T("Mov. inicial: %s"), T(MOVES[dm].name)); text(gTmp, 192, 140, 0.42f, typeColorLight(MOVES[dm].type));
     textWrap(MOVES[dm].desc, 192, 160, 188, 0.36f, COL(170, 200, 255, 255));
     text("R: movimientos", 284, 204, 0.46f, COL(170, 200, 255, 255), true);
     if (gSave.shiny[gDexSel]) text("★ Shiny conseguido", 192, 186, 0.42f, COL(255, 120, 120, 255));
@@ -1055,8 +1064,10 @@ static void drawStartMove() {
         float x = 6 + (k % 2) * 158, y = 22 + (k / 2) * 34;
         int rank = m == first ? 1 : m == second ? 2 : 0;
         panel(x, y, 154, 30, rank ? GOLD : typeColor(MOVES[m].type), rank ? COL(50, 70, 130, 255) : PANEL);
-        text(MOVES[m].name, x + 6, y + 4, 0.45f, WHITE);
-        if (rank) { snprintf(gTmp, sizeof gTmp, "%d)", rank); text(gTmp, x + 146, y + 4, 0.5f, GOLD, false); }
+        float nameScale = 0.45f;
+        while (nameScale > 0.30f && textW(MOVES[m].name, nameScale) > (rank ? 111 : 142)) nameScale -= 0.01f;
+        text(MOVES[m].name, x + 6, y + 4, nameScale, WHITE);
+        if (rank) { snprintf(gTmp, sizeof gTmp, "%d)", rank); text(gTmp, x + 147 - textW(gTmp, 0.5f), y + 4, 0.5f, GOLD); }
         if (tapIn(x, y, 154, 30)) {
             sfxPlay(SFX_UI);
             if (rank == 1) {                         // quitar el 1): el 2) pasa a ser el primero
@@ -1077,7 +1088,7 @@ static void drawStartTop() {
     int m = gStartChoice[0];
     text(MOVES[m].name, 200, 30, 0.8f, typeColorLight(MOVES[m].type), true);
     textWrap(MOVES[m].desc, 40, 90, 320, 0.5f, WHITE);
-    snprintf(gTmp, sizeof gTmp, "Tipo %s · %s", typeName(MOVES[m].type), T(MOVES[m].cat == 0 ? "Físico" : MOVES[m].cat == 1 ? "Especial" : "Estado"));
+    snprintf(gTmp, sizeof gTmp, T("Tipo %s · %s"), typeName(MOVES[m].type), T(MOVES[m].cat == 0 ? "Físico" : MOVES[m].cat == 1 ? "Especial" : "Estado"));
     text(gTmp, 200, 160, 0.5f, COL(170, 200, 255, 255), true);
 }
 
@@ -1086,17 +1097,17 @@ static void drawLoadoutBottom() {
     bgFill();
     text("Toca dos botones para intercambiarlos", 160, 0, 0.45f, COL(255, 230, 120, 255), true);
     for (int i = 0; i < 4; i++) {
-        float x = 8 + i * 78, y = 22;
+        float x = 5 + i * 78, y = 22;
         bool has = gMoves[i].id >= 0;
         u32 c = has ? typeColor(MOVES[gMoves[i].id].type) : EDGE;
-        panel(x, y, 72, 64, i == gSelMove ? COL(255, 255, 255, 255) : c);
-        text(BTN_NAMES[i], x + 5, y + 1, 0.6f, c);
+        panel(x, y, 75, 72, i == gSelMove ? COL(255, 255, 255, 255) : c);
+        text(BTN_NAMES[i], x + 5, y + 1, 0.65f, c);
         if (has) {
-            textWrap(moveName(gMoves[i]), x + 6, y + 26, 62, 0.36f, WHITE);
-            snprintf(gTmp, sizeof gTmp, "Nv %d", gMoves[i].lvl);
-            text(gTmp, x + 66, y + 1, 0.4f, COL(255, 230, 120, 255), true);
+            textWrap(moveName(gMoves[i]), x + 6, y + 27, 64, 0.39f, WHITE);
+            snprintf(gTmp, sizeof gTmp, T("Nv %d"), gMoves[i].lvl);
+            text(gTmp, x + 67, y + 1, 0.42f, COL(255, 230, 120, 255), true);
         } else text("vacío", x + 36, y + 24, 0.4f, COL(120, 140, 190, 255), true);
-        if (tapIn(x, y, 72, 64)) {
+        if (tapIn(x, y, 75, 72)) {
             if (gSelMove >= 0 && gSelMove != i) { playSwapSlots(gSelMove, i); if (!gAfterPause) { int t = gOrder[gSelMove]; gOrder[gSelMove] = gOrder[i]; gOrder[i] = t; } gSelMove = -1; }
             else gSelMove = gSelMove == i ? -1 : i;
             gSelBtn = i;
@@ -1105,12 +1116,11 @@ static void drawLoadoutBottom() {
     }
     if (gMoves[gSelBtn].id >= 0) {
         const MoveDef& d = MOVES[gMoves[gSelBtn].id];
-        text(moveName(gMoves[gSelBtn]), 160, 94, 0.55f, typeColorLight(d.type), true);
-        textWrap(d.desc, 20, 118, 280, 0.42f, WHITE);
-        snprintf(gTmp, sizeof gTmp, "Recarga %.1f s · %s", gMoves[gSelBtn].v[K_CD], T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
-        text(gTmp, 160, 160, 0.4f, COL(170, 200, 255, 255), true);
+        text(moveName(gMoves[gSelBtn]), 160, 102, 0.57f, typeColorLight(d.type), true);
+        textWrap(d.desc, 20, 125, 280, 0.44f, WHITE);
+        snprintf(gTmp, sizeof gTmp, T("Recarga %.1f s · %s"), gMoves[gSelBtn].v[K_CD], T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
+        text(gTmp, 160, 171, 0.42f, COL(170, 200, 255, 255), true);
     }
-    textWrap("En partida, toca X/Y/B/A para elegir el ataque activo.", 8, 176, 98, 0.3f, COL(150, 170, 220, 255));
     if (button(114, 196, 100, 36, gAfterPause ? "Seguir" : "¡Jugar!", COL(60, 170, 80, 255), 0.6f)) {
         if (gAfterPause) { gState = ST_PLAY; gAfterPause = false; }
         else beginRun();
@@ -1133,7 +1143,7 @@ static void drawLoadoutTop(u64 ms) {
         C2D_DrawRectSolid(152, y + 2, 0.25f, 236, 34, COL(14, 26, 50, 255));
         text(BTN_NAMES[i], 158, y + 6, 0.55f, typeColorLight(d.type));
         text(moveName(gMoves[i]), 184, y + 2, 0.5f, WHITE);
-        snprintf(gTmp, sizeof gTmp, "Nv %d · %s", gMoves[i].lvl, T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
+        snprintf(gTmp, sizeof gTmp, T("Nv %d · %s"), gMoves[i].lvl, T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
         text(gTmp, 184, y + 20, 0.36f, COL(170, 200, 255, 255));
     }
     if (gAfterPause) {
@@ -1172,10 +1182,10 @@ static void drawPlayBottom() {
     }
     char b[64];
     if (gBottomPage == 0) {
-        snprintf(b, sizeof b, "Nv %d", playLevel()); text(b, 8, 25, 0.42f, WHITE);
+        snprintf(b, sizeof b, T("Nv %d"), playLevel()); text(b, 8, 25, 0.42f, WHITE);
         int secs = (int)playTime();
         snprintf(b, sizeof b, "%02d:%02d", secs / 60, secs % 60); text(b, 160, 25, 0.42f, WHITE, true);
-        snprintf(b, sizeof b, "KO %d", playKills()); text(b, 312 - textW(b, 0.42f), 25, 0.42f, COL(255, 230, 120, 255));
+        snprintf(b, sizeof b, T("KO %d"), playKills()); text(b, 312 - textW(b, 0.42f), 25, 0.42f, COL(255, 230, 120, 255));
         C2D_DrawRectSolid(8, 45, 0.1f, 304, 8, COL(0, 0, 0, 160));
         C2D_DrawRectSolid(8, 45, 0.2f, 304 * clampf(playXpFrac(), 0, 1), 8, COL(80, 180, 255, 255));
         C2D_DrawRectSolid(8, 57, 0.1f, 304, 8, COL(0, 0, 0, 160));
@@ -1188,7 +1198,7 @@ static void drawPlayBottom() {
             if (!has) { text("vacío", x + 75, y + 22, 0.43f, COL(150, 170, 220, 255), true); continue; }
             u32 c = typeColor(MOVES[gMoves[i].id].type);
             text(BTN_NAMES[i], x + 7, y + 1, 0.62f, c);
-            snprintf(b, sizeof b, "Nv %d", gMoves[i].lvl);
+            snprintf(b, sizeof b, T("Nv %d"), gMoves[i].lvl);
             text(b, x + 126, y + 3, 0.4f, COL(255, 230, 120, 255), true);
             if (playGroupSize(i) > 1) text("+", x + 91, y + 2, 0.45f, COL(255, 140, 220, 255), true);
             textWrap(moveName(gMoves[i]), x + 8, y + 25, 134, 0.46f, WHITE);
@@ -1226,7 +1236,7 @@ static void drawPlayBottom() {
 }
 static void drawLevelUp() {
     bgFill();
-    snprintf(gTmp, sizeof gTmp, "¡Nivel %d! Elige una mejora", playLevel());
+    snprintf(gTmp, sizeof gTmp, T("¡Nivel %d! Elige una mejora"), playLevel());
     text(gTmp, 160, 0, 0.6f, COL(255, 230, 120, 255), true);
     for (int i = 0; i < gCards.n; i++) {
         float y = 24 + i * 62;
@@ -1235,7 +1245,7 @@ static void drawLevelUp() {
         textWrap(gCards.c[i].desc, 18, y + 26, 286, 0.38f, COL(170, 200, 255, 255));
         if (tapIn(8, y, 304, 58)) { playApplyCard(gCards.c[i]); sfxPlay(SFX_LEVEL); gState = ST_PLAY; return; }
     }
-    snprintf(gTmp, sizeof gTmp, "Cambiar cartas (%d)", playRerolls());
+    snprintf(gTmp, sizeof gTmp, T("Cambiar cartas (%d)"), playRerolls());
     if (button(60, 212, 200, 24, gTmp, playRerolls() > 0 ? EDGE : COL(60, 60, 80, 255), 0.45f) && playRerolls() > 0) { playReroll(gCards); sfxPlay(SFX_UI); }
 }
 
@@ -1261,17 +1271,17 @@ static void finishRun() {
 static void drawOver() {
     bgFill();
     text(gRun.won ? "¡Victoria!" : "¡Has caído!", 160, 14, 0.9f, gRun.won ? COL(120, 255, 140, 255) : COL(255, 100, 100, 255), true);
-    snprintf(gTmp, sizeof gTmp, "Tiempo %02d:%02d · Nivel %d · KO %d", (int)gRun.time / 60, (int)gRun.time % 60, gRun.level, gRun.kills);
+    snprintf(gTmp, sizeof gTmp, T("Tiempo %02d:%02d · Nivel %d · KO %d"), (int)gRun.time / 60, (int)gRun.time % 60, gRun.level, gRun.kills);
     text(gTmp, 160, 60, 0.5f, WHITE, true);
-    snprintf(gTmp, sizeof gTmp, "Jefes derrotados: %d", gRun.bosses);
+    snprintf(gTmp, sizeof gTmp, T("Jefes derrotados: %d"), gRun.bosses);
     text(gTmp, 160, 84, 0.5f, WHITE, true);
-    snprintf(gTmp, sizeof gTmp, "+%d Pokémonedas  +%d tickets", gRun.coins, gRun.t1 + gRun.t10 * 10);
+    snprintf(gTmp, sizeof gTmp, T("+%d Pokémonedas  +%d tickets"), gRun.coins, gRun.t1 + gRun.t10 * 10);
     text(gTmp, 160, 112, 0.55f, COL(255, 220, 90, 255), true);
-    if (gRun.candy > 0) { snprintf(gTmp, sizeof gTmp, "+%d Caramelos (total %u)", gRun.candy, (unsigned)gSave.candy); text(gTmp, 160, 98, 0.5f, COL(255, 150, 50, 255), true); }
-    if (gRun.jdowns > 0) { snprintf(gTmp, sizeof gTmp, "Legendarios de la Sentencia: %d", gRun.jdowns); text(gTmp, 160, 138, 0.5f, COL(255, 230, 140, 255), true); }
+    if (gRun.candy > 0) { snprintf(gTmp, sizeof gTmp, T("+%d Caramelos (total %u)"), gRun.candy, (unsigned)gSave.candy); text(gTmp, 160, 98, 0.5f, COL(255, 150, 50, 255), true); }
+    if (gRun.jdowns > 0) { snprintf(gTmp, sizeof gTmp, T("Legendarios de la Sentencia: %d"), gRun.jdowns); text(gTmp, 160, 138, 0.5f, COL(255, 230, 140, 255), true); }
     if (gCoopEnd) text(gCoopEnd == 1 ? "Compañero desconectado" : gCoopEnd == 2 ? "Partida desincronizada" : "Conexión perdida", 160, 138, 0.5f, COL(255, 140, 140, 255), true);
     if (gNewBest) text("¡Nuevo récord!", 160, 156 - 0, 0.6f, COL(120, 255, 140, 255), true);
-    if (gAchNew > 0) { snprintf(gTmp, sizeof gTmp, "¡Logros nuevos: %d!", gAchNew); text(gTmp, 160, 160, 0.5f, COL(255, 200, 80, 255), true); }
+    if (gAchNew > 0) { snprintf(gTmp, sizeof gTmp, T("¡Logros nuevos: %d!"), gAchNew); text(gTmp, 160, 160, 0.5f, COL(255, 200, 80, 255), true); }
     if (button(60, 180, 200, 40, "Continuar", COL(60, 170, 80, 255), 0.7f)) { if (gCoop) { coopClose(); gCoop = false; } gState = ST_MENU; sprFreeAll(); tilesFree(); gTileBgOk = false; }
 }
 
@@ -1361,7 +1371,7 @@ static void drawShopTop(u64 ms) {
     panel(14, 28, 150, 196, WHITE, COL(26, 49, 112, 255));
     sprDraw(DEX_NUM[di], 0, ms, true, 89, 150, nullptr, 2.0f, gSave.shinyOn[di] && gSave.shiny[di]);
     text(pname(di), 89, 170, 0.5f, WHITE, true);
-    snprintf(gTmp, sizeof gTmp, "Niveles: %d", pokeLevels(di));
+    snprintf(gTmp, sizeof gTmp, T("Niveles: %d"), pokeLevels(di));
     text(gTmp, 89, 192, 0.38f, COL(170, 200, 255, 255), true);
     text("Mejoras", 280, 4, 0.7f, GOLD, true);
     textWrap("Cada Pokémon tiene sus propias mejoras: sólo cuentan cuando juegas con él. Consigue Pokémonedas jugando y con los duplicados del gacha.", 182, 40, 206, 0.42f, WHITE);
@@ -1380,47 +1390,60 @@ static void drawGacha() {
     }
     // tickets que tienes
     panel(6, 26, 308, 24, EDGE, COL(20, 36, 84, 255));
-    currencyBar(38);
-    snprintf(gTmp, sizeof gTmp, "%s", GACHA_GEN_NAMES[gGen - 1]);
-    text(gTmp, 284, 30, 0.38f, GOLD, true);
+    const int currencyIcons[3] = {IC_COIN, IC_TICKET, IC_TICKET10};
+    const int currencyValues[3] = {gSave.coins, gSave.t1, gSave.t10};
+    const float currencyX[3] = {12, 102, 170};
+    for (int i = 0; i < 3; i++) {
+        snprintf(gTmp, sizeof gTmp, "%d", currencyValues[i]);
+        icon(currencyIcons[i], currencyX[i], 29, 0.5f);
+        float sc = 0.40f, maxw = i == 0 ? 68 : 45;
+        while (sc > 0.25f && textW(gTmp, sc) > maxw) sc -= 0.02f;
+        text(gTmp, currencyX[i] + 18, 38 - textH(gTmp, sc) / 2, sc, i == 0 ? GOLD : WHITE);
+    }
+    const char* region = T(GACHA_GEN_NAMES[gGen - 1]);
+    float regionScale = 0.40f;
+    while (regionScale > 0.25f && textW(region, regionScale) > 69) regionScale -= 0.02f;
+    text(region, 275, 38 - textH(region, regionScale) / 2, regionScale, GOLD, true);
     // probabilidades
-    panel(6, 54, 308, 88, WHITE, COL(26, 49, 112, 255));
+    panel(6, 54, 308, 101, WHITE, COL(26, 49, 112, 255));
     static const char* rn[6] = {"", "Común", "Poco común", "Raro", "Épico", "Legendario"};
     static const u8 BALLS[6] = {0, IC_BALL, IC_BALL2, IC_BALL3, IC_BALLLUX, IC_BALL4};
     for (int r = 5; r >= 1; r--) {
-        float y = 58 + (5 - r) * 13;
+        float y = 59 + (5 - r) * 15;
         icon(BALLS[r], 12, y - 2, 0.5f);
         text(rn[r], 32, y - 3, 0.36f, rarCol(r));
         snprintf(gTmp, sizeof gTmp, "%.1f%%", GACHA_RATES[r - 1]);
         text(gTmp, 190, y - 3, 0.36f, rarCol(r), true);
     }
-    icon(IC_SHINY, 12, 58 + 65 - 2, 0.5f);
-    text("Shiny", 32, 58 + 65 - 3, 0.36f, COL(255, 130, 130, 255));
+    icon(IC_SHINY, 12, 59 + 75 - 2, 0.5f);
+    text("Shiny", 32, 59 + 75 - 3, 0.36f, COL(255, 130, 130, 255));
     snprintf(gTmp, sizeof gTmp, "%.0f%%", shinyRate(gGen));
-    text(gTmp, 190, 58 + 65 - 3, 0.36f, COL(255, 130, 130, 255), true);
+    text(gTmp, 190, 59 + 75 - 3, 0.36f, COL(255, 130, 130, 255), true);
     int own = 0, tot = 0;
     for (int i = 0; i < DEX_N; i++) if (gGen == 10 ? (DEX[i].t1 == 13 || DEX[i].t2 == 13) : DEX[i].gen == gGen) { tot++; if (gSave.owned[i]) own++; }
     text("Poseídos", 252, 62, 0.4f, COL(170, 200, 255, 255), true);
     snprintf(gTmp, sizeof gTmp, "%d/%d", own, tot);
     text(gTmp, 252, 78, 0.5f, WHITE, true);
     if (gGen == 10) text("Sólo en Halloween: shiny ×2", 252, 96, 0.3f, COL(255, 150, 50, 255), true);
-    else if (charmHas(gGen)) { icon(IC_SHINY, 218, 94, 0.5f); text("Amuleto Cromático", 252, 96, 0.34f, COL(255, 210, 90, 255), true); }
-    else text("Dex completo = Amuleto Cromático", 252, 96, 0.3f, COL(150, 150, 170, 255), true);
+    else if (charmHas(gGen)) {
+        icon(IC_SHINY, 207, 99, 0.45f);
+        const char* charm = T("Amuleto Cromático");
+        float sc = 0.34f;
+        while (sc > 0.23f && textW(charm, sc) > 84) sc -= 0.01f;
+        text(charm, 226, 103, sc, COL(255, 210, 90, 255));
+    } else textWrap("Dex completo = Amuleto Cromático", 211, 99, 94, 0.29f, COL(150, 150, 170, 255));
     bool ok1 = gSave.t1 >= 1, ok10 = gSave.t1 >= 10, okP = gSave.t10 >= 1;
     bool idle = !slotBusy();
     u32 off = COL(70, 60, 90, 255);
-    if (button(6, 148, 100, 38, "Tirar ×1", ok1 ? COL(150, 80, 200, 255) : off, 0.4f, IC_TICKET) && idle) {
+    if (button(6, 161, 100, 36, "Tirar ×1", ok1 ? COL(150, 80, 200, 255) : off, 0.4f, IC_TICKET) && idle) {
         if (ok1) { sprFreeAll(); gNPulls = gachaPull(gGen, 1, gPulls); slotStart(gPulls, gNPulls); sfxPlay(SFX_GACHA); } else { msg("Sin tickets"); sfxPlay(SFX_HURT); }
     }
-    if (button(110, 148, 100, 38, "Tirar ×10", ok10 ? COL(200, 90, 150, 255) : off, 0.4f, IC_TICKET) && idle) {
+    if (button(110, 161, 100, 36, "Tirar ×10", ok10 ? COL(200, 90, 150, 255) : off, 0.4f, IC_TICKET) && idle) {
         if (ok10) { sprFreeAll(); gNPulls = gachaPull(gGen, 10, gPulls, false); slotStart(gPulls, gNPulls); sfxPlay(SFX_GACHA); } else { msg("Necesitas 10 tickets"); sfxPlay(SFX_HURT); }
     }
-    if (button(214, 148, 100, 38, "Tirar ×10", okP ? COL(130, 70, 210, 255) : off, 0.4f, IC_TICKET10) && idle) {
+    if (button(214, 161, 100, 36, "Tirar ×10", okP ? COL(130, 70, 210, 255) : off, 0.4f, IC_TICKET10) && idle) {
         if (okP) { sprFreeAll(); gNPulls = gachaPull(gGen, 10, gPulls, true); slotStart(gPulls, gNPulls); sfxPlay(SFX_GACHA); } else { msg("Sin tickets ×10"); sfxPlay(SFX_HURT); }
     }
-    text("1 ticket", 56, 187, 0.27f, COL(170, 200, 255, 255), true);
-    text("10 tickets", 160, 187, 0.27f, COL(170, 200, 255, 255), true);
-    text("1 ticket ×10", 264, 187, 0.27f, COL(220, 170, 255, 255), true);
     if (gMsgT > 0) text(gMsg, 160, 196, 0.38f, COL(255, 120, 120, 255), true);
     if (slotBusy()) { if (button(100, 210, 120, 26, "Saltar", GOLD_BTN, 0.5f)) slotSkip(); }
     else if (button(100, 210, 120, 26, "Volver", COL(180, 80, 80, 255), 0.5f)) { gState = ST_MENU; slotStart(nullptr, 0); sprFreeAll(); }
@@ -1448,7 +1471,7 @@ static void drawMission(float y, MSlot& m, bool weekly) {
     else if (done) {
         if (button(222, y + 5, 86, h - 10, "Cobrar", GOLD_BTN, 0.5f * f) && missionClaim(m, weekly)) { sfxPlay(SFX_LEVEL); }
     } else {
-        if (t10) snprintf(b, sizeof b, "+1 ×10"); else snprintf(b, sizeof b, "+%d tickets", t1);
+        if (t10) snprintf(b, sizeof b, "+1 ×10"); else snprintf(b, sizeof b, T("+%d tickets"), t1);
         text(b, 266, y + 6, 0.4f * f, COL(255, 220, 120, 255), true);
         snprintf(b, sizeof b, "+%d", coins);
         text(b, 266, y + 24 * f, 0.4f * f, COL(255, 220, 120, 255), true);
@@ -1487,7 +1510,7 @@ static void drawMissionsTop() {
     textWrap("Las misiones diarias se renuevan cada día y las semanales cada lunes. El progreso se cuenta al terminar cada partida.", 40, 70, 320, 0.45f, WHITE);
     int done = 0;
     for (int i = 0; i < 3; i++) done += gSave.md[i].claimed;
-    snprintf(gTmp, sizeof gTmp, "Diarias cobradas hoy: %d/3", done);
+    snprintf(gTmp, sizeof gTmp, T("Diarias cobradas hoy: %d/3"), done);
     text(gTmp, 200, 160, 0.5f, COL(120, 255, 160, 255), true);
 }
 // ---------------------------------------------------------------- vínculo / fusión
@@ -1628,7 +1651,7 @@ static void drawCoopCards() {
         textWrap(gCards.c[i].desc, 18, y + 26, 286, 0.38f, COL(170, 200, 255, 255));
         if (tapIn(8, y, 304, 58)) { coopSend(0x8000 | (gCards.c[i].kind & 3) << 8 | (gCards.c[i].arg & 0xff)); return; }
     }
-    snprintf(gTmp, sizeof gTmp, "Cambiar cartas (%d)", playRerolls());
+    snprintf(gTmp, sizeof gTmp, T("Cambiar cartas (%d)"), playRerolls());
     if (button(60, 212, 200, 24, gTmp, playRerolls() > 0 ? EDGE : COL(60, 60, 80, 255), 0.45f) && playRerolls() > 0) { playReroll(gCards); sfxPlay(SFX_UI); }
 }
 static void drawCoopItem() {
@@ -1653,6 +1676,80 @@ static int coopOverlay() {
     if (playItemNew() >= 0) return 2;
     if (playCoopPending() > 0 && !playCoopDead()) return 1;
     return 0;
+}
+
+// ---------------------------------------------------------------- mochila
+static void drawBagTop(u64 now) {
+    topBg(); tileBg();
+    text("Mochila", 200, 8, 0.85f, GOLD, true);
+    text("Tu inventario y tus amuletos", 200, 42, 0.48f, WHITE, true);
+    C2D_DrawEllipseSolid(110, 185, 0.3f, 58, 14, COL(0, 0, 0, 90));
+    C2D_DrawEllipseSolid(290, 185, 0.3f, 58, 14, COL(0, 0, 0, 90));
+    sprLoad(225); sprLoad(991);
+    sprDraw(225, 0, now, true, 110, 178, nullptr, 2.0f);
+    sprDraw(991, 0, now, true, 290, 178, nullptr, 2.0f);
+    int a = dexIndexOf(225), b = dexIndexOf(991);
+    if (a >= 0) text(pname(a), 110, 198, 0.45f, WHITE, true);
+    if (b >= 0) text(pname(b), 290, 198, 0.45f, WHITE, true);
+}
+static void drawBag() {
+    bgFill();
+    static const char* tabs[3] = {"Objetos", "MT", "Amuletos"};
+    for (int i = 0; i < 3; i++) {
+        if (button(4 + i * 105, 2, 102, 22, tabs[i], i == gBagTab ? GOLD_BTN : EDGE, 0.44f)) {
+            if (gBagTab != i) { gBagTab = i; gBagPage = 0; sfxPlay(SFX_UI); }
+        }
+    }
+    int tm[NTM], n = 0;
+    if (gBagTab == 0) n = 3;
+    else if (gBagTab == 1) { for (int i = 0; i < NTM; i++) if (gSave.tms[i]) tm[n++] = i; }
+    else n = 9;
+    bool big = gSave.bigUI;
+    int per = big ? 2 : 3, pages = (n + per - 1) / per;
+    if (pages < 1) pages = 1;
+    if (gBagPage >= pages) gBagPage = pages - 1;
+    float step = big ? 80 : 52, rh = big ? 76 : 50, f = big ? 1.3f : 1.0f;
+    if (!n) text("No tienes MT", 160, 90, 0.55f * f, WHITE, true);
+    for (int k = 0; k < per; k++) {
+        int idx = gBagPage * per + k; if (idx >= n) break;
+        float y = 27 + k * step;
+        panel(6, y, 308, rh, EDGE, COL(26, 49, 112, 255));
+        const char* name = nullptr; const char* desc = nullptr;
+        char title[96], value[32], detail[80];
+        if (gBagTab == 0) {
+            name = T(BAG_NAME[idx]); desc = T(BAG_DESC[idx]);
+            snprintf(value, sizeof value, "×%u", (unsigned)gSave.bag[idx]);
+        } else if (gBagTab == 1) {
+            int t = tm[idx];
+            snprintf(title, sizeof title, "%s %s", T("MT"), T(MOVES[TM_MOVE[t]].name));
+            name = title; desc = T("Se usa desde la colección");
+            snprintf(value, sizeof value, "×%u", (unsigned)gSave.tms[t]);
+        } else {
+            int gen = idx + 1, have = 0, total = 0;
+            for (int i = 0; i < DEX_N; i++) if (DEX[i].gen == gen) { total++; have += !!gSave.owned[i]; }
+            snprintf(title, sizeof title, "%s - %s", T("Amuleto Iris"), T(GACHA_GEN_NAMES[idx]));
+            name = title;
+            snprintf(detail, sizeof detail, "%s", T(charmHas(gen) ? "Shiny: 2 %" : "Completa la Pokédex"));
+            desc = detail;
+            snprintf(value, sizeof value, "%d/%d", have, total);
+        }
+        float scale = 0.50f * f;
+        while (scale > 0.30f && textW(name, scale) > 212) scale -= 0.02f;
+        text(name, 14, y + 2, scale, WHITE);
+        text(value, 306 - textW(value, 0.45f * f), y + 2, 0.45f * f, GOLD);
+        textWrap(desc, 14, y + 20 * f, 288, 0.34f * f, COL(190, 215, 255, 255));
+    }
+    if (arrowBtn(6, 188, 48, 22, false, gBagPage > 0)) { gBagPage--; sfxPlay(SFX_UI); }
+    if (arrowBtn(58, 188, 48, 22, true, gBagPage + 1 < pages)) { gBagPage++; sfxPlay(SFX_UI); }
+    snprintf(gTmp, sizeof gTmp, "%d/%d", gBagPage + 1, pages);
+    text(gTmp, 130, 188, 0.45f, WHITE, true);
+    if (button(8, 213, 138, 23, "Colección", EDGE, 0.42f)) {
+        gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; gDexTop = 0;
+        sprFreeAll(); gState = ST_DEX; sfxPlay(SFX_UI);
+    }
+    if (button(190, 213, 122, 23, "Volver", COL(180, 80, 80, 255), 0.45f)) {
+        sprFreeAll(); gState = ST_MENU; sfxPlay(SFX_UI);
+    }
 }
 
 // ---------------------------------------------------------------- logros
@@ -1704,7 +1801,7 @@ static void drawAchTop() {
     topBg();
     tileBg();
     text("Logros", 200, 6, 0.9f, GOLD, true);
-    snprintf(gTmp, sizeof gTmp, "Conseguidos: %d/%d", achDoneCount(), achCount());
+    snprintf(gTmp, sizeof gTmp, T("Conseguidos: %d/%d"), achDoneCount(), achCount());
     text(gTmp, 200, 90, 0.6f, COL(120, 255, 160, 255), true);
     text("Los premios se cobran solos al cumplirlos.", 200, 130, 0.42f, WHITE, true);
 }
@@ -1719,7 +1816,7 @@ static void drawBan() {
     if (cap > 3) cap = 3;
     int used = 0;
     for (int k = 0; k < 3; k++) used += gSave.pban[di][k] != 0;
-    snprintf(gTmp, sizeof gTmp, "Vetar movimientos %d/%d", used, cap);
+    snprintf(gTmp, sizeof gTmp, T("Vetar movimientos %d/%d"), used, cap);
     headerBar(gTmp, IC_BAN);
     int pages = (NMOVES + 11) / 12;
     for (int k = 0; k < 12; k++) {
@@ -1864,6 +1961,7 @@ int main() {
         C2D_SceneBegin(top);
         switch (gState) {
             case ST_MENU: drawMenuTop(now); break;
+            case ST_BAG: drawBagTop(now); break;
             case ST_DEX: drawDexTop(now); break;
             case ST_MISSIONS: drawMissionsTop(); break;
             case ST_STARTMOVE: drawStartTop(); break;
@@ -1889,6 +1987,7 @@ int main() {
         gBotScene = true;
         switch (gState) {
             case ST_MENU: drawMenu(); break;
+            case ST_BAG: drawBag(); break;
             case ST_DEX: drawDex(now); break;
             case ST_MISSIONS: drawMissions(); break;
             case ST_STARTMOVE: drawStartMove(); break;

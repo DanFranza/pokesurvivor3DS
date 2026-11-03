@@ -109,6 +109,8 @@ struct Save {
     u8 quizPending;                             // 1 = primera partida: falta el test de personalidad
     u32 candy;                                  // caramelos de Halloween
     u8 skin[3], skinOn[3];                      // disfraces de bruja (Gengar, Pikachu, Umbreon): comprado / puesto
+    u8 favoritePad[2];                          // antiguo relleno final de la estructura
+    u8 favoriteMon[DEX_N];                      // favoritos de la colección
 };
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
