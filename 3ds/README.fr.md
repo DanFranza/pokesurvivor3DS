@@ -28,12 +28,12 @@ Le répertoire `romfs/gfx/` est généré et n'est pas inclus dans Git. Pour tes
 - Ennemis aux comportements variés, boss, vagues, Pokémon chromatiques sauvages et décors par biome. Les liquides peuvent blesser ou ralentir ; les grands coffres s'ouvrent après 3,5 secondes à proximité. Une bombe peut apparaître après une élimination et blesser les ennemis proches.
 - Progression permanente, collection, gacha des neuf générations avec garantie, choix de l'attaque initiale et exclusions d'attaques. Les améliorations sont propres à chaque Pokémon.
 - Boutique de Kecleon : menthes, capsules de talent et huit CT quotidiennes. Chaque Pokémon possède une nature et un talent. Seul un sous-ensemble des effets des talents est implémenté ; les autres donnent +8 % aux attaques de leur type.
-- Musiques et effets sonores synthétisés. Langues : espagnol, anglais, français, italien, portugais brésilien et chinois simplifié ou traditionnel.
+- Musiques et effets sonores synthétisés. Langues : espagnol, anglais, français, italien et portugais brésilien. La traduction française des noms de Pokémon est disponible.
 - Événements : Miaouss voleur de pièces, Gromago transportant des tickets, faille avec un légendaire et Pokémon perdu à ramener à la marque verte.
 - Écran inférieur : trois pages pour les attaques et les barres, l'objet et les orbes, puis la carte des environs. En solo, les orbes sont affectables à L et R. Le stick ou la croix directionnelle déplace le personnage ; X/Y/B/A sélectionnent l'attaque active ; START met en pause et permet de réorganiser les attaques.
 - Après une victoire contre un légendaire dans une faille, le lien permet de fusionner des attaques pour les lancer simultanément.
 - Météo : soleil, pluie, tempête de sable, neige et brouillard, avec effets selon les types et les biomes.
-- Marché noir : Pokémon épiques à 50 000 pièces, légendaires à 100 000 et Mewtwo ou Mew à 500 000 ; chance de chromatique indiquée dans le jeu. Le vendeur Miaouss réagit à une apparition chromatique.
+- **Marché noir, propre à la version 3DS :** Pokémon épiques à 50 000 pièces, légendaires à 100 000 et Mewtwo ou Mew à 500 000 ; chance de chromatique indiquée dans le jeu. Le vendeur Miaouss réagit à une apparition chromatique.
 - Missions quotidiennes et hebdomadaires, trophées et récompenses. Compléter le Pokédex d'une région, légendaires compris, double le taux de chromatiques de sa bannière de 1 % à 2 %.
 - Jugement d'Arceus : Arceus peut être touché mais reste invincible ; une plaque aléatoire détermine son type.
 
@@ -53,7 +53,7 @@ Le port TCP par défaut est `25570`. Il faut le rendre accessible aux joueurs. L
 
 ## Limitations et sauvegarde
 
-Le cloud, les amis, les titres et profils, les succès de groupe, d'objets et d'arènes ainsi que les noms de Pokémon traduits ne sont pas inclus. Une partie dure 15 minutes avant le Jugement d'Arceus simplifié ; la version web dure 30 minutes. Les onze objets équipables du jeu web sont présents, à raison d'un objet tenu par partie.
+Le cloud, les amis, les titres et profils ainsi que les succès de groupe, d'objets et d'arènes ne sont pas inclus. Une partie dure 15 minutes avant le Jugement d'Arceus simplifié ; la version web dure 30 minutes. Les onze objets équipables du jeu web sont présents, à raison d'un objet tenu par partie.
 
 La sauvegarde se trouve dans `sdmc:/3ds/pokesurvivor3ds.sav`.
 
