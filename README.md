@@ -1,5 +1,14 @@
 # PokéSurvivor · Mundo Misterioso
 
+## PokéSurvivor 3DS
+
+**Français :** Portage Nintendo 3DS réalisé par **Dan Franza**, à partir du jeu original de JPTER78 et de ses contributeurs. Un launcher-updater arrive bientôt. [Documentation française](3ds/README.fr.md).
+
+**English:** Nintendo 3DS port by **Dan Franza**, based on the original game by JPTER78 and its contributors. A launcher-updater is coming soon. [English documentation](3ds/README.en.md).
+
+**Español:** Port para Nintendo 3DS realizado por **Dan Franza**, basado en el juego original de JPTER78 y sus colaboradores. Próximamente llegará un launcher-updater. [Documentación en español](3ds/README.md).
+
+
 Bullet-heaven con Pokémon al estilo de Survivor.io y Megabonk, con sprites de
 *Pokémon Mundo Misterioso*, capa roguelike, **966 Pokémon de las 9 generaciones**,
 shinies y gacha por región. Música y efectos compuestos para el juego.

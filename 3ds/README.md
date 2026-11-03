@@ -1,4 +1,10 @@
-# PokéSurvivor 3DS (reescritura nativa, en solitario)
+# PokéSurvivor 3DS
+
+Español · [English](README.en.md) · [Français](README.fr.md)
+
+Port para Nintendo 3DS realizado por **Dan Franza**, basado en el juego original de JPTER78 y sus colaboradores. Disponible en solitario y en cooperativo.
+
+**Próximamente:** un launcher-updater para iniciar el juego y facilitar sus actualizaciones.
 
 Requisitos: devkitPro (`3ds-dev`), Node y Python con Pillow.
 
