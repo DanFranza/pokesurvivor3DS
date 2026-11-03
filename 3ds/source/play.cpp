@@ -43,7 +43,7 @@ struct Field {
     float v[NK_];
 };
 enum { FD_MINE, FD_METEOR, FD_TURRET, FD_PATCH, FD_CHARGE, FD_SPIN, FD_QUAKE, FD_VORTEX, FD_STUN };
-enum { FX_RING, FX_ARC, FX_BEAM, FX_PART, FX_TEXT, FX_FLASH, FX_BOLT };
+enum { FX_RING, FX_ARC, FX_BEAM, FX_PART, FX_TEXT, FX_FLASH, FX_BOLT, FX_BUFF };
 struct Fx {
     bool on; u8 kind, rimmed;
     float x, y, x2, y2, r0, r1, a, arc, t, life, w, vx, vy;
@@ -877,6 +877,11 @@ static bool castMove(int b) {
             else if (st == ST_DEF) { P.buffDef = amt; P.buffDefT = dur; }
             else if (st == ST_REGEN) healPlayer(P.maxHp * 0.25f);
             fxRing(P.x, P.y, 28, 6, rgb, 0.4f, 3);
+            for (int i = 0; i < 3; i++) {
+                Fx* f = newFx(FX_BUFF, 0.6f); if (!f) break;
+                f->x = P.x + vfrange(-18, 18); f->y = P.y - vfrange(0, 24);
+                f->vy = -70; f->r0 = VFX_MOVE[m.id].buff; f->r1 = VFX_MOVE[m.id].pal;
+            }
             fxText(P.x, P.y - 30, moveName(m), rgb, 0.45f);
             sfxPlay(SFX_PICK);
             break;
@@ -2878,6 +2883,7 @@ static void drawFx(float cx, float cy, bool top) {
             }
             case FX_FLASH: circle(x, y - 6, f.r1 * (0.5f + p * 0.5f), rgbA(hi, al / 2), 0.58f); break;
             case FX_PART: circle(x, y, f.w * (1 - p * 0.5f), rgbA(hi, al), 0.66f); break;
+            case FX_BUFF: vfxDraw((int)f.r0, (int)f.r1, (int)(f.t * 12), x, y, 0.66f, 0, 2.0f, 1 - p); break;
             case FX_TEXT: if (top) text(f.txt, x, y - 6, f.w, rgbA(f.rgb, al), true); break;
         }
     }

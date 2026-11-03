@@ -99,13 +99,13 @@ def main():
     for s in shapes:
         S = d["shapes"][s]
         L.append(f"  {{{S['w']},{S['h']},{S['frames']},{col[s]},{(1 if S['dir'] else 0) | (2 if S['spin'] else 0)}}},  // {s}")
-    L += ["};", "// por movimiento (mismo orden que MOVES): forma del proyectil, del rayo (-1 = ninguna), paleta",
-          "struct VfxMove { signed char proj, beam, pal; };",
+    L += ["};", "// por movimiento (mismo orden que MOVES): forma del proyectil, del rayo (-1 = ninguna), de buff y paleta",
+          "struct VfxMove { signed char proj, beam, buff, pal; };",
           "static const VfxMove VFX_MOVE[NMOVES] = {"]
     for s in slugs:
         v = d["moves"][s]
         bm = sidx.get(v.get("beam"), -1)
-        L.append(f"  {{{sidx.get(v['proj'], sidx['ball'])},{bm},{pidx.get(v['pal'], 0)}}},  // {s}")
+        L.append(f"  {{{sidx.get(v['proj'], sidx['ball'])},{bm},{sidx.get(v.get('buff', 'arrow'), sidx['arrow'])},{pidx.get(v['pal'], 0)}}},  // {s}")
     L += ["};", "static const signed char VFX_TYPE_PAL[18] = {" + ",".join(str(pidx[t]) for t in TYPES) + "};",
           "static const signed char VFX_TYPE_SHAPE[18] = {" + ",".join(
               str(sidx[x]) for x in ["star", "fire", "drop", "bolt", "leaf", "shard", "ball", "blob", "blob",
