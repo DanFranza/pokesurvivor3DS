@@ -1,0 +1,13 @@
+PokéSurvivor 3DS — informations de distribution
+
+Portage Nintendo 3DS : Dan Franza.
+Jeu original : JPTER78 et ses contributeurs : https://github.com/JPTER78/pokesurvivor
+Required Notice: Copyright 2026 JPTER78 (https://github.com/JPTER78/pokesurvivor)
+
+Ce projet de fans est non commercial et n'est pas affilié aux titulaires des droits Pokémon. Consultez LICENSE et LICENSE-NONCOMMERCIAL.md pour les conditions applicables au jeu d'origine. Les traductions françaises jointes sont fournies à titre informatif.
+
+Les sprites provenant de SpriteCollab (https://github.com/PMDCollab/SpriteCollab) sont distribués sous Creative Commons Attribution - Utilisation non commerciale 4.0 : https://creativecommons.org/licenses/by-nc/4.0/ . La liste des artistes figure dans CREDITS.md. Des sprites ont été adaptés et convertis pour la 3DS.
+
+La police Pixelify Sans, adaptée et convertie pour la 3DS, est distribuée sous SIL Open Font License 1.1 : voir OFL.txt.
+
+Pour installer le jeu, copiez pokesurvivor3ds.3dsx sur la carte SD de votre console, dans le dossier 3ds. Conservez et redistribuez ces informations et les fichiers de licence avec le jeu.

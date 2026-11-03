@@ -4,6 +4,8 @@
 
 Portage Nintendo 3DS réalisé par **Dan Franza**, à partir du jeu original de JPTER78 et de ses contributeurs. Un launcher-updater arrive bientôt. [Documentation française du portage](3ds/README.fr.md) · [English documentation](3ds/README.en.md) · [Documentación en español](3ds/README.md).
 
+**Téléchargement 3DS :** [jeu, licences et crédits (ZIP)](3ds/distribution/pokesurvivor3ds.zip). Décompressez l’archive et copiez le fichier `.3dsx` dans le dossier `3ds` de la carte SD.
+
 [Version espagnole et anglaise d'origine de ce README](README.es.md) · [Traduction française de la licence](LICENSE.fr.md)
 
 Jeu de survie de type bullet heaven avec des Pokémon, dans le style de Survivor.io et de Megabonk, avec des sprites de *Pokémon Donjon Mystère*, une dimension roguelike, **966 Pokémon des neuf générations**, des chromatiques et un gacha par région. La musique et les effets ont été composés pour le jeu.
