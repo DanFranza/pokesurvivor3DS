@@ -29,7 +29,7 @@ Le répertoire `romfs/gfx/` est généré et n'est pas inclus dans Git. Pour tes
 
 ## Musique de partie
 
-Depuis le menu principal, touche la note pour choisir une musique et en écouter un aperçu. Le choix est conservé et s'applique pendant les parties ; « Musique originale » rétablit la musique du jeu. Les morceaux ajoutés sont convertis en audio mono pour la 3DS : Route 101, Surf Theme, New Bark Town et Littleroot Town (Feora VGM / Yume), Pokémon League Night (Feora / Lucas Cooper) et Pallet Town. Les six pistes proviennent de Pixabay et ont leurs propres conditions : voir [leurs crédits, liens et conditions](MUSIC-LICENSE.md). Les versions fournies avec le jeu sont adaptées au format audio de la 3DS.
+Depuis le menu principal, ouvre **Options**, passe à la deuxième page et touche **Musique** pour choisir une musique et en écouter un aperçu. Le choix est conservé et s'applique pendant les parties ; « Musique originale » rétablit la musique du jeu. Les morceaux ajoutés sont convertis en audio mono pour la 3DS : Route 101, Surf Theme, New Bark Town et Littleroot Town (Feora VGM / Yume), Pokémon League Night (Feora / Lucas Cooper) et Pallet Town. Les six pistes proviennent de Pixabay et ont leurs propres conditions : voir [leurs crédits, liens et conditions](MUSIC-LICENSE.md). Les versions fournies avec le jeu sont adaptées au format audio de la 3DS.
 
 ## Contenu
 
@@ -71,7 +71,7 @@ La sauvegarde se trouve dans `sdmc:/3ds/pokesurvivor3ds.sav`.
 ## Effets, options et animations
 
 - Les projectiles et les orbites utilisent les formes et palettes de la version web. Après modification de `js/entities/vfx.js` ou des attaques, `tools/make_vfx.py` régénère `romfs/gfx/vfx.t3x` et `include/vfxmeta.h`.
-- Le menu **Options** propose la langue et le mode « Lisibilité améliorée », qui affiche deux éléments par page avec des caractères plus grands dans les menus concernés.
+- Le menu **Options** propose la langue sur la première page, puis les modes « Normal » et « Lisibilité améliorée » ainsi que le choix de la musique sur la deuxième page. La lisibilité améliorée affiche deux éléments par page avec des caractères plus grands dans les menus concernés.
 - Les animations d'attaque utilisent Attack, Shoot ou Charge selon l'attaque. `tools/make_acts.py` génère les fichiers `romfs/gfx/pNNNN{a,h,c}[s].t3x` et `include/actmeta.h`. En l'absence d'animation, le jeu utilise Walk.
 
 ## Test initial et Halloween
@@ -79,3 +79,7 @@ La sauvegarde se trouve dans `sdmc:/3ds/pokesurvivor3ds.sav`.
 Sans sauvegarde, un test de personnalité propose le Pokémon initial. Du 30 octobre au 2 novembre selon l'horloge de la console, l'événement Halloween ajoute des cartes nocturnes, des citrouilles, des fantômes, des bonbons, une musique adaptée et une bannière de Pokémon Spectre. L'événement commencé en solo dure jusqu'à la fin de la partie et est désactivé en coopération.
 
 Gengar sorcière remplace Arceus en fin de partie. Kecleon vend trois costumes — Gengar, Pikachu et Noctali — pour 300 bonbons chacun ; ils restent disponibles après achat. Les ressources correspondantes sont générées par `tools/make_sprites.py` ; les attaques costumées utilisent l'animation de marche.
+
+## Réclamations relatives aux droits d’auteur
+
+Pour toute réclamation DMCA concernant le port 3DS, contactez Dan Franza à [danfranza@proton.me](mailto:danfranza@proton.me).

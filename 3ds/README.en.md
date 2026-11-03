@@ -60,7 +60,7 @@ The save file is `sdmc:/3ds/pokesurvivor3ds.sav`.
 ## Effects, options, and animations
 
 - Projectiles and orbits use the web game's shapes and palettes. After changing `js/entities/vfx.js` or moves, run `tools/make_vfx.py` to regenerate `romfs/gfx/vfx.t3x` and `include/vfxmeta.h`.
-- The **Options** menu offers language selection and an enhanced readability mode, which shows two larger items per page in the relevant menus.
+- The **Options** menu shows language selection on its first page, then display modes and the **Music** button on its second page. Enhanced readability shows two larger items per page in the relevant menus.
 - Attack animations use Attack, Shoot, or Charge according to the move. `tools/make_acts.py` generates `romfs/gfx/pNNNN{a,h,c}[s].t3x` and `include/actmeta.h`. If an animation is missing, the game uses Walk.
 
 ## Initial quiz and Halloween
@@ -71,4 +71,8 @@ Witch Gengar replaces Arceus at the end of a run. Kecleon sells three costumes â
 
 ## Additional music
 
-The six additional tracks come from Pixabay and were converted for 3DS playback. See [credits, sources and terms](MUSIC-LICENSE.md).
+Open **Options**, switch to its second page, and select **Music** to preview and choose a track. The six additional tracks come from Pixabay and were converted for 3DS playback. See [credits, sources and terms](MUSIC-LICENSE.md).
+
+## Copyright claims
+
+For DMCA claims concerning the 3DS port, contact Dan Franza at [danfranza@proton.me](mailto:danfranza@proton.me).

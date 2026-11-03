@@ -14,7 +14,7 @@ static int gSel;
 static int gPage, gShopPage, gGen = 1, gBanPage;
 static bool gPick2;
 static int gMisPage;
-static int gBagTab, gBagPage, gMusicPage;
+static int gBagTab, gBagPage, gMusicPage, gOptionsPage;
 static int gKecPage, gKecSel = -1;
 static int partner();
 static void coopCancel();
@@ -147,9 +147,9 @@ static void currencyBar(float y, bool coins = true) {
     char a[16], b[16], c[16];
     snprintf(a, sizeof a, "%d", gSave.coins); snprintf(b, sizeof b, "%d", gSave.t1); snprintf(c, sizeof c, "%d", gSave.t10);
     float x = coins ? 12 : 60;
-    if (coins) { icon(IC_COIN, x, y - 6, 0.5f); text(a, x + 18, y - 2, 0.42f, GOLD); x += 100; }
-    icon(IC_TICKET, x, y - 6, 0.5f); text(b, x + 18, y - 2, 0.42f, WHITE); x += 70;
-    icon(IC_TICKET10, x, y - 6, 0.5f); text(c, x + 18, y - 2, 0.42f, COL(220, 170, 255, 255));
+    if (coins) { icon(IC_COIN, x, y - 8, 0.5f); text(a, x + 18, y - textH(a, 0.42f) / 2, 0.42f, GOLD); x += 100; }
+    icon(IC_TICKET, x, y - 8, 0.5f); text(b, x + 18, y - textH(b, 0.42f) / 2, 0.42f, WHITE); x += 70;
+    icon(IC_TICKET10, x, y - 8, 0.5f); text(c, x + 18, y - textH(c, 0.42f) / 2, 0.42f, COL(220, 170, 255, 255));
 }
 static void bgFill() { gradRect(0, 0, 320, 240, 0, COL(10, 20, 48, 255), COL(26, 48, 104, 255)); }
 static void topBg() { gradRect(0, 0, TOP_W, TOP_H, 0, COL(10, 20, 48, 255), COL(26, 48, 104, 255)); }
@@ -776,24 +776,30 @@ static void drawLang() {
 }
 
 static void drawOptions() {
-    bgFill();
-    headerBar("Opciones", IC_GEAR);
-    text("Idioma · Language · Langue", 160, 24, 0.4f, GOLD, true);
-    static const u32 cols[LANG_N] = {COL(200, 60, 60, 255), COL(60, 100, 200, 255), COL(60, 140, 200, 255), COL(60, 150, 90, 255), COL(60, 150, 70, 255)};
-    for (int i = 0; i < LANG_N; i++) {
-        float x = 12 + (i & 1) * 152, y = 42 + (i >> 1) * 36;
-        bool cur = gSave.lang == i;
-        C2D_DrawRectSolid(x - 2, y - 2, 0.05f, 148, 34, cur ? COL(255, 255, 255, 255) : COL(10, 20, 50, 255));
-        if (button(x, y, 144, 30, LANG_NAMES[i], cols[i], 0.45f) && !cur) { gSave.lang = (u8)i; textSetLang(); saveWrite(); sfxPlay(SFX_UI); }
+    bgFill(); headerBar("Opciones", IC_GEAR);
+    if (gOptionsPage == 0) {
+        text("Idioma · Language · Langue", 160, 28, 0.45f, GOLD, true);
+        static const u32 cols[LANG_N] = {COL(200, 60, 60, 255), COL(60, 100, 200, 255), COL(60, 140, 200, 255), COL(60, 150, 90, 255), COL(60, 150, 70, 255)};
+        for (int i = 0; i < LANG_N; i++) {
+            float x = 12 + (i & 1) * 152, y = 50 + (i >> 1) * 44;
+            bool cur = gSave.lang == i;
+            C2D_DrawRectSolid(x - 2, y - 2, 0.05f, 148, 40, cur ? WHITE : COL(10, 20, 50, 255));
+            if (button(x, y, 144, 36, LANG_NAMES[i], cols[i], 0.5f) && !cur) { gSave.lang = (u8)i; textSetLang(); saveWrite(); sfxPlay(SFX_UI); }
+        }
+    } else {
+        text("Visualización", 160, 35, 0.5f, GOLD, true);
+        for (int k = 0; k < 2; k++) {
+            float x = 12 + k * 152;
+            bool cur = gSave.bigUI == k;
+            C2D_DrawRectSolid(x - 2, 60, 0.05f, 148, 44, cur ? WHITE : COL(10, 20, 50, 255));
+            if (button(x, 62, 144, 40, k ? "Legibilidad mejorada" : "Normal", k ? COL(160, 100, 40, 255) : COL(60, 100, 160, 255), 0.4f) && !cur) { gSave.bigUI = (u8)k; saveWrite(); sfxPlay(SFX_UI); }
+        }
+        if (button(35, 119, 250, 48, "Música", COL(145, 75, 190, 255), 0.6f, IC_SOUND)) { gMusicPage = 0; gState = ST_MUSIC; sfxPlay(SFX_UI); }
     }
-    text("Visualización", 160, 154, 0.4f, GOLD, true);
-    for (int k = 0; k < 2; k++) {
-        float x = 12 + k * 152;
-        bool cur = gSave.bigUI == k;
-        C2D_DrawRectSolid(x - 2, 168, 0.05f, 148, 36, cur ? COL(255, 255, 255, 255) : COL(10, 20, 50, 255));
-        if (button(x, 170, 144, 32, k ? "Legibilidad mejorada" : "Normal", k ? COL(160, 100, 40, 255) : COL(60, 100, 160, 255), 0.4f) && !cur) { gSave.bigUI = (u8)k; saveWrite(); sfxPlay(SFX_UI); }
-    }
-    if (button(100, 210, 120, 26, "Volver", COL(180, 80, 80, 255), 0.45f)) gState = ST_MENU;
+    if (arrowBtn(8, 207, 48, 28, false, gOptionsPage > 0)) { gOptionsPage = 0; sfxPlay(SFX_UI); }
+    if (arrowBtn(60, 207, 48, 28, true, gOptionsPage < 1)) { gOptionsPage = 1; sfxPlay(SFX_UI); }
+    snprintf(gTmp, sizeof gTmp, "%d/2", gOptionsPage + 1); text(gTmp, 160, 208, 0.43f, WHITE, true);
+    if (button(218, 207, 94, 28, "Volver", COL(180, 80, 80, 255), 0.45f)) gState = ST_MENU;
 }
 
 static bool validPartner(int d) { return d >= 0 && d < DEX_N && gSave.owned[d] && sprHas(DEX_NUM[d]); }
@@ -820,22 +826,8 @@ static void drawMenu() {
     bgFill();
     panel(8, 4, 304, 26, EDGE, COL(20, 36, 84, 255));
     currencyBar(17);
-    if (button(20, 38, 142, 56, "¡Jugar!", GOLD_BTN, 0.85f, IC_BALL)) { gCoop = false; gCoopEnd = 0; startRun(); }
-    if (button(166, 38, 82, 56, "Coop", COL(40, 160, 170, 255), 0.55f, IC_FRIENDS)) { gState = ST_COOPSEL; sfxPlay(SFX_UI); }
-    bool musicPressed = gTouching && inRect(gTp.px, gTp.py, 252, 38, 48, 56);
-    if (button(252, 38, 48, 56, "", COL(145, 75, 190, 255), 0.55f)) { gMusicPage = 0; gState = ST_MUSIC; sfxPlay(SFX_UI); }
-    float my = musicPressed ? 2 : 0;
-    u32 shade = COL(57, 32, 105, 255), whiteNote = COL(255, 255, 255, 255);
-    for (int layer = 0; layer < 2; layer++) {
-        float dx = layer ? 0 : 2, dy = my + (layer ? 0 : 2), z = layer ? 0.83f : 0.82f;
-        u32 col = layer ? whiteNote : shade;
-        C2D_DrawEllipseSolid(264 + dx, 76 + dy, z, 6, 5, col);
-        C2D_DrawEllipseSolid(282 + dx, 72 + dy, z, 6, 5, col);
-        C2D_DrawRectSolid(268 + dx, 51 + dy, z, 4, 24, col);
-        C2D_DrawRectSolid(286 + dx, 47 + dy, z, 4, 24, col);
-        C2D_DrawTriangle(268 + dx, 51 + dy, col, 290 + dx, 47 + dy, col, 268 + dx, 57 + dy, col, z);
-        C2D_DrawTriangle(290 + dx, 47 + dy, col, 290 + dx, 53 + dy, col, 268 + dx, 57 + dy, col, z);
-    }
+    if (button(20, 38, 184, 56, "¡Jugar!", GOLD_BTN, 0.95f, IC_BALL)) { gCoop = false; gCoopEnd = 0; startRun(); }
+    if (button(210, 38, 90, 56, "Coop", COL(40, 160, 170, 255), 0.6f, IC_FRIENDS)) { gState = ST_COOPSEL; sfxPlay(SFX_UI); }
     if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.55f, IC_BOOK)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.55f, IC_UP)) { shopEnter(); gState = ST_SHOP; sfxPlay(SFX_UI); }
     if (button(20, 150, 88, 40, "Gacha", COL(150, 80, 200, 255), 0.42f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
@@ -844,7 +836,7 @@ static void drawMenu() {
     if (missionClaimable()) { C2D_DrawCircleSolid(194, 154, 0.5f, 8, COL(255, 255, 255, 255)); C2D_DrawCircleSolid(194, 154, 0.55f, 6, COL(230, 40, 40, 255)); text("!", 194, 145, 0.45f, WHITE, true); }
     if (button(20, 198, 100, 24, "Mercado Negro", COL(90, 40, 120, 255), 0.33f)) { gBmRes = -1; gBmPage = 0; gState = ST_BLACK; sfxPlay(SFX_UI); }
     if (button(124, 198, 70, 24, "Mochila", COL(130, 95, 65, 255), 0.4f)) { gBagTab = gBagPage = 0; sprFreeAll(); gState = ST_BAG; sfxPlay(SFX_UI); }
-    if (button(198, 198, 102, 24, "Opciones", COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gState = ST_OPTIONS; sfxPlay(SFX_UI); }
+    if (button(198, 198, 102, 24, "Opciones", COL(60, 80, 140, 255), 0.4f, IC_GEAR)) { gOptionsPage = 0; gState = ST_OPTIONS; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, T("START: salir · Volumen %d%% (L/R)"), (int)(gSave.vol * 100 + 0.5f));
     text(gTmp, 160, 224, 0.34f, COL(140, 165, 220, 255), true);
 }
@@ -1718,7 +1710,7 @@ static void drawMusic() {
     if (arrowBtn(6, 190, 50, 20, false, gMusicPage > 0)) { gMusicPage--; sfxPlay(SFX_UI); }
     if (arrowBtn(60, 190, 50, 20, true, gMusicPage + 1 < pages)) { gMusicPage++; sfxPlay(SFX_UI); }
     snprintf(gTmp, sizeof gTmp, "%d/%d", gMusicPage + 1, pages); text(gTmp, 160, 189, 0.45f, WHITE, true);
-    if (button(204, 212, 108, 24, "Volver", COL(180, 80, 80, 255), 0.45f)) { musicPlay(MUS_MENU); gState = ST_MENU; sfxPlay(SFX_UI); }
+    if (button(204, 212, 108, 24, "Volver", COL(180, 80, 80, 255), 0.45f)) { musicPlay(MUS_MENU); gOptionsPage = 1; gState = ST_OPTIONS; sfxPlay(SFX_UI); }
 }
 
 // ---------------------------------------------------------------- mochila
