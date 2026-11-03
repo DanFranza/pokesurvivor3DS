@@ -62,6 +62,8 @@ Le dossier `videos/` contient des enregistrements avec leur musique : combat con
 
 ## Licence
 
+Les six musiques ajoutées au port 3DS proviennent de Pixabay et ont leurs propres conditions : voir [crédits et licence des musiques](3ds/MUSIC-LICENSE.md).
+
 Le code est soumis à la [licence PolyForm Noncommercial 1.0.0](LICENSE-NONCOMMERCIAL.md) depuis le 14 octobre 2026 : il peut être utilisé, étudié et modifié, mais **pas à des fins commerciales**, notamment pour vendre le jeu ou faire payer son contenu. Les versions jusqu'au commit `b297089` ont été publiées sous licence MIT. Les sprites, sous CC BY-NC 4.0, la police, sous OFL, et les marques Pokémon ont leurs propres conditions : voir [LICENSE](LICENSE), sa [traduction française](LICENSE.fr.md), la [traduction de la licence PolyForm](LICENSE-NONCOMMERCIAL.fr.md) et [CREDITS.md](CREDITS.md). Il s'agit d'un projet de fan sans but lucratif.
 
 **Le seul site officiel est [pokesurvivor.com](https://pokesurvivor.com).** Le jeu est et restera gratuit ; si quelqu'un vous demande de payer, il ne s'agit pas de l'auteur.

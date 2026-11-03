@@ -1,7 +1,7 @@
 // GENERADO por tools/export_lang.js — no editar
 #pragma once
 struct LangStr { const char* es; const char* tr[6]; };   // en, fr, it, pt-BR, zh-Hans, zh-Hant
-#define LANG_N_STR 2187
+#define LANG_N_STR 2191
 static const LangStr LANG_STR[LANG_N_STR] = {
   {"\nEND ", {"", "", "", "", "", ""}},
   {" (oculta)", {" (hidden)", " (cachée)", " (hidden)", " (hidden)", " (hidden)", " (hidden)"}},
@@ -669,6 +669,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Elige 1 movimiento para unirlo al grupo", {"Pick 1 move to join the group", "Choisis 1 capacité à joindre au groupe", "Scegli 1 mossa da unire al gruppo", "Pick 1 move to join the group", "Pick 1 move to join the group", "Pick 1 move to join the group"}},
   {"Elige 2 movimientos para fusionarlos", {"Pick 2 moves to fuse", "Choisis 2 capacités à fusionner", "Scegli 2 mosse da unire", "Pick 2 moves to fuse", "Pick 2 moves to fuse", "Pick 2 moves to fuse"}},
   {"Elige la MT a enseñar", {"Choose the TM to teach", "Choisis la CT à enseigner", "Scegli la MT da insegnare", "Escolha a MT para ensinar", "Choose the TM to teach", "Choose the TM to teach"}},
+  {"Elige la música de la partida", {"Choose the music for your run", "Choisis la musique de la partie", "Scegli la musica della partita", "Escolha a música da partida", "Choose the music for your run", "Choose the music for your run"}},
   {"Elige la nueva habilidad", {"Choose the new ability", "Choisis le nouveau talent", "Scegli la nuova abilità", "Escolha a nova habilidade", "Choose the new ability", "Choose the new ability"}},
   {"Elige la nueva naturaleza", {"Choose the new nature", "Choisis la nouvelle nature", "Scegli la nuova natura", "Choose the new nature", "Choose the new nature", "Choose the new nature"}},
   {"Elige los movimientos que no quieres ver", {"Pick the moves you don't want to see", "Choisis les attaques à ne plus voir", "Scegli le mosse da escludere", "Pick the moves you don't want to see", "Pick the moves you don't want to see", "Pick the moves you don't want to see"}},
@@ -1242,6 +1243,8 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Méga Blaster", {"", "", "", "", "", ""}},
   {"Métallo-Garde", {"", "", "", "", "", ""}},
   {"Météo", {"", "", "", "", "", ""}},
+  {"Música", {"Music", "Musique", "Musica", "Música", "音乐", "音樂"}},
+  {"Música original", {"Original music", "Musique originale", "Musica originale", "Música original", "Original music", "Original music"}},
   {"Mûrissement", {"", "", "", "", "", ""}},
   {"NAMETAKEN", {"", "", "", "", "", ""}},
   {"NICK", {"", "", "", "", "", ""}},
@@ -1673,6 +1676,7 @@ static const LangStr LANG_STR[LANG_N_STR] = {
   {"Scudoprisma", {"", "", "", "", "", ""}},
   {"Scudosoglia", {"", "", "", "", "", ""}},
   {"Se carga un momento y suelta un rayo enorme que lo atraviesa todo.", {"Charges for a moment and fires a huge beam that pierces everything.", "Se charge un instant et lâche un énorme rayon qui traverse tout.", "Si carica per un istante e spara un raggio enorme che trapassa tutto.", "Carrega por um instante e dispara um raio enorme que atravessa tudo.", "短暂蓄力后射出贯穿一切的巨大光束。", "短暫蓄力後射出貫穿一切的巨大光束。"}},
+  {"Se escucha una muestra al elegir", {"Preview plays when selected", "Écoute au moment du choix", "Ascolta un’anteprima alla selezione", "Ouça uma prévia ao escolher", "Preview plays when selected", "Preview plays when selected"}},
   {"Se usa desde la colección", {"Use from your collection", "À utiliser depuis la collection", "Usa dalla collezione", "Use na coleção", "Use from your collection", "Use from your collection"}},
   {"Sebo", {"", "", "", "", "", ""}},
   {"Seed Sower", {"", "", "", "", "", ""}},

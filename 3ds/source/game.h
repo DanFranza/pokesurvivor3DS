@@ -111,6 +111,8 @@ struct Save {
     u8 skin[3], skinOn[3];                      // disfraces de bruja (Gengar, Pikachu, Umbreon): comprado / puesto
     u8 favoritePad[2];                          // antiguo relleno final de la estructura
     u8 favoriteMon[DEX_N];                      // favoritos de la colección
+    u8 musicPad[2];                             // antiguo relleno final
+    u8 musicChoice;                             // 0 música original, 1–6 pistas añadidas
 };
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
@@ -189,6 +191,7 @@ extern const char* GACHA_GEN_NAMES[10];
 void audioInit();
 void audioExit();
 void audioUpdate();
+void musicChoose(int choice);
 void musicPlay(int song);                       // -1 para parar
 void sfxPlay(int id);
 enum { MUS_MENU, MUS_BATTLE, MUS_BOSS, MUS_N };

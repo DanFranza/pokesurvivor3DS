@@ -1,7 +1,7 @@
 // PokéSurvivor 3DS — bucle principal y pantallas (superior: mundo / información; táctil: controles y menús).
 #include "game.h"
 
-enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BLACK, ST_ONLINE, ST_COOPSEL, ST_OPTIONS, ST_QUIZ, ST_BAG };
+enum State { ST_MENU, ST_DEX, ST_STARTMOVE, ST_LOADOUT, ST_PLAY, ST_PAUSE, ST_LEVELUP, ST_OVER, ST_SHOP, ST_GACHA, ST_BAN, ST_LOADING, ST_LANG, ST_MISSIONS, ST_BOND, ST_ACH, ST_ITEM, ST_COOP, ST_COOPWAIT, ST_KECLEON, ST_BLACK, ST_ONLINE, ST_COOPSEL, ST_OPTIONS, ST_QUIZ, ST_BAG, ST_MUSIC };
 static State gState = ST_MENU;
 static const u32 BTN_KEYS[4] = {KEY_X, KEY_Y, KEY_B, KEY_A};
 static const char* BTN_NAMES[4] = {"X", "Y", "B", "A"};
@@ -14,7 +14,7 @@ static int gSel;
 static int gPage, gShopPage, gGen = 1, gBanPage;
 static bool gPick2;
 static int gMisPage;
-static int gBagTab, gBagPage;
+static int gBagTab, gBagPage, gMusicPage;
 static int gKecPage, gKecSel = -1;
 static int partner();
 static void coopCancel();
@@ -820,8 +820,18 @@ static void drawMenu() {
     bgFill();
     panel(8, 4, 304, 26, EDGE, COL(20, 36, 84, 255));
     currencyBar(17);
-    if (button(20, 38, 184, 56, "¡Jugar!", GOLD_BTN, 0.95f, IC_BALL)) { gCoop = false; gCoopEnd = 0; startRun(); }
-    if (button(210, 38, 90, 56, "Coop", COL(40, 160, 170, 255), 0.6f, IC_FRIENDS)) { gState = ST_COOPSEL; sfxPlay(SFX_UI); }
+    if (button(20, 38, 142, 56, "¡Jugar!", GOLD_BTN, 0.85f, IC_BALL)) { gCoop = false; gCoopEnd = 0; startRun(); }
+    if (button(166, 38, 82, 56, "Coop", COL(40, 160, 170, 255), 0.55f, IC_FRIENDS)) { gState = ST_COOPSEL; sfxPlay(SFX_UI); }
+    bool musicPressed = gTouching && inRect(gTp.px, gTp.py, 252, 38, 48, 56);
+    if (button(252, 38, 48, 56, "", COL(145, 75, 190, 255), 0.55f)) { gMusicPage = 0; gState = ST_MUSIC; sfxPlay(SFX_UI); }
+    float my = musicPressed ? 2 : 0;
+    u32 noteShadow = COL(55, 30, 105, 255), note = COL(255, 243, 195, 255);
+    C2D_DrawEllipseSolid(272, 75 + my, 0.79f, 9, 6, noteShadow);
+    C2D_DrawRectSolid(277, 49 + my, 0.79f, 5, 25, noteShadow);
+    C2D_DrawTriangle(279, 49 + my, noteShadow, 290, 54 + my, noteShadow, 290, 64 + my, noteShadow, 0.79f);
+    C2D_DrawEllipseSolid(271, 73 + my, 0.8f, 8, 5, note);
+    C2D_DrawRectSolid(276, 47 + my, 0.8f, 4, 25, note);
+    C2D_DrawTriangle(278, 47 + my, note, 288, 52 + my, note, 288, 61 + my, note, 0.8f);
     if (button(20, 102, 136, 40, "Pokémon", EDGE, 0.55f, IC_BOOK)) { gState = ST_DEX; gDexSel = partner(); gDexGen = DEX[gDexSel].gen; gDexPage = 0; sprFreeAll(); sfxPlay(SFX_UI); }
     if (button(164, 102, 136, 40, "Mejoras", EDGE, 0.55f, IC_UP)) { shopEnter(); gState = ST_SHOP; sfxPlay(SFX_UI); }
     if (button(20, 150, 88, 40, "Gacha", COL(150, 80, 200, 255), 0.42f, IC_BALL4)) { gState = ST_GACHA; gNPulls = 0; slotStart(nullptr, 0); sfxPlay(SFX_UI); }
@@ -1678,6 +1688,33 @@ static int coopOverlay() {
     return 0;
 }
 
+// ---------------------------------------------------------------- musique de la partie
+static const char* const MUSIC_NAMES[6] = {"Música original", "Route 101", "Surf Theme", "New Bark Town", "Pokémon League Night", "Pallet Town", "Littleroot Town"};
+static void drawMusicTop() {
+    topBg(); tileBg();
+    text("Música", 200, 25, 0.9f, GOLD, true);
+    text("Elige la música de la partida", 200, 80, 0.52f, WHITE, true);
+    int selected = gSave.musicChoice <= 6 ? gSave.musicChoice : 0;
+    text(MUSIC_NAMES[selected], 200, 130, 0.58f, GOLD, true);
+    text("Se escucha una muestra al elegir", 200, 175, 0.4f, WHITE, true);
+}
+static void drawMusic() {
+    bgFill(); headerBar("Música", IC_SOUND);
+    int per = gSave.bigUI ? 2 : 3, pages = (7 + per - 1) / per;
+    if (gMusicPage >= pages) gMusicPage = pages - 1;
+    for (int k = 0; k < per; k++) {
+        int i = gMusicPage * per + k; if (i >= 7) break;
+        float y = 30 + k * (gSave.bigUI ? 80 : 52), h = gSave.bigUI ? 74 : 46;
+        float sc = gSave.bigUI ? 0.56f : 0.48f;
+        while (sc > 0.34f && textW(MUSIC_NAMES[i], sc) > 250) sc -= 0.02f;
+        if (button(8, y, 304, h, MUSIC_NAMES[i], gSave.musicChoice == i ? COL(160, 120, 40, 255) : EDGE, sc)) { musicChoose(i); sfxPlay(SFX_UI); }
+    }
+    if (arrowBtn(6, 190, 50, 20, false, gMusicPage > 0)) { gMusicPage--; sfxPlay(SFX_UI); }
+    if (arrowBtn(60, 190, 50, 20, true, gMusicPage + 1 < pages)) { gMusicPage++; sfxPlay(SFX_UI); }
+    snprintf(gTmp, sizeof gTmp, "%d/%d", gMusicPage + 1, pages); text(gTmp, 160, 189, 0.45f, WHITE, true);
+    if (button(204, 212, 108, 24, "Volver", COL(180, 80, 80, 255), 0.45f)) { musicPlay(MUS_MENU); gState = ST_MENU; sfxPlay(SFX_UI); }
+}
+
 // ---------------------------------------------------------------- mochila
 static void drawBagTop(u64 now) {
     topBg(); tileBg();
@@ -1962,6 +1999,7 @@ int main() {
         switch (gState) {
             case ST_MENU: drawMenuTop(now); break;
             case ST_BAG: drawBagTop(now); break;
+            case ST_MUSIC: drawMusicTop(); break;
             case ST_DEX: drawDexTop(now); break;
             case ST_MISSIONS: drawMissionsTop(); break;
             case ST_STARTMOVE: drawStartTop(); break;
@@ -1988,6 +2026,7 @@ int main() {
         switch (gState) {
             case ST_MENU: drawMenu(); break;
             case ST_BAG: drawBag(); break;
+            case ST_MUSIC: drawMusic(); break;
             case ST_DEX: drawDex(now); break;
             case ST_MISSIONS: drawMissions(); break;
             case ST_STARTMOVE: drawStartMove(); break;

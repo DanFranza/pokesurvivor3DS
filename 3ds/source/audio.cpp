@@ -22,6 +22,57 @@ static bool gSpooky; static int gTonic;   // Halloween: tempo más lento, tono m
 static u32 gNoise = 12345;
 static double gSfxLast[SFX_N];
 
+// WAV IMA ADPCM mono, décodé par blocs pour éviter de charger la musique en RAM.
+static FILE* gTrack;
+static long gTrackData, gTrackEnd;
+static s16 gTrackSamples[2048];
+static int gTrackPos, gTrackCount;
+static const int IMA_STEP[89] = {7,8,9,10,11,12,13,14,16,17,19,21,23,25,28,31,34,37,41,45,50,55,60,66,73,80,88,97,107,118,130,143,157,173,190,209,230,253,279,307,337,371,408,449,494,544,598,658,724,796,876,963,1060,1166,1282,1411,1552,1707,1878,2066,2272,2499,2749,3024,3327,3660,4026,4428,4871,5358,5894,6484,7132,7845,8630,9493,10442,11487,12635,13899,15289,16818,18500,20350,22385,24623,27086,29794,32767};
+static const int IMA_INDEX[16] = {-1,-1,-1,-1,2,4,6,8,-1,-1,-1,-1,2,4,6,8};
+static u32 readLE32(const u8* p) { return (u32)p[0] | (u32)p[1]<<8 | (u32)p[2]<<16 | (u32)p[3]<<24; }
+static void trackClose() { if (gTrack) fclose(gTrack); gTrack = nullptr; gTrackPos = gTrackCount = 0; }
+static bool trackOpen(int choice) {
+    trackClose();
+    if (choice < 1 || choice > 6) return false;
+    char path[40]; snprintf(path, sizeof path, "romfs:/music/%d.wav", choice);
+    gTrack = fopen(path, "rb"); if (!gTrack) return false;
+    u8 h[12]; if (fread(h, 1, 12, gTrack) != 12 || memcmp(h, "RIFF", 4) || memcmp(h+8, "WAVE", 4)) { trackClose(); return false; }
+    bool format = false;
+    for (int i = 0; i < 64; i++) {
+        u8 chunk[8]; if (fread(chunk, 1, 8, gTrack) != 8) break;
+        u32 n = readLE32(chunk+4); long start = ftell(gTrack);
+        if (!memcmp(chunk, "fmt ", 4) && n >= 20) {
+            u8 f[20]; if (fread(f, 1, 20, gTrack) != 20) break;
+            format = f[0] == 17 && f[1] == 0 && f[2] == 1 && f[3] == 0 && readLE32(f+4) == RATE && f[12] == 0 && f[13] == 4;
+        } else if (!memcmp(chunk, "data", 4) && format) {
+            gTrackData = start; gTrackEnd = start + n; return true;
+        }
+        if (fseek(gTrack, start + n + (n & 1), SEEK_SET)) break;
+    }
+    trackClose(); return false;
+}
+static float trackSample() {
+    if (!gTrack) return 0;
+    if (gTrackPos >= gTrackCount) {
+        if (ftell(gTrack) >= gTrackEnd) fseek(gTrack, gTrackData, SEEK_SET);
+        u8 block[1024]; long left = gTrackEnd - ftell(gTrack);
+        size_t n = fread(block, 1, left < 1024 ? (size_t)left : 1024, gTrack);
+        if (n < 4) { trackClose(); return 0; }
+        int pred = (s16)(block[0] | block[1] << 8), index = block[2];
+        if (index > 88) { trackClose(); return 0; }
+        gTrackCount = 0; gTrackSamples[gTrackCount++] = (s16)pred;
+        for (size_t j = 4; j < n; j++) for (int half = 0; half < 2; half++) {
+            int code = half ? block[j] >> 4 : block[j] & 15, step = IMA_STEP[index];
+            int diff = step >> 3; if (code & 1) diff += step >> 2; if (code & 2) diff += step >> 1; if (code & 4) diff += step;
+            pred += (code & 8) ? -diff : diff; if (pred < -32768) pred = -32768; if (pred > 32767) pred = 32767;
+            index += IMA_INDEX[code]; if (index < 0) index = 0; if (index > 88) index = 88;
+            gTrackSamples[gTrackCount++] = (s16)pred;
+        }
+        gTrackPos = 0;
+    }
+    return gTrackSamples[gTrackPos++] / 32768.0f;
+}
+
 struct SfxDef { u8 wave; float f0, f1, dur, vol, gap; };
 static const SfxDef SFX[SFX_N] = {
     /*HIT*/ {2, 220, 110, 0.05f, 0.22f, 0.05f},   /*KILL*/ {3, 330, 110, 0.09f, 0.20f, 0.06f},
@@ -109,7 +160,7 @@ static float voiceSample(Voice& v) {
 }
 
 static void fill(s16* dst, int n) {
-    const SongDef* sd = gSong >= 0 ? &SONGS[gSong] : nullptr;
+    const SongDef* sd = gSong >= 0 && !gTrack ? &SONGS[gSong] : nullptr;
     float stepS = sd ? RATE * 60.0f / (sd->bpm * (gSpooky ? 0.88f : 1.0f)) / 4 : 0;
     float vol = clampf(gSave.vol, 0, 1) * 0.9f;
     for (int i = 0; i < n; i++) {
@@ -132,7 +183,7 @@ static void fill(s16* dst, int n) {
         }
         float m = 0, fx = 0;
         for (Voice& v : gV) if (v.on) { float o = voiceSample(v); if (v.music) m += o; else fx += o; }
-        float s = (m * 0.55f * gFade + fx) * vol;
+        float s = ((gTrack ? trackSample() * 0.7f : m * 0.55f) * gFade + fx) * vol;
         if (s > 0.98f) s = 0.98f; else if (s < -0.98f) s = -0.98f;
         dst[i] = (s16)(s * 32000);
         gClock += 1;
@@ -155,6 +206,7 @@ void audioInit() {
     gOk = true;
 }
 void audioExit() {
+    trackClose();
     if (!gOk) return;
     ndspChnReset(0);
     ndspExit();
@@ -174,6 +226,8 @@ void audioUpdate() {
 }
 void musicPlay(int song) {
     if (!gOk || song == gSong) return;
+    bool keepTrack = gTrack && song != MUS_MENU && song >= 0;
+    if (!keepTrack) { trackClose(); if (song != MUS_MENU && song >= 0 && gSave.musicChoice > 0 && gSave.musicChoice <= 6) trackOpen(gSave.musicChoice); }
     for (Voice& v : gV) if (v.music) v.on = false;
     gSong = song >= 0 && song < MUS_N ? song : -1;
     gSpooky = hwOn() && gSong >= 0;
@@ -182,6 +236,10 @@ void musicPlay(int song) {
     gStep = 0;
     gStepAt = gClock + 0.05 * RATE;
     gFade = 0;
+}
+void musicChoose(int choice) {
+    if (choice < 0 || choice > 6) return;
+    gSave.musicChoice = choice; saveWrite(); trackClose(); gSong = -1; musicPlay(MUS_BATTLE);
 }
 void sfxPlay(int id) {
     if (!gOk || id < 0 || id >= SFX_N) return;

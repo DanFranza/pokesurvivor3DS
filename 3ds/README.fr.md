@@ -27,6 +27,10 @@ make                           # produit pokesurvivor3ds.3dsx
 
 Le répertoire `romfs/gfx/` est généré et n'est pas inclus dans Git. Pour tester le jeu, utiliser Azahar ou envoyer le fichier sur la console avec `3dslink pokesurvivor3ds.3dsx`. Sur console réelle, la musique nécessite `sdmc:/3ds/dspfirm.cdc` (DSP1) ; sans ce fichier, le jeu fonctionne sans son.
 
+## Musique de partie
+
+Depuis le menu principal, touche la note pour choisir une musique et en écouter un aperçu. Le choix est conservé et s'applique pendant les parties ; « Musique originale » rétablit la musique du jeu. Les morceaux ajoutés sont convertis en audio mono pour la 3DS : Route 101, Surf Theme, New Bark Town et Littleroot Town (Feora VGM / Yume), Pokémon League Night (Feora / Lucas Cooper) et Pallet Town. Les six pistes proviennent de Pixabay et ont leurs propres conditions : voir [leurs crédits, liens et conditions](MUSIC-LICENSE.md). Les versions fournies avec le jeu sont adaptées au format audio de la 3DS.
+
 ## Contenu
 
 - Table des 18 types, faiblesses et messages d'efficacité du jeu web.

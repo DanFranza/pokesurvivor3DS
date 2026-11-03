@@ -155,5 +155,9 @@
  "Cambiar cartas (%d)": "Trocar cartas (%d)",
  "Tiempo %02d:%02d · Nivel %d · KO %d": "Tempo %02d:%02d · Nível %d · KO %d",
  "Conseguidos: %d/%d": "Obtidos: %d/%d",
- "Vetar movimientos %d/%d": "Vetos de golpes %d/%d"
+ "Vetar movimientos %d/%d": "Vetos de golpes %d/%d",
+ "Música original": "Música original",
+ "Música": "Música",
+ "Elige la música de la partida": "Escolha a música da partida",
+ "Se escucha una muestra al elegir": "Ouça uma prévia ao escolher"
 }

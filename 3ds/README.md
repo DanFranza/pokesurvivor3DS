@@ -61,3 +61,7 @@ Guardado en `sdmc:/3ds/pokesurvivor3ds.sav`.
 - Banner de gacha «Noche Espectral» (Pokémon Fantasma de todas las regiones, shiny 2 %), sólo durante el evento.
 - Kecleon: lleva sombrero de bruja en el evento y vende 3 disfraces (Gengar, Pikachu, Umbreon) por 300 caramelos; se compran sólo durante el evento y se conservan (página «Disfraces»). Sprites `p1050-1053` generados por `tools/make_sprites.py` (ataques con disfraz usan la animación de caminar).
 - Música más lenta, en tono menor y con campana grave durante el evento. El fondo de menú sólo recibe un tinte nocturno.
+
+## Música adicional
+
+Las seis pistas añadidas proceden de Pixabay y se han convertido al formato de audio de 3DS. Consulta [sus créditos, fuentes y condiciones](MUSIC-LICENSE.md).
