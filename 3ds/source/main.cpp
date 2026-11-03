@@ -1175,7 +1175,7 @@ static void drawPlayBottom() {
         snprintf(b, sizeof b, "Nv %d", playLevel()); text(b, 8, 25, 0.42f, WHITE);
         int secs = (int)playTime();
         snprintf(b, sizeof b, "%02d:%02d", secs / 60, secs % 60); text(b, 160, 25, 0.42f, WHITE, true);
-        snprintf(b, sizeof b, "KO %d", playKills()); text(b, 280, 25, 0.42f, COL(255, 230, 120, 255), true);
+        snprintf(b, sizeof b, "KO %d", playKills()); text(b, 312 - textW(b, 0.42f), 25, 0.42f, COL(255, 230, 120, 255));
         C2D_DrawRectSolid(8, 45, 0.1f, 304, 8, COL(0, 0, 0, 160));
         C2D_DrawRectSolid(8, 45, 0.2f, 304 * clampf(playXpFrac(), 0, 1), 8, COL(80, 180, 255, 255));
         C2D_DrawRectSolid(8, 57, 0.1f, 304, 8, COL(0, 0, 0, 160));
