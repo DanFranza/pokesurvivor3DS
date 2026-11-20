@@ -264,7 +264,10 @@ void saveLoad() {
             size_t n = fread(&gSave, 1, sizeof gSave, f);
             ok = n == sizeof gSave && gSave.magic == SAVE_MAGIC;
         } else {
-            SaveLegacy old = {};
+            // The migration buffer is roughly 45 KiB. Keeping it on the stack
+            // exhausts the Old 3DS homebrew stack before the first save read.
+            static SaveLegacy old;
+            memset(&old, 0, sizeof old);
             size_t n = fread(&old, 1, sizeof old, f);
             ok = n >= offsetof(SaveLegacy, vol) + sizeof(float) && old.magic == SAVE_MAGIC;
             if (ok) { saveMigrate(old); migrated = true; }
