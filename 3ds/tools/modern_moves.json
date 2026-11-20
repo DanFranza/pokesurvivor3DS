@@ -1,0 +1,3438 @@
+{
+  "source": "https://pokesurvivor.com/",
+  "moves": [
+    {
+      "id": "blizzard",
+      "name": "Ventisca",
+      "desc": "Un abanico de nieve ancho que deja a los enemigos casi quietos.",
+      "type": "ice",
+      "kind": "cone",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.9,
+        "dmg": 15.74,
+        "speed": 300.0,
+        "count": 9.0,
+        "pierce": 1.0,
+        "life": 0.55,
+        "size": 7.0,
+        "arc": 1.3,
+        "slow": 0.55
+      },
+      "evoNeed": 3,
+      "only": [],
+      "ups": [
+        {
+          "t": "+3 disparos",
+          "m": {
+            "count": 3.0
+          }
+        },
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+30% alcance",
+          "m": {
+            "life": 1.3
+          }
+        },
+        {
+          "t": "+3 disparos y +1 perforación",
+          "m": {
+            "count": 3.0,
+            "pierce": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "megahorn",
+      "name": "Megacuerno",
+      "desc": "Una embestida larguísima con el cuerno que atraviesa todo.",
+      "type": "bug",
+      "kind": "dash",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.8,
+        "dmg": 41.68,
+        "radius": 220.0,
+        "width": 40.0,
+        "knock": 120.0
+      },
+      "evoNeed": 1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+30% distancia",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+60% daño y más ancho",
+          "m": {
+            "dmg": 1.6,
+            "width": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "dragon-pulse",
+      "name": "Pulso Dragón",
+      "desc": "Una onda de dragón enorme y lenta que atraviesa a todos los que pilla.",
+      "type": "dragon",
+      "kind": "projectile",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.9,
+        "dmg": 18.17,
+        "speed": 270.0,
+        "count": 1.0,
+        "spread": 0.12,
+        "pierce": 99.0,
+        "life": 1.7,
+        "size": 12.0
+      },
+      "evoNeed": 1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.4
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 perforación",
+          "m": {
+            "count": 1.0,
+            "pierce": 1.0,
+            "spread": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "scald",
+      "name": "Escaldar",
+      "desc": "Agua hirviendo que atraviesa a uno y quema.",
+      "type": "water",
+      "kind": "projectile",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.55,
+        "dmg": 22.9,
+        "speed": 360.0,
+        "count": 1.0,
+        "spread": 0.12,
+        "pierce": 1.0,
+        "life": 1.3,
+        "size": 7.0,
+        "burn": 1.0
+      },
+      "evoNeed": 1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.4
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 perforación",
+          "m": {
+            "count": 1.0,
+            "pierce": 1.0,
+            "spread": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "hurricane",
+      "name": "Vendaval",
+      "desc": "Un remolino de viento que atraviesa y aparta de un soplido a todos.",
+      "type": "flying",
+      "kind": "projectile",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.0,
+        "dmg": 57.68,
+        "speed": 330.0,
+        "count": 1.0,
+        "spread": 0.12,
+        "pierce": 99.0,
+        "life": 1.2,
+        "size": 13.0,
+        "knock": 240.0
+      },
+      "evoNeed": 2,
+      "only": [],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.4
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 perforación",
+          "m": {
+            "count": 1.0,
+            "pierce": 1.0,
+            "spread": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "psyshock",
+      "name": "Psicocarga",
+      "desc": "Una onda psíquica que rebota entre cuatro enemigos.",
+      "type": "psychic",
+      "kind": "bounce",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.7,
+        "dmg": 26.17,
+        "speed": 360.0,
+        "count": 1.0,
+        "spread": 0.12,
+        "life": 1.6,
+        "size": 8.0,
+        "bounce": 4.0
+      },
+      "evoNeed": 1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+1 rebote",
+          "m": {
+            "bounce": 1.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 rebote",
+          "m": {
+            "count": 1.0,
+            "bounce": 1.0,
+            "spread": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "dragon-ascent",
+      "name": "Ascenso Draco",
+      "desc": "Bajas del cielo a toda velocidad y arrasas todo lo que hay en tu camino.",
+      "type": "flying",
+      "kind": "dash",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.9,
+        "dmg": 17.61,
+        "radius": 175.0,
+        "width": 50.0,
+        "knock": 100.0
+      },
+      "evoNeed": -1,
+      "only": [
+        384
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+30% distancia",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+60% daño y más ancho",
+          "m": {
+            "dmg": 1.6,
+            "width": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "psystrike",
+      "name": "Onda Mental",
+      "desc": "Una onda de poder mental sale en todas direcciones y atraviesa a varios enemigos.",
+      "type": "psychic",
+      "kind": "nova",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.2,
+        "dmg": 12.26,
+        "speed": 300.0,
+        "count": 16.0,
+        "pierce": 3.0,
+        "life": 1.4,
+        "size": 9.0,
+        "homing": 1.2
+      },
+      "evoNeed": -1,
+      "only": [
+        150
+      ],
+      "ups": [
+        {
+          "t": "+4 proyectiles",
+          "m": {
+            "count": 4.0
+          }
+        },
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+4 proyectiles y +1 perforación",
+          "m": {
+            "count": 4.0,
+            "pierce": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "sacred-fire",
+      "name": "Fuego Sagrado",
+      "desc": "Llamas sagradas caen sobre los enemigos cercanos y los queman.",
+      "type": "fire",
+      "kind": "meteor",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.3,
+        "dmg": 4.49,
+        "count": 4.0,
+        "radius": 58.0,
+        "burn": 1.5
+      },
+      "evoNeed": -1,
+      "only": [
+        244,
+        250
+      ],
+      "ups": [
+        {
+          "t": "+1 meteoro",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% radio",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "+2 meteoros y -20% recarga",
+          "m": {
+            "count": 2.0,
+            "cd": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "origin-pulse",
+      "name": "Pulso Primigenio",
+      "desc": "Rayos de agua salen de ti en todas direcciones y empujan a los enemigos.",
+      "type": "water",
+      "kind": "nova",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.3,
+        "dmg": 21.56,
+        "speed": 320.0,
+        "count": 10.0,
+        "pierce": 4.0,
+        "life": 1.3,
+        "size": 11.0,
+        "knock": 60.0
+      },
+      "evoNeed": -1,
+      "only": [
+        382
+      ],
+      "ups": [
+        {
+          "t": "+4 proyectiles",
+          "m": {
+            "count": 4.0
+          }
+        },
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+4 proyectiles y +1 perforación",
+          "m": {
+            "count": 4.0,
+            "pierce": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "precipice-blades",
+      "name": "Filo del Abismo",
+      "desc": "Hojas de piedra brotan del suelo en línea, una detrás de otra.",
+      "type": "ground",
+      "kind": "quake",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.25,
+        "dmg": 12.87,
+        "count": 8.0,
+        "radius": 40.0
+      },
+      "evoNeed": -1,
+      "only": [
+        383
+      ],
+      "ups": [
+        {
+          "t": "+2 ondas",
+          "m": {
+            "count": 2.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+25% tamaño",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga y +2 ondas",
+          "m": {
+            "cd": 0.75,
+            "count": 2.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "volt-tackle",
+      "name": "Placaje Eléctrico",
+      "desc": "Te lanzas envuelto en electricidad y arrollas todo a tu paso.",
+      "type": "electric",
+      "kind": "dash",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.9,
+        "dmg": 22.14,
+        "radius": 150.0,
+        "width": 44.0,
+        "knock": 120.0
+      },
+      "evoNeed": -1,
+      "only": [
+        172,
+        25,
+        26
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+30% distancia",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+60% daño y más ancho",
+          "m": {
+            "dmg": 1.6,
+            "width": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "diamond-storm",
+      "name": "Tormenta de Diamantes",
+      "desc": "Una lluvia de diamantes cae sobre los enemigos cercanos.",
+      "type": "rock",
+      "kind": "meteor",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.25,
+        "dmg": 8.87,
+        "count": 5.0,
+        "radius": 50.0,
+        "knock": 50.0
+      },
+      "evoNeed": -1,
+      "only": [
+        719
+      ],
+      "ups": [
+        {
+          "t": "+1 meteoro",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% radio",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "+2 meteoros y -20% recarga",
+          "m": {
+            "count": 2.0,
+            "cd": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "secret-sword",
+      "name": "Sable Místico",
+      "desc": "Dos tajos de energía salen hacia el enemigo y vuelven a ti.",
+      "type": "fighting",
+      "kind": "boomerang",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.85,
+        "dmg": 11.7,
+        "speed": 360.0,
+        "count": 2.0,
+        "spread": 0.5,
+        "size": 9.0,
+        "radius": 240.0
+      },
+      "evoNeed": -1,
+      "only": [
+        647
+      ],
+      "ups": [
+        {
+          "t": "+1 bumerán",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% alcance",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "+1 bumerán y +40% daño",
+          "m": {
+            "count": 1.0,
+            "dmg": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "doom-desire",
+      "name": "Deseo Oculto",
+      "desc": "Un rayo de luz cae al rato sobre un enemigo y explosiona con mucha fuerza.",
+      "type": "steel",
+      "kind": "meteor",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 2.4,
+        "dmg": 22.14,
+        "count": 1.0,
+        "radius": 95.0,
+        "knock": 120.0
+      },
+      "evoNeed": -1,
+      "only": [
+        385
+      ],
+      "ups": [
+        {
+          "t": "+1 meteoro",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% radio",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "+2 meteoros y -20% recarga",
+          "m": {
+            "count": 2.0,
+            "cd": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "geomancy",
+      "name": "Geocontrol",
+      "desc": "No hace daño: acumula mucho ATAQUE ESPECIAL mientras esté activo.",
+      "type": "fairy",
+      "kind": "buff",
+      "cat": "status",
+      "stat": "satk",
+      "v": {
+        "cd": 0.85,
+        "amount": 0.18,
+        "dur": 8.0,
+        "stacks": 5.0
+      },
+      "evoNeed": -1,
+      "only": [
+        716
+      ],
+      "ups": [
+        {
+          "t": "+1 acumulación máxima",
+          "m": {
+            "stacks": 1.0
+          }
+        },
+        {
+          "t": "+40% potencia",
+          "m": {
+            "amount": 1.4
+          }
+        },
+        {
+          "t": "+50% duración",
+          "m": {
+            "dur": 1.5
+          }
+        },
+        {
+          "t": "+1 acumulación y +40% potencia",
+          "m": {
+            "stacks": 1.0,
+            "amount": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "mortal-spin",
+      "name": "Giro Mortífero",
+      "desc": "Giras golpeando todo lo que tienes alrededor y lo envenenas.",
+      "type": "poison",
+      "kind": "spin",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.0,
+        "dmg": 8.82,
+        "count": 4.0,
+        "radius": 72.0,
+        "poison": 1.5
+      },
+      "evoNeed": -1,
+      "only": [
+        970
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% radio",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "+1 vuelta",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "-25% recarga y +30% daño",
+          "m": {
+            "cd": 0.75,
+            "dmg": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "attack-order",
+      "name": "Al Ataque",
+      "desc": "Un enjambre de bichos persigue a los enemigos.",
+      "type": "bug",
+      "kind": "homing",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.75,
+        "dmg": 22.69,
+        "speed": 300.0,
+        "count": 4.0,
+        "spread": 0.6,
+        "life": 2.0,
+        "size": 7.0,
+        "homing": 6.0
+      },
+      "evoNeed": -1,
+      "only": [
+        416
+      ],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.3
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +40% daño",
+          "m": {
+            "count": 1.0,
+            "dmg": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "relic-song",
+      "name": "Canto Arcaico",
+      "desc": "Un canto antiguo que daña y aparta con fuerza a todos los que tienes cerca.",
+      "type": "normal",
+      "kind": "shove",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.1,
+        "dmg": 84.58,
+        "radius": 110.0,
+        "knock": 360.0
+      },
+      "evoNeed": -1,
+      "only": [
+        648
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% radio",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% empuje y +40% daño",
+          "m": {
+            "knock": 1.5,
+            "dmg": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "blue-flare",
+      "name": "Llama Azul",
+      "desc": "Una llamarada azul en línea recta que quema todo lo que atraviesa.",
+      "type": "fire",
+      "kind": "beam",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.6,
+        "dmg": 16.81,
+        "radius": 300.0,
+        "width": 40.0,
+        "burn": 1.5
+      },
+      "evoNeed": -1,
+      "only": [
+        643
+      ],
+      "ups": [
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% alcance y grosor",
+          "m": {
+            "radius": 1.3,
+            "width": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño",
+          "m": {
+            "dmg": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "pyro-ball",
+      "name": "Balón Ígneo",
+      "desc": "Un balón de fuego que atraviesa a varios enemigos y los quema.",
+      "type": "fire",
+      "kind": "projectile",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.7,
+        "dmg": 18.56,
+        "speed": 320.0,
+        "count": 1.0,
+        "spread": 0.1,
+        "pierce": 3.0,
+        "life": 1.5,
+        "size": 11.0,
+        "burn": 1.0
+      },
+      "evoNeed": -1,
+      "only": [
+        815
+      ],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.4
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 perforación",
+          "m": {
+            "count": 1.0,
+            "pierce": 1.0,
+            "spread": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "glacial-lance",
+      "name": "Lanza Glacial",
+      "desc": "Lanzas de hielo caen sobre los enemigos cercanos y los frenan.",
+      "type": "ice",
+      "kind": "meteor",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.4,
+        "dmg": 5.69,
+        "count": 4.0,
+        "radius": 60.0,
+        "slow": 0.5
+      },
+      "evoNeed": -1,
+      "only": [
+        898
+      ],
+      "ups": [
+        {
+          "t": "+1 meteoro",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% radio",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "+2 meteoros y -20% recarga",
+          "m": {
+            "count": 2.0,
+            "cd": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "thousand-arrows",
+      "name": "Mil Flechas",
+      "desc": "Una lluvia de flechas de tierra cae sobre muchos enemigos.",
+      "type": "ground",
+      "kind": "meteor",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.3,
+        "dmg": 4.84,
+        "count": 7.0,
+        "radius": 44.0
+      },
+      "evoNeed": -1,
+      "only": [
+        718
+      ],
+      "ups": [
+        {
+          "t": "+1 meteoro",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% radio",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "+2 meteoros y -20% recarga",
+          "m": {
+            "count": 2.0,
+            "cd": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "aeroblast",
+      "name": "Aerochorro",
+      "desc": "Un chorro de aire cortante en línea recta que atraviesa todo lo que pilla.",
+      "type": "flying",
+      "kind": "beam",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.3,
+        "dmg": 33.08,
+        "radius": 320.0,
+        "width": 36.0
+      },
+      "evoNeed": -1,
+      "only": [
+        249
+      ],
+      "ups": [
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% alcance y grosor",
+          "m": {
+            "radius": 1.3,
+            "width": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño",
+          "m": {
+            "dmg": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "moongeist-beam",
+      "name": "Rayo Umbrío",
+      "desc": "Un rayo de luz de luna que atraviesa todo lo que pilla.",
+      "type": "ghost",
+      "kind": "beam",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.5,
+        "dmg": 34.4,
+        "radius": 300.0,
+        "width": 44.0
+      },
+      "evoNeed": -1,
+      "only": [
+        792
+      ],
+      "ups": [
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% alcance y grosor",
+          "m": {
+            "radius": 1.3,
+            "width": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño",
+          "m": {
+            "dmg": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "spirit-shackle",
+      "name": "Puntada Sombría",
+      "desc": "Una flecha sombría que atraviesa a varios enemigos y los deja frenados.",
+      "type": "ghost",
+      "kind": "projectile",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.75,
+        "dmg": 24.41,
+        "speed": 400.0,
+        "count": 1.0,
+        "spread": 0.08,
+        "pierce": 3.0,
+        "life": 1.4,
+        "size": 8.0,
+        "slow": 0.5
+      },
+      "evoNeed": -1,
+      "only": [
+        724
+      ],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.4
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 perforación",
+          "m": {
+            "count": 1.0,
+            "pierce": 1.0,
+            "spread": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "clanging-scales",
+      "name": "Fragor Escamas",
+      "desc": "El estruendo de tus escamas daña y aparta a todos los que tienes cerca.",
+      "type": "dragon",
+      "kind": "shove",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.1,
+        "dmg": 85.8,
+        "radius": 100.0,
+        "knock": 300.0
+      },
+      "evoNeed": -1,
+      "only": [
+        784
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% radio",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% empuje y +40% daño",
+          "m": {
+            "knock": 1.5,
+            "dmg": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "darkest-lariat",
+      "name": "Lariat Oscuro",
+      "desc": "Giras con los brazos abiertos golpeando todo lo que tienes alrededor.",
+      "type": "dark",
+      "kind": "spin",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.0,
+        "dmg": 9.72,
+        "count": 4.0,
+        "radius": 78.0,
+        "knock": 60.0
+      },
+      "evoNeed": -1,
+      "only": [
+        727
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% radio",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "+1 vuelta",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "-25% recarga y +30% daño",
+          "m": {
+            "cd": 0.75,
+            "dmg": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "sunsteel-strike",
+      "name": "Meteoimpacto",
+      "desc": "Te lanzas envuelto en el poder del sol y arrollas todo a tu paso.",
+      "type": "steel",
+      "kind": "dash",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.0,
+        "dmg": 20.33,
+        "radius": 170.0,
+        "width": 52.0,
+        "knock": 120.0
+      },
+      "evoNeed": -1,
+      "only": [
+        791
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+30% distancia",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+60% daño y más ancho",
+          "m": {
+            "dmg": 1.6,
+            "width": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "behemoth-blade",
+      "name": "Tajo Supremo",
+      "desc": "Un tajo enorme con la espada que golpea en un arco amplio.",
+      "type": "steel",
+      "kind": "melee",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.9,
+        "dmg": 24.82,
+        "radius": 88.0,
+        "arc": 3.0,
+        "knock": 120.0
+      },
+      "evoNeed": -1,
+      "only": [
+        888
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% alcance",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "Golpea en 360° y +50% daño",
+          "m": {
+            "arc": 9.0,
+            "dmg": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "sparkling-aria",
+      "name": "Aria Burbuja",
+      "desc": "Burbujas cantarinas salen en todas direcciones y atraviesan a varios enemigos.",
+      "type": "water",
+      "kind": "nova",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.2,
+        "dmg": 15.32,
+        "speed": 280.0,
+        "count": 14.0,
+        "pierce": 2.0,
+        "life": 1.4,
+        "size": 9.0
+      },
+      "evoNeed": -1,
+      "only": [
+        730
+      ],
+      "ups": [
+        {
+          "t": "+4 proyectiles",
+          "m": {
+            "count": 4.0
+          }
+        },
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+4 proyectiles y +1 perforación",
+          "m": {
+            "count": 4.0,
+            "pierce": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "waterfall",
+      "name": "Cascada",
+      "desc": "Una columna de agua cae sobre el enemigo y lo deja aturdido.",
+      "type": "water",
+      "kind": "stun",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.4,
+        "dmg": 23.01,
+        "radius": 46.0,
+        "stun": 0.8
+      },
+      "evoNeed": 1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% radio",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "+50% aturdimiento",
+          "m": {
+            "stun": 1.5
+          }
+        },
+        {
+          "t": "-25% recarga y +30% daño",
+          "m": {
+            "cd": 0.75,
+            "dmg": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "water-pulse",
+      "name": "Hidropulso",
+      "desc": "Un anillo de agua que deja aturdido un momento al que toca.",
+      "type": "water",
+      "kind": "projectile",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.7,
+        "dmg": 44.11,
+        "speed": 360.0,
+        "count": 1.0,
+        "spread": 0.12,
+        "life": 1.4,
+        "size": 10.0,
+        "stun": 0.45
+      },
+      "evoNeed": 3,
+      "only": [],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.4
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 perforación",
+          "m": {
+            "count": 1.0,
+            "pierce": 1.0,
+            "spread": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "roar-of-time",
+      "name": "Distorsión",
+      "desc": "Cargas un momento y sale un rayo enorme que distorsiona el tiempo.",
+      "type": "dragon",
+      "kind": "charge",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 2.4,
+        "dmg": 37.64,
+        "radius": 330.0,
+        "width": 58.0,
+        "charge": 0.8
+      },
+      "evoNeed": -1,
+      "only": [
+        483
+      ],
+      "ups": [
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% alcance y grosor",
+          "m": {
+            "radius": 1.3,
+            "width": 1.3
+          }
+        },
+        {
+          "t": "Carga más rápido y -20% recarga",
+          "m": {
+            "charge": 0.7,
+            "cd": 0.8
+          }
+        },
+        {
+          "t": "+50% daño",
+          "m": {
+            "dmg": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "dark-void",
+      "name": "Brecha Negra",
+      "desc": "Una brecha oscura deja aturdidos un buen rato a todos los que pilla.",
+      "type": "dark",
+      "kind": "stun",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 2.0,
+        "dmg": 25.3,
+        "radius": 110.0,
+        "stun": 1.8
+      },
+      "evoNeed": -1,
+      "only": [
+        491
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% radio",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "+50% aturdimiento",
+          "m": {
+            "stun": 1.5
+          }
+        },
+        {
+          "t": "-25% recarga y +30% daño",
+          "m": {
+            "cd": 0.75,
+            "dmg": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "photon-geyser",
+      "name": "Géiser Fotónico",
+      "desc": "Reúnes luz un momento y sale un géiser de fotones enorme hacia delante.",
+      "type": "psychic",
+      "kind": "charge",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 2.3,
+        "dmg": 37.21,
+        "radius": 320.0,
+        "width": 60.0,
+        "charge": 0.7
+      },
+      "evoNeed": -1,
+      "only": [
+        800
+      ],
+      "ups": [
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% alcance y grosor",
+          "m": {
+            "radius": 1.3,
+            "width": 1.3
+          }
+        },
+        {
+          "t": "Carga más rápido y -20% recarga",
+          "m": {
+            "charge": 0.7,
+            "cd": 0.8
+          }
+        },
+        {
+          "t": "+50% daño",
+          "m": {
+            "dmg": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "dynamax-cannon",
+      "name": "Cañón Dinamax",
+      "desc": "Cargas energía un momento y disparas un cañonazo rojo enorme.",
+      "type": "dragon",
+      "kind": "charge",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 2.4,
+        "dmg": 35.28,
+        "radius": 340.0,
+        "width": 62.0,
+        "charge": 0.8
+      },
+      "evoNeed": -1,
+      "only": [
+        890
+      ],
+      "ups": [
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "+30% alcance y grosor",
+          "m": {
+            "radius": 1.3,
+            "width": 1.3
+          }
+        },
+        {
+          "t": "Carga más rápido y -20% recarga",
+          "m": {
+            "charge": 0.7,
+            "cd": 0.8
+          }
+        },
+        {
+          "t": "+50% daño",
+          "m": {
+            "dmg": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "earthquake",
+      "name": "Terremoto",
+      "desc": "Un temblor sale de ti en anillo y golpea a todo lo que alcanza.",
+      "type": "ground",
+      "kind": "tremor",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.6,
+        "dmg": 25.5,
+        "radius": 170.0,
+        "knock": 60.0
+      },
+      "evoNeed": 1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% radio",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y +20% radio",
+          "m": {
+            "dmg": 1.5,
+            "radius": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "surf",
+      "name": "Surf",
+      "desc": "Una ola enorme cruza la pantalla y arrastra a los enemigos.",
+      "type": "water",
+      "kind": "wave",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 2.2,
+        "dmg": 215.46,
+        "speed": 560.0,
+        "radius": 560.0,
+        "width": 190.0,
+        "knock": 160.0
+      },
+      "evoNeed": 2,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "Ola un 30% más ancha",
+          "m": {
+            "width": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y arrastra más",
+          "m": {
+            "dmg": 1.5,
+            "knock": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "fire-blast",
+      "name": "Llamarada",
+      "desc": "Una explosión de fuego en cruz sobre el enemigo que quema.",
+      "type": "fire",
+      "kind": "cross",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.6,
+        "dmg": 15.9,
+        "radius": 90.0,
+        "width": 26.0,
+        "burn": 1.0
+      },
+      "evoNeed": 1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "Brazos un 30% más largos",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y brazos más anchos",
+          "m": {
+            "dmg": 1.5,
+            "width": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "thunder",
+      "name": "Trueno",
+      "desc": "Caen rayos sobre enemigos al azar de la pantalla.",
+      "type": "electric",
+      "kind": "storm",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.5,
+        "dmg": 4.29,
+        "count": 5.0,
+        "radius": 34.0
+      },
+      "evoNeed": 3,
+      "only": [],
+      "ups": [
+        {
+          "t": "+2 rayos",
+          "m": {
+            "count": 2.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+2 rayos y +30% radio",
+          "m": {
+            "count": 2.0,
+            "radius": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "sunny-day",
+      "name": "Día Soleado",
+      "desc": "No hace daño: sale el sol (Fuego ×1,5, Agua ×0,5) un rato aunque cambies de ataque.",
+      "type": "fire",
+      "kind": "weather",
+      "cat": "status",
+      "stat": null,
+      "v": {
+        "cd": 4.0,
+        "dur": 20.0,
+        "wx": 0.0
+      },
+      "evoNeed": -1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+35% duración",
+          "m": {
+            "dur": 1.35
+          }
+        },
+        {
+          "t": "+35% duración",
+          "m": {
+            "dur": 1.35
+          }
+        },
+        {
+          "t": "+35% duración",
+          "m": {
+            "dur": 1.35
+          }
+        },
+        {
+          "t": "+50% duración",
+          "m": {
+            "dur": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "rain-dance",
+      "name": "Danza Lluvia",
+      "desc": "No hace daño: llueve (Agua ×1,5, Eléctrico ×1,2, Fuego ×0,5) un rato aunque cambies de ataque.",
+      "type": "water",
+      "kind": "weather",
+      "cat": "status",
+      "stat": null,
+      "v": {
+        "cd": 4.0,
+        "dur": 20.0,
+        "wx": 1.0
+      },
+      "evoNeed": -1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+35% duración",
+          "m": {
+            "dur": 1.35
+          }
+        },
+        {
+          "t": "+35% duración",
+          "m": {
+            "dur": 1.35
+          }
+        },
+        {
+          "t": "+35% duración",
+          "m": {
+            "dur": 1.35
+          }
+        },
+        {
+          "t": "+50% duración",
+          "m": {
+            "dur": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "sandstorm",
+      "name": "Tormenta Arena",
+      "desc": "No hace daño: tormenta de arena (Roca, Tierra y Acero ×1,3; los demás sufren, también tú) un rato.",
+      "type": "rock",
+      "kind": "weather",
+      "cat": "status",
+      "stat": null,
+      "v": {
+        "cd": 4.0,
+        "dur": 20.0,
+        "wx": 2.0
+      },
+      "evoNeed": -1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+35% duración",
+          "m": {
+            "dur": 1.35
+          }
+        },
+        {
+          "t": "+35% duración",
+          "m": {
+            "dur": 1.35
+          }
+        },
+        {
+          "t": "+35% duración",
+          "m": {
+            "dur": 1.35
+          }
+        },
+        {
+          "t": "+50% duración",
+          "m": {
+            "dur": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "fire-punch",
+      "name": "Puño Fuego",
+      "desc": "Tres directos de fuego seguidos que queman.",
+      "type": "fire",
+      "kind": "punch",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.85,
+        "dmg": 10.37,
+        "count": 3.0,
+        "radius": 60.0,
+        "arc": 1.0,
+        "burn": 1.0
+      },
+      "evoNeed": 1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+1 directo",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y +20% alcance",
+          "m": {
+            "dmg": 1.5,
+            "radius": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "ice-punch",
+      "name": "Puño Hielo",
+      "desc": "Tres directos helados: frenan y el último deja congelado un momento.",
+      "type": "ice",
+      "kind": "punch",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.85,
+        "dmg": 15.69,
+        "count": 3.0,
+        "radius": 60.0,
+        "arc": 1.0,
+        "slow": 0.4,
+        "stun": 0.35
+      },
+      "evoNeed": 2,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+1 directo",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y +20% alcance",
+          "m": {
+            "dmg": 1.5,
+            "radius": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "thunder-punch",
+      "name": "Puño Trueno",
+      "desc": "Tres directos eléctricos: el último salta a dos enemigos cercanos.",
+      "type": "electric",
+      "kind": "punch",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.85,
+        "dmg": 11.98,
+        "count": 3.0,
+        "radius": 60.0,
+        "arc": 1.0,
+        "zap": 2.0
+      },
+      "evoNeed": 3,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+1 directo",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y +20% alcance",
+          "m": {
+            "dmg": 1.5,
+            "radius": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "drain-punch",
+      "name": "Puño Drenaje",
+      "desc": "Tres directos que te curan con cada golpe.",
+      "type": "fighting",
+      "kind": "punch",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.9,
+        "dmg": 17.12,
+        "count": 3.0,
+        "radius": 60.0,
+        "arc": 1.0,
+        "drain": 1.5
+      },
+      "evoNeed": 5,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+1 directo",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y +20% alcance",
+          "m": {
+            "dmg": 1.5,
+            "radius": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "x-scissor",
+      "name": "Tijera X",
+      "desc": "Dos tajos cruzados en X: lo que pilles en el centro recibe los dos.",
+      "type": "bug",
+      "kind": "scissor",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.75,
+        "dmg": 16.59,
+        "radius": 70.0,
+        "arc": 1.3
+      },
+      "evoNeed": 3,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% alcance",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y tajos más abiertos",
+          "m": {
+            "dmg": 1.5,
+            "arc": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "crunch",
+      "name": "Triturar",
+      "desc": "Un mordisco brutal que deja al enemigo débil a tus golpes (+25 % durante 4 s).",
+      "type": "dark",
+      "kind": "melee",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.0,
+        "dmg": 16.74,
+        "radius": 63.0,
+        "arc": 1.38,
+        "knock": 60.0,
+        "shred": 4.0
+      },
+      "evoNeed": 1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% alcance",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "Golpea en 360° y +50% daño",
+          "m": {
+            "arc": 9.0,
+            "dmg": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "extreme-speed",
+      "name": "Velocidad Extrema",
+      "desc": "Saltas de enemigo en enemigo tan rápido que no te tocan.",
+      "type": "normal",
+      "kind": "blitz",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.3,
+        "dmg": 74.86,
+        "count": 3.0,
+        "radius": 220.0
+      },
+      "evoNeed": 2,
+      "only": [],
+      "ups": [
+        {
+          "t": "+1 salto",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+2 saltos y +30% daño",
+          "m": {
+            "count": 2.0,
+            "dmg": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "acrobatics",
+      "name": "Acróbata",
+      "desc": "Un salto acrobático sobre el enemigo con onda al caer; sin objeto equipado, pega ×1,5.",
+      "type": "flying",
+      "kind": "leap",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.3,
+        "dmg": 13.3,
+        "radius": 70.0,
+        "range": 220.0,
+        "noItem": 1.5
+      },
+      "evoNeed": 2,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "Onda un 30% más grande",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y salta más lejos",
+          "m": {
+            "dmg": 1.5,
+            "range": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "sludge-bomb",
+      "name": "Bomba Lodo",
+      "desc": "Una bomba de lodo que envenena y deja un charco tóxico al estallar.",
+      "type": "poison",
+      "kind": "projectile",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.75,
+        "dmg": 3.82,
+        "speed": 300.0,
+        "count": 1.0,
+        "spread": 0.12,
+        "life": 1.4,
+        "size": 9.0,
+        "poison": 1.0,
+        "puddle": 3.0,
+        "pr": 32.0
+      },
+      "evoNeed": 5,
+      "only": [],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.4
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 perforación",
+          "m": {
+            "count": 1.0,
+            "pierce": 1.0,
+            "spread": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "moonblast",
+      "name": "Fuerza Lunar",
+      "desc": "La luz de la luna persigue al enemigo y estalla alrededor.",
+      "type": "fairy",
+      "kind": "homing",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.8,
+        "dmg": 7.61,
+        "speed": 280.0,
+        "count": 1.0,
+        "spread": 0.12,
+        "life": 2.0,
+        "size": 10.0,
+        "homing": 5.0,
+        "splash": 56.0
+      },
+      "evoNeed": 3,
+      "only": [],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.3
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +40% daño",
+          "m": {
+            "count": 1.0,
+            "dmg": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "lava-plume",
+      "name": "Ola-Lava",
+      "desc": "Lava en todas las direcciones que quema y deja charcos ardiendo.",
+      "type": "fire",
+      "kind": "nova",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.4,
+        "dmg": 7.09,
+        "speed": 220.0,
+        "count": 8.0,
+        "pierce": 1.0,
+        "life": 0.7,
+        "size": 7.0,
+        "burn": 1.0,
+        "puddle": 2.5,
+        "pr": 24.0
+      },
+      "evoNeed": 5,
+      "only": [],
+      "ups": [
+        {
+          "t": "+4 proyectiles",
+          "m": {
+            "count": 4.0
+          }
+        },
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+4 proyectiles y +1 perforación",
+          "m": {
+            "count": 4.0,
+            "pierce": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "silver-wind",
+      "name": "Viento Plata",
+      "desc": "Un abanico de escamas de plata; a veces te sube el Ataque y la Velocidad.",
+      "type": "bug",
+      "kind": "cone",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.75,
+        "dmg": 10.6,
+        "speed": 320.0,
+        "count": 8.0,
+        "pierce": 1.0,
+        "life": 0.5,
+        "size": 6.0,
+        "arc": 1.1,
+        "boost": 0.15
+      },
+      "evoNeed": 4,
+      "only": [],
+      "ups": [
+        {
+          "t": "+3 disparos",
+          "m": {
+            "count": 3.0
+          }
+        },
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+30% alcance",
+          "m": {
+            "life": 1.3
+          }
+        },
+        {
+          "t": "+3 disparos y +1 perforación",
+          "m": {
+            "count": 3.0,
+            "pierce": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "stone-edge",
+      "name": "Roca Afilada",
+      "desc": "Una roca afiladísima que atraviesa a uno y hace críticos muy a menudo.",
+      "type": "rock",
+      "kind": "projectile",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.85,
+        "dmg": 42.72,
+        "speed": 420.0,
+        "count": 1.0,
+        "spread": 0.12,
+        "pierce": 1.0,
+        "life": 1.2,
+        "size": 8.0,
+        "critUp": 0.3
+      },
+      "evoNeed": 2,
+      "only": [],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.4
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 perforación",
+          "m": {
+            "count": 1.0,
+            "pierce": 1.0,
+            "spread": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "protect",
+      "name": "Protección",
+      "desc": "No hace daño: un escudo te hace intocable 1,5 s. Se recarga en 7 s y, por mucha reducción de recarga que lleves, nunca en menos de 5 s.",
+      "type": "normal",
+      "kind": "guard",
+      "cat": "status",
+      "stat": null,
+      "v": {
+        "cd": 7.0,
+        "dur": 1.5,
+        "minCd": 5.0
+      },
+      "evoNeed": -1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+25% duración",
+          "m": {
+            "dur": 1.25
+          }
+        },
+        {
+          "t": "-15% recarga",
+          "m": {
+            "cd": 0.85
+          }
+        },
+        {
+          "t": "+25% duración",
+          "m": {
+            "dur": 1.25
+          }
+        },
+        {
+          "t": "-20% recarga y +20% duración",
+          "m": {
+            "cd": 0.8,
+            "dur": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "rest",
+      "name": "Descanso",
+      "desc": "No hace daño: te cura mucho, pero te quedas dormido un rato sin moverte ni atacar.",
+      "type": "psychic",
+      "kind": "rest",
+      "cat": "status",
+      "stat": null,
+      "v": {
+        "cd": 18.0,
+        "amount": 0.6,
+        "dur": 2.0
+      },
+      "evoNeed": -1,
+      "only": [],
+      "ups": [
+        {
+          "t": "Cura un 15% más",
+          "m": {
+            "amount": 1.15
+          }
+        },
+        {
+          "t": "Duermes un 15% menos",
+          "m": {
+            "dur": 0.85
+          }
+        },
+        {
+          "t": "-15% recarga",
+          "m": {
+            "cd": 0.85
+          }
+        },
+        {
+          "t": "Cura un 20% más y duermes menos",
+          "m": {
+            "amount": 1.2,
+            "dur": 0.85
+          }
+        }
+      ]
+    },
+    {
+      "id": "reflect",
+      "name": "Reflejo",
+      "desc": "No hace daño: una pared de luz te quita un 35 % del daño físico un rato.",
+      "type": "psychic",
+      "kind": "screen",
+      "cat": "status",
+      "stat": null,
+      "v": {
+        "cd": 10.0,
+        "amount": 0.35,
+        "dur": 8.0,
+        "shield": 0.0
+      },
+      "evoNeed": -1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+30% duración",
+          "m": {
+            "dur": 1.3
+          }
+        },
+        {
+          "t": "Protege un 15% más",
+          "m": {
+            "amount": 1.15
+          }
+        },
+        {
+          "t": "-15% recarga",
+          "m": {
+            "cd": 0.85
+          }
+        },
+        {
+          "t": "+30% duración",
+          "m": {
+            "dur": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "light-screen",
+      "name": "Pantalla Luz",
+      "desc": "No hace daño: una pared de luz te quita un 35 % del daño especial un rato.",
+      "type": "psychic",
+      "kind": "screen",
+      "cat": "status",
+      "stat": null,
+      "v": {
+        "cd": 10.0,
+        "amount": 0.35,
+        "dur": 8.0,
+        "shield": 1.0
+      },
+      "evoNeed": -1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+30% duración",
+          "m": {
+            "dur": 1.3
+          }
+        },
+        {
+          "t": "Protege un 15% más",
+          "m": {
+            "amount": 1.15
+          }
+        },
+        {
+          "t": "-15% recarga",
+          "m": {
+            "cd": 0.85
+          }
+        },
+        {
+          "t": "+30% duración",
+          "m": {
+            "dur": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "double-team",
+      "name": "Doble Equipo",
+      "desc": "No hace daño: dejas una copia tuya que atrae a los enemigos cercanos.",
+      "type": "normal",
+      "kind": "decoy",
+      "cat": "status",
+      "stat": null,
+      "v": {
+        "cd": 8.0,
+        "count": 1.0,
+        "radius": 260.0,
+        "dur": 4.0
+      },
+      "evoNeed": -1,
+      "only": [],
+      "ups": [
+        {
+          "t": "+30% duración",
+          "m": {
+            "dur": 1.3
+          }
+        },
+        {
+          "t": "+1 copia",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "-15% recarga",
+          "m": {
+            "cd": 0.85
+          }
+        },
+        {
+          "t": "Atrae desde un 30% más lejos",
+          "m": {
+            "radius": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "explosion",
+      "name": "Explosión",
+      "desc": "Una explosión enorme a tu alrededor; te cuesta un cuarto de la vida que te queda (nunca te deja KO).",
+      "type": "normal",
+      "kind": "boom",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 2.5,
+        "dmg": 38.57,
+        "radius": 150.0,
+        "knock": 220.0,
+        "cost": 0.25
+      },
+      "evoNeed": 0,
+      "only": [],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% radio",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño",
+          "m": {
+            "dmg": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "shadow-force",
+      "name": "Golpe Umbrío",
+      "desc": "Desapareces y caes sobre el enemigo con una onda de sombra.",
+      "type": "ghost",
+      "kind": "leap",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.3,
+        "dmg": 18.48,
+        "radius": 90.0,
+        "range": 260.0
+      },
+      "evoNeed": -1,
+      "only": [
+        487
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "Onda un 30% más grande",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y salta más lejos",
+          "m": {
+            "dmg": 1.5,
+            "range": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "judgment",
+      "name": "Sentencia",
+      "desc": "Caen rayos de luz sobre muchos enemigos de la pantalla.",
+      "type": "normal",
+      "kind": "storm",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.4,
+        "dmg": 2.85,
+        "count": 8.0,
+        "radius": 40.0
+      },
+      "evoNeed": -1,
+      "only": [
+        493
+      ],
+      "ups": [
+        {
+          "t": "+2 rayos",
+          "m": {
+            "count": 2.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+2 rayos y +30% radio",
+          "m": {
+            "count": 2.0,
+            "radius": 1.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "glaciate",
+      "name": "Mundo Gélido",
+      "desc": "Un anillo de hielo sale de ti, golpea a todos los que alcanza y los frena.",
+      "type": "ice",
+      "kind": "tremor",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.5,
+        "dmg": 24.0,
+        "radius": 190.0,
+        "slow": 0.6
+      },
+      "evoNeed": -1,
+      "only": [
+        646
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% radio",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y +20% radio",
+          "m": {
+            "dmg": 1.5,
+            "radius": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "seed-flare",
+      "name": "Fulgor Semilla",
+      "desc": "Una explosión de semillas en cruz sobre un enemigo.",
+      "type": "grass",
+      "kind": "cross",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.4,
+        "dmg": 23.2,
+        "radius": 110.0,
+        "width": 30.0
+      },
+      "evoNeed": -1,
+      "only": [
+        492
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "Brazos un 30% más largos",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y brazos más anchos",
+          "m": {
+            "dmg": 1.5,
+            "width": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "snipe-shot",
+      "name": "Disparo Certero",
+      "desc": "Un disparo de agua rapidísimo que atraviesa a todos y hace más golpes críticos.",
+      "type": "water",
+      "kind": "projectile",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 0.6,
+        "dmg": 10.71,
+        "speed": 520.0,
+        "count": 1.0,
+        "spread": 0.05,
+        "pierce": 99.0,
+        "life": 1.2,
+        "size": 7.0,
+        "critUp": 0.3
+      },
+      "evoNeed": -1,
+      "only": [
+        818
+      ],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.4
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +1 perforación",
+          "m": {
+            "count": 1.0,
+            "pierce": 1.0,
+            "spread": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "plasma-fists",
+      "name": "Puños Plasma",
+      "desc": "Tres puñetazos de plasma; el último electrocuta a los enemigos cercanos.",
+      "type": "electric",
+      "kind": "punch",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.8,
+        "dmg": 10.19,
+        "count": 3.0,
+        "radius": 64.0,
+        "arc": 1.1,
+        "zap": 3.0
+      },
+      "evoNeed": -1,
+      "only": [
+        807
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+1 directo",
+          "m": {
+            "count": 1.0
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y +20% alcance",
+          "m": {
+            "dmg": 1.5,
+            "radius": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "flower-trick",
+      "name": "Truco Floral",
+      "desc": "Flores que persiguen a los enemigos y hacen muchos más golpes críticos.",
+      "type": "grass",
+      "kind": "homing",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.8,
+        "dmg": 22.54,
+        "speed": 300.0,
+        "count": 4.0,
+        "spread": 0.6,
+        "life": 2.0,
+        "size": 8.0,
+        "homing": 5.0,
+        "critUp": 0.5
+      },
+      "evoNeed": -1,
+      "only": [
+        908
+      ],
+      "ups": [
+        {
+          "t": "+1 proyectil",
+          "m": {
+            "count": 1.0,
+            "spread": 1.3
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+1 proyectil y +40% daño",
+          "m": {
+            "count": 1.0,
+            "dmg": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "meteor-assault",
+      "name": "Asalto Estelar",
+      "desc": "Cargas con el puerro por delante y arrollas todo lo que hay en tu camino.",
+      "type": "fighting",
+      "kind": "dash",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 1.1,
+        "dmg": 32.74,
+        "radius": 180.0,
+        "width": 50.0,
+        "knock": 140.0
+      },
+      "evoNeed": -1,
+      "only": [
+        865
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+30% distancia",
+          "m": {
+            "radius": 1.3
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+60% daño y más ancho",
+          "m": {
+            "dmg": 1.6,
+            "width": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "malignant-chain",
+      "name": "Cadena Virulenta",
+      "desc": "Una cadena tóxica salta de un enemigo a otro y los envenena.",
+      "type": "poison",
+      "kind": "chain",
+      "cat": "special",
+      "stat": null,
+      "v": {
+        "cd": 1.0,
+        "dmg": 34.3,
+        "count": 6.0,
+        "radius": 150.0,
+        "poison": 2.0
+      },
+      "evoNeed": -1,
+      "only": [
+        1025
+      ],
+      "ups": [
+        {
+          "t": "+2 saltos",
+          "m": {
+            "count": 2.0
+          }
+        },
+        {
+          "t": "+45% daño",
+          "m": {
+            "dmg": 1.45
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+2 saltos y +40% daño",
+          "m": {
+            "count": 2.0,
+            "dmg": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "stone-axe",
+      "name": "Hachazo Pétreo",
+      "desc": "Dos hachazos de piedra cruzados: lo que pilles en el centro recibe los dos.",
+      "type": "rock",
+      "kind": "scissor",
+      "cat": "physical",
+      "stat": null,
+      "v": {
+        "cd": 0.8,
+        "dmg": 18.55,
+        "radius": 78.0,
+        "arc": 1.3
+      },
+      "evoNeed": -1,
+      "only": [
+        900
+      ],
+      "ups": [
+        {
+          "t": "+40% daño",
+          "m": {
+            "dmg": 1.4
+          }
+        },
+        {
+          "t": "+25% alcance",
+          "m": {
+            "radius": 1.25
+          }
+        },
+        {
+          "t": "-25% recarga",
+          "m": {
+            "cd": 0.75
+          }
+        },
+        {
+          "t": "+50% daño y tajos más abiertos",
+          "m": {
+            "dmg": 1.5,
+            "arc": 1.3
+          }
+        }
+      ]
+    }
+  ]
+}

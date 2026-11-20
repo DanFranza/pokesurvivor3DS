@@ -21,17 +21,59 @@ for (const f of ['js/core/util.js', 'js/core/locales.js', 'js/core/i18n.js', 'js
                  'js/data/tms.js']) load(f);
 load('js/data/ability-fx.js');
 load('js/data/moves.js', t => t.replace('G.Moves = {', 'G.__evoMods = EVO_MODS; G.Moves = {'));
+// Append the newer catalogue so move IDs already stored in saves remain stable.
+const modern = JSON.parse(fs.readFileSync(path.join(__dirname, 'modern_moves.json'), 'utf8')).moves;
+const modernEvoMods = JSON.parse(fs.readFileSync(path.join(__dirname, 'modern_evo_mods.json'), 'utf8'));
+const modernOnly = {};
+const needs = ['hp', 'atk', 'spd', 'cd', 'def', 'rgn', 'mag', 'xp'];
+for (const row of modern) {
+  if (G.Moves.BY_ID[row.id]) throw new Error(`duplicate modern move: ${row.id}`);
+  const m = { id: row.id, name: row.name, desc: row.desc, type: row.type,
+    kind: row.kind, cat: row.cat, stat: row.stat, ...row.v,
+    ups: row.ups, maxLvl: 5 };
+  G.Moves.ALL.push(m);
+  G.Moves.BY_ID[row.id] = m;
+  modernOnly[row.id] = row.only;
+  if (!row.only.length) (G.Moves.POOL[row.type] ||= []).push(row.id);
+  if (row.evoNeed >= 0) G.Moves.EVO[row.id] = needs[row.evoNeed];
+  // Since 19 Nov the official web game also evolves signature attacks.
+  else if (row.only.length && row.kind !== 'buff') G.Moves.EVO[row.id] = 'atk';
+}
 load('js/data/enemies.js', s => s.replace('function behaviorOf(p) {', 'G.__beh = p => behaviorOf(p); G.__summon = SUMMON; function behaviorOf(p) {'));
+const modernDex = JSON.parse(fs.readFileSync(path.join(__dirname, 'modern_dex.json'), 'utf8')).pokemon;
+const knownDex = new Set(G.DEX.map(p => p.dex));
+for (const p of modernDex) {
+  if (knownDex.has(p.dex)) throw new Error(`duplicate dex entry: ${p.dex}`);
+  G.DEX.push(p);
+  knownDex.add(p.dex);
+  // Regional forms use their parent species' abilities when the source
+  // catalogue does not provide a form-specific list.
+  if (p.reg && !G.DEX_ABIL[p.dex] && G.DEX_ABIL[p.num])
+    G.DEX_ABIL[p.dex] = G.DEX_ABIL[p.num];
+}
+const oldTmIds = Object.keys(G.TM_MOVES).sort();
+const oldDexIds = new Set(G.DEX.slice(0, G.DEX.length - modernDex.length).map(p => p.dex));
+const modernTms = JSON.parse(fs.readFileSync(path.join(__dirname, 'modern_tms.json'), 'utf8')).tms;
+for (const tm of modernTms) {
+  if (G.TM_MOVES[tm.id]) {
+    const set = new Set(G.TM_MOVES[tm.id]);
+    for (const dex of tm.species) if (!oldDexIds.has(dex)) set.add(dex);
+    G.TM_MOVES[tm.id] = [...set];
+  } else G.TM_MOVES[tm.id] = tm.species;
+  if (!G.TM_PRICE[tm.id]) G.TM_PRICE[tm.id] = tm.price;
+}
 
 const TYPES = Object.keys(G.Types.CHART);
 const T = Object.fromEntries(TYPES.map((t, i) => [t, i]));
 const SOFT = { 2: 1.6, 0.5: 0.6, 0: 0.3 };
 const KEYS = ['cd', 'dmg', 'speed', 'count', 'spread', 'pierce', 'life', 'size', 'radius', 'arc', 'knock', 'width', 'dur', 'rate', 'range',
-              'amount', 'stacks', 'charge', 'pull', 'bounce', 'slow', 'stun', 'homing', 'burn', 'poison'];
-const MULT = ['dmg','cd','speed','radius','dur','amount','arc','width','spread','life','size','rate','pull','knock','stun','charge'];
+              'amount', 'stacks', 'charge', 'pull', 'bounce', 'slow', 'stun', 'homing', 'burn', 'poison',
+              'hex', 'drain', 'zap', 'shred', 'noItem', 'puddle', 'pr', 'splash', 'boost', 'critUp', 'minCd', 'cost', 'wx', 'shield'];
+const MULT = ['dmg','cd','speed','radius','dur','amount','arc','width','spread','life','size','rate','pull','knock','stun','charge','range'];
 const ADD = ['count', 'pierce', 'stacks', 'bounce'];
 const KINDS = ['projectile', 'melee', 'beam', 'orbit', 'nova', 'aura', 'buff', 'boomerang', 'chain', 'mine', 'meteor', 'turret', 'dash', 'trail',
-               'cone', 'homing', 'bounce', 'charge', 'spin', 'quake', 'vortex', 'shove', 'stun'];
+               'cone', 'homing', 'bounce', 'charge', 'spin', 'quake', 'vortex', 'shove', 'stun',
+               'tremor', 'wave', 'cross', 'storm', 'punch', 'scissor', 'blitz', 'leap', 'guard', 'rest', 'screen', 'decoy', 'boom', 'weather'];
 const STATS = ['atk', 'patk', 'satk', 'spd', 'def', 'regen'];
 const BEH = ['chase', 'charger', 'ranged', 'tank', 'healer', 'shielder', 'summoner', 'bomber', 'beamer', 'zoner', 'fan', 'jumper', 'runner'];
 const S = s => JSON.stringify(String(s == null ? '' : s));
@@ -74,6 +116,7 @@ for (const id of ids) {
   out.push(`  {${S(m.name)},${S(m.desc)},${T[m.type]},${KINDS.indexOf(m.kind)},${catOf(m)},${Math.max(0, STATS.indexOf(m.stat))},{${v.join(',')}},{${ups.join(',')}}},  // ${id}`);
 }
 out.push('};', '');
+out.push('static const short MOVE_ONLY[NMOVES][3] = {' + ids.map(id => '{' + [0, 1, 2].map(i => (modernOnly[id] || [])[i] || 0).join(',') + '}').join(',') + '};');
 const unknownKinds = ids.filter(id => KINDS.indexOf(G.Moves.BY_ID[id].kind) < 0);
 if (unknownKinds.length) console.warn('tipos de movimiento desconocidos', unknownKinds);
 
@@ -83,7 +126,7 @@ if (unknownKinds.length) console.warn('tipos de movimiento desconocidos', unknow
   const EVO = G.Moves.EVO;
   out.push('static const short EVO_NEED[NMOVES] = {' + ids.map(id => EVO[id] ? NEED.indexOf(EVO[id]) : -1).join(',') + '};');
   out.push('static const char* EVO_NAME[NMOVES] = {' + ids.map(id => S(EVO[id] ? G.Moves.BY_ID[id].name + ' +' : '')).join(',') + '};');
-  const EM = G.__evoMods;
+  const EM = {...G.__evoMods, ...modernEvoMods};
   out.push('struct EvoMod { UpMod m[6]; unsigned char n; const char* text; };');
   out.push('static const EvoMod EVO_MODS[' + KINDS.length + '] = {');
   for (const k of KINDS) {
@@ -125,6 +168,12 @@ for (const p of dexList) {
 }
 out.push('};', '');
 out.push('static const short DEX_NUM[DEX_N] = {' + dexList.map(p => p.dex).join(',') + '};   // número de pokédex de cada fila');
+const megas = JSON.parse(fs.readFileSync(path.join(__dirname, 'modern_megas.json'), 'utf8')).megas;
+const megaSourceTypes = ['normal','fire','water','grass','electric','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+out.push('struct MegaDef { short base, sprite; unsigned char slot, t1, t2, own; const char* name; short hp, spd; float atk, pa, sa; unsigned char df, sd; };');
+out.push(`#define NMEGAS ${megas.length}`, 'static const MegaDef MEGAS[NMEGAS] = {');
+for (const m of megas) out.push(`  {${m.base},${m.sprite},${m.slot},${T[megaSourceTypes[m.types[0]]]},${m.types[1] < 0 ? 255 : T[megaSourceTypes[m.types[1]]]},${m.own ? 1 : 0},${S(m.name)},${m.hp},${m.spd},${f(m.atk)},${f(m.pa)},${f(m.sa)},${m.df},${m.sd}},`);
+out.push('};', '');
 out.push('static const short STARTERS_IDX[] = {' + G.STARTERS.map(s => dexIdx[s.dex]).join(',') + '};');
 out.push(`#define NSTARTERS ${G.STARTERS.length}`, '');
 
@@ -224,13 +273,19 @@ out.push('static const char* PERM_IDS[NPERM] = {' + UPG.map(u => S(u.id)).join('
 
 // ---- MT de la Tienda Kecleon
 {
-  const tms = Object.keys(G.TM_MOVES).sort();
+  const tms = [...oldTmIds, ...Object.keys(G.TM_MOVES).filter(id => !oldTmIds.includes(id)).sort()];
+  if (tms.length > 128) throw new Error('More than two TM mask words');
   out.push('', `#define NTM ${tms.length}`, 'static const short TM_MOVE[NTM] = {' + tms.map(id => (MI[id] == null ? -1 : MI[id])).join(',') + '};   // índice en MOVES (-1 = no está en la 3DS)');
   out.push('static const short TM_PRICE[NTM] = {' + tms.map(id => G.TM_PRICE[id] || 400).join(',') + '};');
   out.push('static const char* TM_ID[NTM] = {' + tms.map(S).join(',') + '};');
   const set = {};
   for (const id of tms) for (const d of G.TM_MOVES[id]) (set[d] = set[d] || []).push(tms.indexOf(id));
-  out.push('// bit i = el Pokémon aprende la MT i', 'static const unsigned long long TM_MASK[DEX_N] = {' + dexList.map(p => (set[p.dex] || []).reduce((a, i) => a | (1n << BigInt(i)), 0n) + 'ull').join(',') + '};');
+  out.push('// bit i = el Pokémon aprende la MT i (dos palabras de 64 bits)',
+    'static const unsigned long long TM_MASK[DEX_N][2] = {' + dexList.map(p => {
+      const bits = (set[p.dex] || []).reduce((a, i) => a | (1n << BigInt(i)), 0n);
+      const mask = (1n << 64n) - 1n;
+      return `{${bits & mask}ull,${bits >> 64n}ull}`;
+    }).join(',') + '};');
   const miss = tms.filter(id => MI[id] == null); if (miss.length) console.warn('MT sin movimiento en la 3DS:', miss.join(' '));
 }
 

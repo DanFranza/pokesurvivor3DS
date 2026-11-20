@@ -1,0 +1,249 @@
+{
+  "projectile": {
+    "t": "×1,8 daño, +2 proyectiles, +2 perforación y más grandes",
+    "m": {
+      "dmg": 1.8,
+      "count": 2.0,
+      "pierce": 2.0,
+      "size": 1.3,
+      "spread": 1.1
+    }
+  },
+  "melee": {
+    "t": "×1,9 daño, más alcance y golpea en 360°",
+    "m": {
+      "dmg": 1.9,
+      "radius": 1.3,
+      "arc": 9.0
+    }
+  },
+  "beam": {
+    "t": "×1,8 daño, rayo un 50% más grueso y más largo",
+    "m": {
+      "dmg": 1.8,
+      "width": 1.5,
+      "radius": 1.2,
+      "cd": 0.85
+    }
+  },
+  "orbit": {
+    "t": "+2 orbes, ×1,7 daño y más radio",
+    "m": {
+      "count": 2.0,
+      "dmg": 1.7,
+      "radius": 1.15
+    }
+  },
+  "nova": {
+    "t": "+6 proyectiles, ×1,6 daño y +1 perforación",
+    "m": {
+      "count": 6.0,
+      "dmg": 1.6,
+      "pierce": 1.0
+    }
+  },
+  "aura": {
+    "t": "×1,8 daño y un 35% más de radio",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.35
+    }
+  },
+  "boomerang": {
+    "t": "×1,8 daño, +1 bumerán y más alcance",
+    "m": {
+      "dmg": 1.8,
+      "count": 1.0,
+      "radius": 1.2,
+      "size": 1.2
+    }
+  },
+  "chain": {
+    "t": "×1,7 daño y +3 saltos",
+    "m": {
+      "dmg": 1.7,
+      "count": 3.0,
+      "radius": 1.2
+    }
+  },
+  "mine": {
+    "t": "×1,8 daño, +2 minas y explosión más grande",
+    "m": {
+      "dmg": 1.8,
+      "count": 2.0,
+      "radius": 1.25
+    }
+  },
+  "meteor": {
+    "t": "×1,7 daño, +2 meteoros y más radio",
+    "m": {
+      "dmg": 1.7,
+      "count": 2.0,
+      "radius": 1.2
+    }
+  },
+  "turret": {
+    "t": "×1,8 daño, +1 a la vez y dispara más rápido",
+    "m": {
+      "dmg": 1.8,
+      "count": 1.0,
+      "rate": 0.8
+    }
+  },
+  "dash": {
+    "t": "×1,9 daño, más distancia y menos recarga",
+    "m": {
+      "dmg": 1.9,
+      "radius": 1.25,
+      "cd": 0.8
+    }
+  },
+  "trail": {
+    "t": "×1,8 daño, charcos más grandes y duraderos",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.25,
+      "dur": 1.3
+    }
+  },
+  "cone": {
+    "t": "×1,7 daño, +4 disparos y +1 perforación",
+    "m": {
+      "dmg": 1.7,
+      "count": 4.0,
+      "pierce": 1.0
+    }
+  },
+  "homing": {
+    "t": "×1,8 daño, +2 proyectiles y más grandes",
+    "m": {
+      "dmg": 1.8,
+      "count": 2.0,
+      "size": 1.3,
+      "spread": 1.2
+    }
+  },
+  "bounce": {
+    "t": "×1,8 daño, +2 rebotes y +1 proyectil",
+    "m": {
+      "dmg": 1.8,
+      "bounce": 2.0,
+      "count": 1.0,
+      "spread": 1.3
+    }
+  },
+  "charge": {
+    "t": "×1,8 daño, rayo un 50% más grueso y carga más rápido",
+    "m": {
+      "dmg": 1.8,
+      "width": 1.5,
+      "charge": 0.7
+    }
+  },
+  "spin": {
+    "t": "×1,8 daño, +1 vuelta y más radio",
+    "m": {
+      "dmg": 1.8,
+      "count": 1.0,
+      "radius": 1.2
+    }
+  },
+  "quake": {
+    "t": "×1,8 daño, +3 ondas y ondas más grandes",
+    "m": {
+      "dmg": 1.8,
+      "count": 3.0,
+      "radius": 1.25
+    }
+  },
+  "vortex": {
+    "t": "×1,8 daño, más radio y atrae más fuerte",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.3,
+      "pull": 1.4
+    }
+  },
+  "shove": {
+    "t": "×1,8 daño, más radio y empuja más",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.25,
+      "knock": 1.4
+    }
+  },
+  "stun": {
+    "t": "×1,8 daño, más radio y aturde más rato",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.3,
+      "stun": 1.4
+    }
+  },
+  "tremor": {
+    "t": "×1,8 daño y un 30% más de radio",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.3
+    }
+  },
+  "wave": {
+    "t": "×1,8 daño, ola más ancha y arrastra más",
+    "m": {
+      "dmg": 1.8,
+      "width": 1.3,
+      "knock": 1.3
+    }
+  },
+  "cross": {
+    "t": "×1,8 daño y brazos más largos y anchos",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.3,
+      "width": 1.3
+    }
+  },
+  "storm": {
+    "t": "×1,7 daño, +3 rayos y más radio",
+    "m": {
+      "dmg": 1.7,
+      "count": 3.0,
+      "radius": 1.2
+    }
+  },
+  "punch": {
+    "t": "×1,8 daño y +2 directos",
+    "m": {
+      "dmg": 1.8,
+      "count": 2.0
+    }
+  },
+  "scissor": {
+    "t": "×1,8 daño y tajos más largos",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.25
+    }
+  },
+  "blitz": {
+    "t": "×1,7 daño y +3 saltos",
+    "m": {
+      "dmg": 1.7,
+      "count": 3.0
+    }
+  },
+  "leap": {
+    "t": "×1,8 daño y onda más grande",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.3
+    }
+  },
+  "boom": {
+    "t": "×1,8 daño y un 30% más de radio",
+    "m": {
+      "dmg": 1.8,
+      "radius": 1.3
+    }
+  }
+}

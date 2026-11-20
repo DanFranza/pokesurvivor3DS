@@ -77,23 +77,23 @@ static bool moveNatural(int di, int m) {
     return false;
 }
 bool monCanLearn(int di, int tm) {
-    if (TM_MOVE[tm] < 0 || !(TM_MASK[di] >> tm & 1) || (gSave.ptm[di] >> tm & 1)) return false;
+    if (di < 0 || di >= DEX_N || tm < 0 || tm >= NTM) return false;
+    int word = tm / 64, bit = tm % 64;
+    if (TM_MOVE[tm] < 0 || !(TM_MASK[di][word] >> bit & 1)
+        || ((word ? gSave.ptmHi[di] : gSave.ptm[di]) >> bit & 1)) return false;
     return !moveNatural(di, TM_MOVE[tm]);
-}
-u64 monLearnable(int di) {
-    u64 r = 0;
-    for (int i = 0; i < NTM; i++) if (monCanLearn(di, i)) r |= 1ull << i;
-    return r;
 }
 bool monTeach(int di, int tm) {
     if (!gSave.tms[tm] || !monCanLearn(di, tm)) return false;
-    gSave.tms[tm]--; gSave.ptm[di] |= 1ull << tm;
+    gSave.tms[tm]--;
+    if (tm < 64) gSave.ptm[di] |= 1ull << tm;
+    else gSave.ptmHi[di] |= 1ull << (tm - 64);
     saveWrite();
     return true;
 }
 int monTaughtMoves(int di, int* out) {
     int n = 0;
-    for (int i = 0; i < NTM; i++) if ((gSave.ptm[di] >> i & 1) && TM_MOVE[i] >= 0) out[n++] = TM_MOVE[i];
+    for (int i = 0; i < NTM; i++) if (((i < 64 ? gSave.ptm[di] >> i : gSave.ptmHi[di] >> (i - 64)) & 1) && TM_MOVE[i] >= 0) out[n++] = TM_MOVE[i];
     return n;
 }
 
@@ -129,10 +129,10 @@ int tmDaily(int* out) {
     if (d >= 0 && d < DEX_N && gSave.owned[d]) {
         bool any = false;
         for (int i = 0; i < N; i++) any |= monCanLearn(d, out[i]);
-        u64 mine = monLearnable(d);
-        if (!any && mine) {
+        if (!any) {
             int l[NTM], n = 0;
-            for (int i = 0; i < NTM; i++) if (mine >> i & 1) l[n++] = i;
+            for (int i = 0; i < NTM; i++) if (monCanLearn(d, i)) l[n++] = i;
+            if (!n) return N;
             char s2[48];
             snprintf(s2, sizeof s2, "kecleon:%d:%d", shopDate(), (int)DEX_NUM[d]);
             Mul r2(s2);

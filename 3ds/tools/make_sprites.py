@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parents[1]
 ROWS = (0, 2, 4, 6)
 MAXF = 12
-POKE_MAX = 1100
+POKE_MAX = 3904
 
 
 def pot(v):
@@ -30,7 +30,7 @@ def load_meta():
 
 
 # Disfraces de Halloween: id de sprite propio -> (Pokémon, carpeta k-…); sus hojas llevan margen (8 px a los lados, 16 arriba)
-SKINS = {1050: (94, "bruja-gengar"), 1051: (25, "bruja-pikachu"), 1052: (197, "bruja-umbreon"), 1053: (352, "hat")}
+SKINS = {3900: (94, "bruja-gengar"), 3901: (25, "bruja-pikachu"), 3902: (197, "bruja-umbreon"), 3903: (352, "hat")}
 
 
 def build(dn, m, tmp, pid=None, skin=None):

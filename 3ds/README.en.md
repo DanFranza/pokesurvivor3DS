@@ -15,6 +15,7 @@ cd 3ds
 node tools/export_game.js      # web game data → include/gamedata.h
 node tools/export_music.js     # scores → include/music.h
 python3 tools/make_sprites.py  # sprites → romfs/gfx/ and include/spritemeta.h
+python3 tools/make_modern_sprites.py # new forms and Mega Evolutions
 python3 tools/make_tiles.py    # terrain → romfs/gfx/ and include/tiles.h
 make                           # produces pokesurvivor3ds.3dsx
 ```
@@ -24,10 +25,11 @@ make                           # produces pokesurvivor3ds.3dsx
 ## Features
 
 - All 18 types, weaknesses, and effectiveness messages from the web game.
-- 103 moves across 23 behavior types, each with four upgrades. Pokémon use their starting move and moves matching their types. A max-level move can evolve after its required upgrade has been selected, in solo or co-op.
-- Enemies with varied behaviors, bosses, waves, wild shiny Pokémon, and biome-based maps. Liquids can damage or slow; large chests open after standing nearby for 3.5 seconds. A bomb may drop after a defeat and damage nearby enemies.
+- 176 moves across 37 behavior types, each with four upgrades. This includes 73 newer moves supported by the 3DS engine; Pokémon-specific moves can appear as cards from level 10. A max-level move can evolve after its required upgrade has been selected, in solo or co-op.
+- 1,082 Pokédex entries, including regional forms, and 91 possible Mega Evolutions. A compatible Pokémon can find a Mega Stone in a chest and press SELECT during a run to transform temporarily. Some species have two forms, selected by the held stone.
+- Enemies with varied behaviors, bosses, waves, wild shiny Pokémon, and additional maps that rotate every four minutes. Liquids can damage or slow; large chests open after standing nearby for 3.5 seconds. A bomb may drop after a defeat and damage nearby enemies.
 - Permanent progression, Pokémon collection, nine-generation gacha with a guarantee, starting move selection and move bans. Upgrades are specific to each Pokémon.
-- Kecleon's shop offers mints, ability capsules, and eight daily TMs. Each Pokémon has a nature and ability. Only some ability effects are implemented; the others give +8% damage to moves of the Pokémon's type.
+- Kecleon's shop offers mints, ability capsules, and eight daily TMs from a catalogue of 92. Each Pokémon has a nature and ability. Only some ability effects are implemented; the others give +8% damage to moves of the Pokémon's type.
 - Software-synthesized music and sound effects. Languages: Spanish, English, French, Italian, and Brazilian Portuguese. French Pokémon names are available.
 - Events: coin-stealing Meowth, ticket-carrying Gholdengo, legendary rifts, and lost Pokémon to escort to a green marker.
 - Three lower-screen pages show moves and status bars, held item and orbs, and a local map. In solo, orbs can be assigned to L and R. Move with the Circle Pad or D-pad; X/Y/B/A select the active move; START pauses and lets you reorder moves.
@@ -35,7 +37,7 @@ make                           # produces pokesurvivor3ds.3dsx
 - Sun, rain, sandstorms, snow, and fog affect types and biomes.
 - **Black market, exclusive to the 3DS version:** epic Pokémon cost 50,000 coins, legendary Pokémon 100,000, and Mewtwo and Mew 500,000; the game displays the shiny chance. Meowth reacts to a shiny.
 - Daily and weekly missions, trophies and rewards. Completing a region's Pokédex, including legendaries, doubles that banner's shiny rate from 1% to 2%.
-- Arceus's Judgment: Arceus can be hit but is invincible; a random Plate determines its type.
+- Eternamax Eternatus appears at 20 minutes with three phases, four shield cores, Eternamax Beam and a victory power choice (Mega Evolution, Dynamax, Z-Ring or Terastallization). Arceus's Judgment starts at 30 minutes; Arceus can be hit but is invincible, and a random Plate determines its type.
 
 ## Co-op and community server
 
@@ -53,7 +55,7 @@ The default TCP port is `25570` and must be reachable by players. The server sav
 
 ## Limitations and save file
 
-Cloud saves, friends, titles and profiles, and group/item/arena achievements are not included. A run lasts 15 minutes before the simplified Arceus's Judgment; the web game lasts 30 minutes. All eleven held items from the web game are present, with one held item per run.
+Cloud saves, friends, titles and profiles, and group/item/arena achievements are not included. The Eternatus fight takes place on the current map rather than in a separate arena. All eleven held items from the web game and two Mega Stones are present, with one held item per run.
 
 The save file is `sdmc:/3ds/pokesurvivor3ds.sav`.
 

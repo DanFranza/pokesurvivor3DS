@@ -1,0 +1,1734 @@
+{
+  "source": "https://pokesurvivor.com/",
+  "megas": [
+    {
+      "base": 3,
+      "slot": 0,
+      "sprite": 3000,
+      "own": true,
+      "stone": "Venusaurita",
+      "name": "Mega-Venusaur",
+      "types": [
+        3,
+        7
+      ],
+      "hp": 106,
+      "spd": 112,
+      "atk": 1.37,
+      "pa": 1.25,
+      "sa": 1.37,
+      "df": 123,
+      "sd": 120
+    },
+    {
+      "base": 6,
+      "slot": 0,
+      "sprite": 3001,
+      "own": true,
+      "stone": "Charizardita X",
+      "name": "Mega-Charizard X",
+      "types": [
+        1,
+        14
+      ],
+      "hp": 105,
+      "spd": 120,
+      "atk": 1.42,
+      "pa": 1.42,
+      "sa": 1.42,
+      "df": 111,
+      "sd": 85
+    },
+    {
+      "base": 6,
+      "slot": 1,
+      "sprite": 3002,
+      "own": true,
+      "stone": "Charizardita Y",
+      "name": "Mega-Charizard Y",
+      "types": [
+        1,
+        9
+      ],
+      "hp": 105,
+      "spd": 120,
+      "atk": 1.57,
+      "pa": 1.27,
+      "sa": 1.57,
+      "df": 78,
+      "sd": 115
+    },
+    {
+      "base": 9,
+      "slot": 0,
+      "sprite": 3003,
+      "own": true,
+      "stone": "Blastoisita",
+      "name": "Mega-Blastoise",
+      "types": [
+        2,
+        -1
+      ],
+      "hp": 106,
+      "spd": 111,
+      "atk": 1.44,
+      "pa": 1.27,
+      "sa": 1.44,
+      "df": 120,
+      "sd": 115
+    },
+    {
+      "base": 15,
+      "slot": 0,
+      "sprite": 3004,
+      "own": true,
+      "stone": "Beedrillita",
+      "name": "Mega-Beedrill",
+      "types": [
+        11,
+        7
+      ],
+      "hp": 99,
+      "spd": 139,
+      "atk": 1.52,
+      "pa": 1.52,
+      "sa": 0.78,
+      "df": 40,
+      "sd": 80
+    },
+    {
+      "base": 18,
+      "slot": 0,
+      "sprite": 3005,
+      "own": true,
+      "stone": "Pidgeotita",
+      "name": "Mega-Pidgeot",
+      "types": [
+        0,
+        9
+      ],
+      "hp": 107,
+      "spd": 129,
+      "atk": 1.44,
+      "pa": 1.14,
+      "sa": 1.44,
+      "df": 80,
+      "sd": 80
+    },
+    {
+      "base": 26,
+      "slot": 0,
+      "sprite": 3006,
+      "own": true,
+      "stone": "Raichunita X",
+      "name": "Mega-Raichu X",
+      "types": [
+        4,
+        -1
+      ],
+      "hp": 97,
+      "spd": 124,
+      "atk": 1.44,
+      "pa": 1.44,
+      "sa": 1.2,
+      "df": 95,
+      "sd": 95
+    },
+    {
+      "base": 26,
+      "slot": 1,
+      "sprite": 3007,
+      "own": true,
+      "stone": "Raichunita Y",
+      "name": "Mega-Raichu Y",
+      "types": [
+        4,
+        -1
+      ],
+      "hp": 97,
+      "spd": 133,
+      "atk": 1.58,
+      "pa": 1.25,
+      "sa": 1.58,
+      "df": 55,
+      "sd": 80
+    },
+    {
+      "base": 36,
+      "slot": 0,
+      "sprite": 3008,
+      "own": true,
+      "stone": "Clefablita",
+      "name": "Mega-Clefable",
+      "types": [
+        17,
+        9
+      ],
+      "hp": 113,
+      "spd": 107,
+      "atk": 1.44,
+      "pa": 1.14,
+      "sa": 1.44,
+      "df": 93,
+      "sd": 110
+    },
+    {
+      "base": 65,
+      "slot": 0,
+      "sprite": 3009,
+      "own": true,
+      "stone": "Alakazamita",
+      "name": "Mega-Alakazam",
+      "types": [
+        10,
+        -1
+      ],
+      "hp": 95,
+      "spd": 141,
+      "atk": 1.66,
+      "pa": 0.97,
+      "sa": 1.66,
+      "df": 65,
+      "sd": 105
+    },
+    {
+      "base": 71,
+      "slot": 0,
+      "sprite": 3010,
+      "own": true,
+      "stone": "Victreebelita",
+      "name": "Mega-Victreebel",
+      "types": [
+        3,
+        7
+      ],
+      "hp": 106,
+      "spd": 107,
+      "atk": 1.44,
+      "pa": 1.39,
+      "sa": 1.44,
+      "df": 85,
+      "sd": 95
+    },
+    {
+      "base": 80,
+      "slot": 0,
+      "sprite": 3011,
+      "own": true,
+      "stone": "Slowbronita",
+      "name": "Mega-Slowbro",
+      "types": [
+        2,
+        10
+      ],
+      "hp": 113,
+      "spd": 91,
+      "atk": 1.42,
+      "pa": 1.11,
+      "sa": 1.42,
+      "df": 180,
+      "sd": 80
+    },
+    {
+      "base": 94,
+      "slot": 0,
+      "sprite": 3012,
+      "own": true,
+      "stone": "Gengarita",
+      "name": "Mega-Gengar",
+      "types": [
+        13,
+        7
+      ],
+      "hp": 97,
+      "spd": 133,
+      "atk": 1.64,
+      "pa": 1.06,
+      "sa": 1.64,
+      "df": 80,
+      "sd": 95
+    },
+    {
+      "base": 115,
+      "slot": 0,
+      "sprite": 3013,
+      "own": true,
+      "stone": "Kangaskhanita",
+      "name": "Mega-Kangaskhan",
+      "types": [
+        0,
+        -1
+      ],
+      "hp": 117,
+      "spd": 120,
+      "atk": 1.39,
+      "pa": 1.39,
+      "sa": 1.03,
+      "df": 100,
+      "sd": 100
+    },
+    {
+      "base": 121,
+      "slot": 0,
+      "sprite": 3014,
+      "own": true,
+      "stone": "Starmita",
+      "name": "Mega-Starmie",
+      "types": [
+        2,
+        10
+      ],
+      "hp": 97,
+      "spd": 128,
+      "atk": 1.42,
+      "pa": 1.25,
+      "sa": 1.42,
+      "df": 105,
+      "sd": 105
+    },
+    {
+      "base": 127,
+      "slot": 0,
+      "sprite": 3015,
+      "own": true,
+      "stone": "Pinsirita",
+      "name": "Mega-Pinsir",
+      "types": [
+        11,
+        9
+      ],
+      "hp": 99,
+      "spd": 122,
+      "atk": 1.55,
+      "pa": 1.55,
+      "sa": 1.06,
+      "df": 120,
+      "sd": 90
+    },
+    {
+      "base": 130,
+      "slot": 0,
+      "sprite": 3016,
+      "own": true,
+      "stone": "Gyaradosita",
+      "name": "Mega-Gyarados",
+      "types": [
+        2,
+        15
+      ],
+      "hp": 113,
+      "spd": 112,
+      "atk": 1.55,
+      "pa": 1.55,
+      "sa": 1.08,
+      "df": 109,
+      "sd": 130
+    },
+    {
+      "base": 142,
+      "slot": 0,
+      "sprite": 3017,
+      "own": true,
+      "stone": "Aerodactylita",
+      "name": "Mega-Aerodactyl",
+      "types": [
+        12,
+        9
+      ],
+      "hp": 106,
+      "spd": 141,
+      "atk": 1.44,
+      "pa": 1.44,
+      "sa": 1.08,
+      "df": 85,
+      "sd": 95
+    },
+    {
+      "base": 149,
+      "slot": 0,
+      "sprite": 3018,
+      "own": true,
+      "stone": "Dragonitita",
+      "name": "Mega-Dragonite",
+      "types": [
+        14,
+        9
+      ],
+      "hp": 111,
+      "spd": 120,
+      "atk": 1.5,
+      "pa": 1.38,
+      "sa": 1.5,
+      "df": 115,
+      "sd": 125
+    },
+    {
+      "base": 150,
+      "slot": 0,
+      "sprite": 3019,
+      "own": true,
+      "stone": "Mewtwoita X",
+      "name": "Mega-Mewtwo X",
+      "types": [
+        10,
+        6
+      ],
+      "hp": 118,
+      "spd": 133,
+      "atk": 1.74,
+      "pa": 1.74,
+      "sa": 1.55,
+      "df": 100,
+      "sd": 100
+    },
+    {
+      "base": 150,
+      "slot": 1,
+      "sprite": 3020,
+      "own": true,
+      "stone": "Mewtwoita Y",
+      "name": "Mega-Mewtwo Y",
+      "types": [
+        10,
+        -1
+      ],
+      "hp": 118,
+      "spd": 137,
+      "atk": 1.77,
+      "pa": 1.52,
+      "sa": 1.77,
+      "df": 70,
+      "sd": 120
+    },
+    {
+      "base": 154,
+      "slot": 0,
+      "sprite": 3021,
+      "own": true,
+      "stone": "Meganiumita",
+      "name": "Mega-Meganium",
+      "types": [
+        3,
+        17
+      ],
+      "hp": 106,
+      "spd": 112,
+      "atk": 1.49,
+      "pa": 1.21,
+      "sa": 1.49,
+      "df": 115,
+      "sd": 115
+    },
+    {
+      "base": 160,
+      "slot": 0,
+      "sprite": 3022,
+      "own": true,
+      "stone": "Feraligatrita",
+      "name": "Mega-Feraligatr",
+      "types": [
+        2,
+        14
+      ],
+      "hp": 108,
+      "spd": 111,
+      "atk": 1.58,
+      "pa": 1.58,
+      "sa": 1.19,
+      "df": 125,
+      "sd": 93
+    },
+    {
+      "base": 181,
+      "slot": 0,
+      "sprite": 3023,
+      "own": true,
+      "stone": "Ampharosita",
+      "name": "Mega-Ampharos",
+      "types": [
+        4,
+        14
+      ],
+      "hp": 110,
+      "spd": 97,
+      "atk": 1.61,
+      "pa": 1.22,
+      "sa": 1.61,
+      "df": 105,
+      "sd": 110
+    },
+    {
+      "base": 208,
+      "slot": 0,
+      "sprite": 3024,
+      "own": true,
+      "stone": "Steelixita",
+      "name": "Mega-Steelix",
+      "types": [
+        16,
+        8
+      ],
+      "hp": 104,
+      "spd": 91,
+      "atk": 1.39,
+      "pa": 1.39,
+      "sa": 1.0,
+      "df": 230,
+      "sd": 95
+    },
+    {
+      "base": 212,
+      "slot": 0,
+      "sprite": 3025,
+      "own": true,
+      "stone": "Scizorita",
+      "name": "Mega-Scizor",
+      "types": [
+        11,
+        16
+      ],
+      "hp": 102,
+      "spd": 110,
+      "atk": 1.52,
+      "pa": 1.52,
+      "sa": 1.06,
+      "df": 140,
+      "sd": 100
+    },
+    {
+      "base": 214,
+      "slot": 0,
+      "sprite": 3026,
+      "own": true,
+      "stone": "Heracrossita",
+      "name": "Mega-Heracross",
+      "types": [
+        11,
+        6
+      ],
+      "hp": 106,
+      "spd": 110,
+      "atk": 1.72,
+      "pa": 1.72,
+      "sa": 0.92,
+      "df": 115,
+      "sd": 105
+    },
+    {
+      "base": 227,
+      "slot": 0,
+      "sprite": 3027,
+      "own": true,
+      "stone": "Skarmorita",
+      "name": "Mega-Skarmory",
+      "types": [
+        16,
+        9
+      ],
+      "hp": 99,
+      "spd": 124,
+      "atk": 1.47,
+      "pa": 1.47,
+      "sa": 0.92,
+      "df": 110,
+      "sd": 100
+    },
+    {
+      "base": 229,
+      "slot": 0,
+      "sprite": 3028,
+      "own": true,
+      "stone": "Houndoomita",
+      "name": "Mega-Houndoom",
+      "types": [
+        15,
+        1
+      ],
+      "hp": 104,
+      "spd": 126,
+      "atk": 1.47,
+      "pa": 1.2,
+      "sa": 1.47,
+      "df": 90,
+      "sd": 90
+    },
+    {
+      "base": 248,
+      "slot": 0,
+      "sprite": 3029,
+      "own": true,
+      "stone": "Tyranitarita",
+      "name": "Mega-Tyranitar",
+      "types": [
+        12,
+        15
+      ],
+      "hp": 115,
+      "spd": 108,
+      "atk": 1.6,
+      "pa": 1.6,
+      "sa": 1.22,
+      "df": 150,
+      "sd": 120
+    },
+    {
+      "base": 254,
+      "slot": 0,
+      "sprite": 3030,
+      "own": true,
+      "stone": "Sceptilita",
+      "name": "Mega-Sceptile",
+      "types": [
+        3,
+        14
+      ],
+      "hp": 102,
+      "spd": 139,
+      "atk": 1.5,
+      "pa": 1.31,
+      "sa": 1.5,
+      "df": 75,
+      "sd": 85
+    },
+    {
+      "base": 257,
+      "slot": 0,
+      "sprite": 3031,
+      "own": true,
+      "stone": "Blazikenita",
+      "name": "Mega-Blaziken",
+      "types": [
+        1,
+        6
+      ],
+      "hp": 106,
+      "spd": 120,
+      "atk": 1.58,
+      "pa": 1.58,
+      "sa": 1.42,
+      "df": 80,
+      "sd": 80
+    },
+    {
+      "base": 260,
+      "slot": 0,
+      "sprite": 3032,
+      "own": true,
+      "stone": "Swampertita",
+      "name": "Mega-Swampert",
+      "types": [
+        2,
+        8
+      ],
+      "hp": 115,
+      "spd": 107,
+      "atk": 1.52,
+      "pa": 1.52,
+      "sa": 1.22,
+      "df": 110,
+      "sd": 110
+    },
+    {
+      "base": 282,
+      "slot": 0,
+      "sprite": 3033,
+      "own": true,
+      "stone": "Gardevoirita",
+      "name": "Mega-Gardevoir",
+      "types": [
+        10,
+        17
+      ],
+      "hp": 101,
+      "spd": 120,
+      "atk": 1.61,
+      "pa": 1.17,
+      "sa": 1.61,
+      "df": 65,
+      "sd": 135
+    },
+    {
+      "base": 302,
+      "slot": 0,
+      "sprite": 3034,
+      "own": true,
+      "stone": "Sableynita",
+      "name": "Mega-Sableye",
+      "types": [
+        15,
+        13
+      ],
+      "hp": 92,
+      "spd": 86,
+      "atk": 1.17,
+      "pa": 1.17,
+      "sa": 1.17,
+      "df": 125,
+      "sd": 115
+    },
+    {
+      "base": 303,
+      "slot": 0,
+      "sprite": 3035,
+      "own": true,
+      "stone": "Mawilita",
+      "name": "Mega-Mawile",
+      "types": [
+        16,
+        17
+      ],
+      "hp": 92,
+      "spd": 99,
+      "atk": 1.28,
+      "pa": 1.28,
+      "sa": 1.0,
+      "df": 125,
+      "sd": 95
+    },
+    {
+      "base": 306,
+      "slot": 0,
+      "sprite": 3036,
+      "own": true,
+      "stone": "Aggronita",
+      "name": "Mega-Aggron",
+      "types": [
+        16,
+        -1
+      ],
+      "hp": 102,
+      "spd": 99,
+      "atk": 1.47,
+      "pa": 1.47,
+      "sa": 1.03,
+      "df": 230,
+      "sd": 80
+    },
+    {
+      "base": 308,
+      "slot": 0,
+      "sprite": 3037,
+      "own": true,
+      "stone": "Medichamita",
+      "name": "Mega-Medicham",
+      "types": [
+        6,
+        10
+      ],
+      "hp": 97,
+      "spd": 120,
+      "atk": 1.25,
+      "pa": 1.25,
+      "sa": 1.14,
+      "df": 85,
+      "sd": 85
+    },
+    {
+      "base": 310,
+      "slot": 0,
+      "sprite": 3038,
+      "own": true,
+      "stone": "Manectricita",
+      "name": "Mega-Manectric",
+      "types": [
+        4,
+        -1
+      ],
+      "hp": 102,
+      "spd": 135,
+      "atk": 1.44,
+      "pa": 1.11,
+      "sa": 1.44,
+      "df": 80,
+      "sd": 80
+    },
+    {
+      "base": 319,
+      "slot": 0,
+      "sprite": 3039,
+      "own": true,
+      "stone": "Sharpedonita",
+      "name": "Mega-Sharpedo",
+      "types": [
+        2,
+        15
+      ],
+      "hp": 102,
+      "spd": 122,
+      "atk": 1.47,
+      "pa": 1.47,
+      "sa": 1.31,
+      "df": 70,
+      "sd": 65
+    },
+    {
+      "base": 323,
+      "slot": 0,
+      "sprite": 3040,
+      "own": true,
+      "stone": "Cameruptita",
+      "name": "Mega-Camerupt",
+      "types": [
+        1,
+        8
+      ],
+      "hp": 102,
+      "spd": 86,
+      "atk": 1.5,
+      "pa": 1.36,
+      "sa": 1.5,
+      "df": 100,
+      "sd": 105
+    },
+    {
+      "base": 334,
+      "slot": 0,
+      "sprite": 3041,
+      "own": true,
+      "stone": "Altarianita",
+      "name": "Mega-Altaria",
+      "types": [
+        14,
+        17
+      ],
+      "hp": 104,
+      "spd": 112,
+      "atk": 1.31,
+      "pa": 1.31,
+      "sa": 1.31,
+      "df": 110,
+      "sd": 105
+    },
+    {
+      "base": 354,
+      "slot": 0,
+      "sprite": 3042,
+      "own": true,
+      "stone": "Banettita",
+      "name": "Mega-Banette",
+      "types": [
+        13,
+        -1
+      ],
+      "hp": 99,
+      "spd": 110,
+      "atk": 1.61,
+      "pa": 1.61,
+      "sa": 1.21,
+      "df": 75,
+      "sd": 83
+    },
+    {
+      "base": 358,
+      "slot": 0,
+      "sprite": 3043,
+      "own": true,
+      "stone": "Chimechita",
+      "name": "Mega-Chimecho",
+      "types": [
+        10,
+        16
+      ],
+      "hp": 104,
+      "spd": 105,
+      "atk": 1.44,
+      "pa": 0.97,
+      "sa": 1.44,
+      "df": 110,
+      "sd": 120
+    },
+    {
+      "base": 359,
+      "slot": 0,
+      "sprite": 3044,
+      "own": true,
+      "stone": "Absolita",
+      "name": "Mega-Absol",
+      "types": [
+        15,
+        -1
+      ],
+      "hp": 99,
+      "spd": 126,
+      "atk": 1.52,
+      "pa": 1.52,
+      "sa": 1.33,
+      "df": 60,
+      "sd": 60
+    },
+    {
+      "base": 359,
+      "slot": 1,
+      "sprite": 3045,
+      "own": true,
+      "stone": "Absolita Z",
+      "name": "Mega-Absol Z",
+      "types": [
+        15,
+        13
+      ],
+      "hp": 99,
+      "spd": 141,
+      "atk": 1.55,
+      "pa": 1.55,
+      "sa": 1.11,
+      "df": 60,
+      "sd": 60
+    },
+    {
+      "base": 362,
+      "slot": 0,
+      "sprite": 3046,
+      "own": true,
+      "stone": "Glalita",
+      "name": "Mega-Glalie",
+      "types": [
+        5,
+        -1
+      ],
+      "hp": 106,
+      "spd": 120,
+      "atk": 1.36,
+      "pa": 1.36,
+      "sa": 1.36,
+      "df": 80,
+      "sd": 80
+    },
+    {
+      "base": 373,
+      "slot": 0,
+      "sprite": 3047,
+      "own": true,
+      "stone": "Salamencita",
+      "name": "Mega-Salamence",
+      "types": [
+        14,
+        9
+      ],
+      "hp": 113,
+      "spd": 128,
+      "atk": 1.5,
+      "pa": 1.5,
+      "sa": 1.36,
+      "df": 130,
+      "sd": 90
+    },
+    {
+      "base": 376,
+      "slot": 0,
+      "sprite": 3048,
+      "own": true,
+      "stone": "Metagrossita",
+      "name": "Mega-Metagross",
+      "types": [
+        16,
+        10
+      ],
+      "hp": 106,
+      "spd": 124,
+      "atk": 1.5,
+      "pa": 1.5,
+      "sa": 1.28,
+      "df": 150,
+      "sd": 110
+    },
+    {
+      "base": 380,
+      "slot": 0,
+      "sprite": 3049,
+      "own": true,
+      "stone": "Latiasita",
+      "name": "Mega-Latias",
+      "types": [
+        14,
+        10
+      ],
+      "hp": 106,
+      "spd": 124,
+      "atk": 1.47,
+      "pa": 1.25,
+      "sa": 1.47,
+      "df": 120,
+      "sd": 150
+    },
+    {
+      "base": 381,
+      "slot": 0,
+      "sprite": 3050,
+      "own": true,
+      "stone": "Latiosita",
+      "name": "Mega-Latios",
+      "types": [
+        14,
+        10
+      ],
+      "hp": 106,
+      "spd": 124,
+      "atk": 1.58,
+      "pa": 1.42,
+      "sa": 1.58,
+      "df": 100,
+      "sd": 120
+    },
+    {
+      "base": 384,
+      "slot": 0,
+      "sprite": 3051,
+      "own": true,
+      "stone": "Meteorito",
+      "name": "Mega-Rayquaza",
+      "types": [
+        14,
+        9
+      ],
+      "hp": 117,
+      "spd": 126,
+      "atk": 1.69,
+      "pa": 1.69,
+      "sa": 1.69,
+      "df": 100,
+      "sd": 100
+    },
+    {
+      "base": 398,
+      "slot": 0,
+      "sprite": 3052,
+      "own": true,
+      "stone": "Staraptorita",
+      "name": "Mega-Staraptor",
+      "types": [
+        6,
+        9
+      ],
+      "hp": 108,
+      "spd": 124,
+      "atk": 1.47,
+      "pa": 1.47,
+      "sa": 1.03,
+      "df": 100,
+      "sd": 90
+    },
+    {
+      "base": 428,
+      "slot": 0,
+      "sprite": 3053,
+      "own": true,
+      "stone": "Lopunnita",
+      "name": "Mega-Lopunny",
+      "types": [
+        0,
+        6
+      ],
+      "hp": 99,
+      "spd": 135,
+      "atk": 1.45,
+      "pa": 1.45,
+      "sa": 1.0,
+      "df": 94,
+      "sd": 96
+    },
+    {
+      "base": 445,
+      "slot": 0,
+      "sprite": 3054,
+      "own": true,
+      "stone": "Garchompita",
+      "name": "Mega-Garchomp",
+      "types": [
+        14,
+        8
+      ],
+      "hp": 119,
+      "spd": 117,
+      "atk": 1.64,
+      "pa": 1.64,
+      "sa": 1.36,
+      "df": 115,
+      "sd": 95
+    },
+    {
+      "base": 445,
+      "slot": 1,
+      "sprite": 3055,
+      "own": true,
+      "stone": "Garchompita Z",
+      "name": "Mega-Garchomp Z",
+      "types": [
+        14,
+        -1
+      ],
+      "hp": 119,
+      "spd": 141,
+      "atk": 1.48,
+      "pa": 1.42,
+      "sa": 1.48,
+      "df": 85,
+      "sd": 85
+    },
+    {
+      "base": 448,
+      "slot": 0,
+      "sprite": 3056,
+      "own": true,
+      "stone": "Lucarita",
+      "name": "Mega-Lucario",
+      "types": [
+        6,
+        16
+      ],
+      "hp": 102,
+      "spd": 125,
+      "atk": 1.5,
+      "pa": 1.5,
+      "sa": 1.47,
+      "df": 88,
+      "sd": 70
+    },
+    {
+      "base": 448,
+      "slot": 1,
+      "sprite": 3057,
+      "own": true,
+      "stone": "Lucarita Z",
+      "name": "Mega-Lucario Z",
+      "types": [
+        6,
+        16
+      ],
+      "hp": 102,
+      "spd": 141,
+      "atk": 1.6,
+      "pa": 1.25,
+      "sa": 1.6,
+      "df": 70,
+      "sd": 70
+    },
+    {
+      "base": 460,
+      "slot": 0,
+      "sprite": 3058,
+      "own": true,
+      "stone": "Abomasnowita",
+      "name": "Mega-Abomasnow",
+      "types": [
+        3,
+        5
+      ],
+      "hp": 110,
+      "spd": 91,
+      "atk": 1.43,
+      "pa": 1.43,
+      "sa": 1.43,
+      "df": 105,
+      "sd": 105
+    },
+    {
+      "base": 475,
+      "slot": 0,
+      "sprite": 3059,
+      "own": true,
+      "stone": "Galladita",
+      "name": "Mega-Gallade",
+      "types": [
+        10,
+        6
+      ],
+      "hp": 101,
+      "spd": 124,
+      "atk": 1.61,
+      "pa": 1.61,
+      "sa": 1.06,
+      "df": 95,
+      "sd": 115
+    },
+    {
+      "base": 478,
+      "slot": 0,
+      "sprite": 3060,
+      "own": true,
+      "stone": "Froslassita",
+      "name": "Mega-Froslass",
+      "types": [
+        5,
+        13
+      ],
+      "hp": 102,
+      "spd": 128,
+      "atk": 1.47,
+      "pa": 1.14,
+      "sa": 1.47,
+      "df": 70,
+      "sd": 100
+    },
+    {
+      "base": 485,
+      "slot": 0,
+      "sprite": 3061,
+      "own": true,
+      "stone": "Heatranita",
+      "name": "Mega-Heatran",
+      "types": [
+        1,
+        16
+      ],
+      "hp": 111,
+      "spd": 106,
+      "atk": 1.66,
+      "pa": 1.36,
+      "sa": 1.66,
+      "df": 106,
+      "sd": 141
+    },
+    {
+      "base": 491,
+      "slot": 0,
+      "sprite": 3062,
+      "own": true,
+      "stone": "Darkrainita",
+      "name": "Mega-Darkrai",
+      "types": [
+        15,
+        -1
+      ],
+      "hp": 102,
+      "spd": 114,
+      "atk": 1.61,
+      "pa": 1.36,
+      "sa": 1.61,
+      "df": 130,
+      "sd": 130
+    },
+    {
+      "base": 500,
+      "slot": 0,
+      "sprite": 3063,
+      "own": true,
+      "stone": "Emboarita",
+      "name": "Mega-Emboar",
+      "types": [
+        1,
+        6
+      ],
+      "hp": 120,
+      "spd": 110,
+      "atk": 1.51,
+      "pa": 1.51,
+      "sa": 1.31,
+      "df": 75,
+      "sd": 110
+    },
+    {
+      "base": 530,
+      "slot": 0,
+      "sprite": 3064,
+      "own": true,
+      "stone": "Excadrillita",
+      "name": "Mega-Excadrill",
+      "types": [
+        8,
+        16
+      ],
+      "hp": 120,
+      "spd": 121,
+      "atk": 1.61,
+      "pa": 1.61,
+      "sa": 1.06,
+      "df": 100,
+      "sd": 65
+    },
+    {
+      "base": 531,
+      "slot": 0,
+      "sprite": 3065,
+      "own": true,
+      "stone": "Audinita",
+      "name": "Mega-Audino",
+      "types": [
+        0,
+        17
+      ],
+      "hp": 116,
+      "spd": 99,
+      "atk": 1.14,
+      "pa": 1.03,
+      "sa": 1.14,
+      "df": 126,
+      "sd": 126
+    },
+    {
+      "base": 545,
+      "slot": 0,
+      "sprite": 3066,
+      "own": true,
+      "stone": "Scolipedita",
+      "name": "Mega-Scolipede",
+      "types": [
+        11,
+        7
+      ],
+      "hp": 97,
+      "spd": 104,
+      "atk": 1.47,
+      "pa": 1.47,
+      "sa": 1.11,
+      "df": 149,
+      "sd": 99
+    },
+    {
+      "base": 560,
+      "slot": 0,
+      "sprite": 3067,
+      "own": true,
+      "stone": "Scraftita",
+      "name": "Mega-Scrafty",
+      "types": [
+        15,
+        6
+      ],
+      "hp": 99,
+      "spd": 107,
+      "atk": 1.42,
+      "pa": 1.42,
+      "sa": 1.0,
+      "df": 135,
+      "sd": 135
+    },
+    {
+      "base": 604,
+      "slot": 0,
+      "sprite": 3068,
+      "own": true,
+      "stone": "Eelektrossita",
+      "name": "Mega-Eelektross",
+      "types": [
+        4,
+        -1
+      ],
+      "hp": 108,
+      "spd": 112,
+      "atk": 1.5,
+      "pa": 1.5,
+      "sa": 1.44,
+      "df": 80,
+      "sd": 90
+    },
+    {
+      "base": 609,
+      "slot": 0,
+      "sprite": 3069,
+      "own": true,
+      "stone": "Chandelurita",
+      "name": "Mega-Chandelure",
+      "types": [
+        13,
+        1
+      ],
+      "hp": 97,
+      "spd": 116,
+      "atk": 1.66,
+      "pa": 1.11,
+      "sa": 1.66,
+      "df": 110,
+      "sd": 110
+    },
+    {
+      "base": 623,
+      "slot": 0,
+      "sprite": 3070,
+      "own": true,
+      "stone": "Golurkita",
+      "name": "Mega-Golurk",
+      "types": [
+        8,
+        13
+      ],
+      "hp": 110,
+      "spd": 101,
+      "atk": 1.57,
+      "pa": 1.57,
+      "sa": 1.08,
+      "df": 105,
+      "sd": 105
+    },
+    {
+      "base": 652,
+      "slot": 0,
+      "sprite": 3071,
+      "own": true,
+      "stone": "Chesnaughtita",
+      "name": "Mega-Chesnaught",
+      "types": [
+        3,
+        6
+      ],
+      "hp": 110,
+      "spd": 96,
+      "atk": 1.45,
+      "pa": 1.45,
+      "sa": 1.11,
+      "df": 172,
+      "sd": 115
+    },
+    {
+      "base": 655,
+      "slot": 0,
+      "sprite": 3072,
+      "own": true,
+      "stone": "Delphoxita",
+      "name": "Mega-Delphox",
+      "types": [
+        1,
+        10
+      ],
+      "hp": 104,
+      "spd": 134,
+      "atk": 1.57,
+      "pa": 1.08,
+      "sa": 1.57,
+      "df": 72,
+      "sd": 125
+    },
+    {
+      "base": 658,
+      "slot": 0,
+      "sprite": 3073,
+      "own": true,
+      "stone": "Greninjanita",
+      "name": "Mega-Greninja",
+      "types": [
+        2,
+        15
+      ],
+      "hp": 102,
+      "spd": 138,
+      "atk": 1.43,
+      "pa": 1.39,
+      "sa": 1.43,
+      "df": 77,
+      "sd": 81
+    },
+    {
+      "base": 670,
+      "slot": 0,
+      "sprite": 3074,
+      "own": true,
+      "stone": "Floettita",
+      "name": "Mega-Floette",
+      "types": [
+        17,
+        -1
+      ],
+      "hp": 103,
+      "spd": 121,
+      "atk": 1.55,
+      "pa": 1.17,
+      "sa": 1.55,
+      "df": 87,
+      "sd": 148
+    },
+    {
+      "base": 678,
+      "slot": 0,
+      "sprite": 678,
+      "own": false,
+      "stone": "Meowsticita",
+      "name": "Mega-Meowstic",
+      "types": [
+        10,
+        -1
+      ],
+      "hp": 103,
+      "spd": 130,
+      "atk": 1.49,
+      "pa": 0.96,
+      "sa": 1.49,
+      "df": 76,
+      "sd": 101
+    },
+    {
+      "base": 687,
+      "slot": 0,
+      "sprite": 3076,
+      "own": true,
+      "stone": "Malamarita",
+      "name": "Mega-Malamar",
+      "types": [
+        15,
+        10
+      ],
+      "hp": 109,
+      "spd": 115,
+      "atk": 1.26,
+      "pa": 1.26,
+      "sa": 1.24,
+      "df": 88,
+      "sd": 120
+    },
+    {
+      "base": 689,
+      "slot": 0,
+      "sprite": 3077,
+      "own": true,
+      "stone": "Barbaraclita",
+      "name": "Mega-Barbaracle",
+      "types": [
+        12,
+        6
+      ],
+      "hp": 102,
+      "spd": 115,
+      "atk": 1.47,
+      "pa": 1.47,
+      "sa": 1.05,
+      "df": 130,
+      "sd": 106
+    },
+    {
+      "base": 691,
+      "slot": 0,
+      "sprite": 3078,
+      "own": true,
+      "stone": "Dragalgita",
+      "name": "Mega-Dragalge",
+      "types": [
+        7,
+        14
+      ],
+      "hp": 99,
+      "spd": 96,
+      "atk": 1.43,
+      "pa": 1.17,
+      "sa": 1.43,
+      "df": 105,
+      "sd": 163
+    },
+    {
+      "base": 701,
+      "slot": 0,
+      "sprite": 3079,
+      "own": true,
+      "stone": "Hawluchanita",
+      "name": "Mega-Hawlucha",
+      "types": [
+        6,
+        9
+      ],
+      "hp": 105,
+      "spd": 128,
+      "atk": 1.45,
+      "pa": 1.45,
+      "sa": 1.11,
+      "df": 100,
+      "sd": 93
+    },
+    {
+      "base": 718,
+      "slot": 0,
+      "sprite": 3080,
+      "own": true,
+      "stone": "Zygardita",
+      "name": "Mega-Zygarde",
+      "types": [
+        14,
+        8
+      ],
+      "hp": 167,
+      "spd": 120,
+      "atk": 1.89,
+      "pa": 1.08,
+      "sa": 1.89,
+      "df": 91,
+      "sd": 85
+    },
+    {
+      "base": 719,
+      "slot": 0,
+      "sprite": 3081,
+      "own": true,
+      "stone": "Diancita",
+      "name": "Mega-Diancie",
+      "types": [
+        12,
+        17
+      ],
+      "hp": 92,
+      "spd": 124,
+      "atk": 1.58,
+      "pa": 1.58,
+      "sa": 1.58,
+      "df": 110,
+      "sd": 110
+    },
+    {
+      "base": 740,
+      "slot": 0,
+      "sprite": 3082,
+      "own": true,
+      "stone": "Crabominablita",
+      "name": "Mega-Crabominable",
+      "types": [
+        6,
+        5
+      ],
+      "hp": 114,
+      "spd": 92,
+      "atk": 1.56,
+      "pa": 1.56,
+      "sa": 1.04,
+      "df": 122,
+      "sd": 107
+    },
+    {
+      "base": 768,
+      "slot": 0,
+      "sprite": 768,
+      "own": false,
+      "stone": "Golisopodita",
+      "name": "Mega-Golisopod",
+      "types": [
+        11,
+        16
+      ],
+      "hp": 104,
+      "spd": 95,
+      "atk": 1.52,
+      "pa": 1.52,
+      "sa": 1.08,
+      "df": 175,
+      "sd": 120
+    },
+    {
+      "base": 780,
+      "slot": 0,
+      "sprite": 3084,
+      "own": true,
+      "stone": "Drampanita",
+      "name": "Mega-Drampa",
+      "types": [
+        0,
+        14
+      ],
+      "hp": 105,
+      "spd": 93,
+      "atk": 1.58,
+      "pa": 1.17,
+      "sa": 1.58,
+      "df": 110,
+      "sd": 116
+    },
+    {
+      "base": 801,
+      "slot": 0,
+      "sprite": 801,
+      "own": false,
+      "stone": "Magearnita",
+      "name": "Mega-Magearna",
+      "types": [
+        16,
+        17
+      ],
+      "hp": 106,
+      "spd": 118,
+      "atk": 1.64,
+      "pa": 1.39,
+      "sa": 1.64,
+      "df": 115,
+      "sd": 115
+    },
+    {
+      "base": 807,
+      "slot": 0,
+      "sprite": 3086,
+      "own": true,
+      "stone": "Zeraoranita",
+      "name": "Mega-Zeraora",
+      "types": [
+        4,
+        -1
+      ],
+      "hp": 110,
+      "spd": 142,
+      "atk": 1.56,
+      "pa": 1.56,
+      "sa": 1.51,
+      "df": 75,
+      "sd": 80
+    },
+    {
+      "base": 952,
+      "slot": 0,
+      "sprite": 3087,
+      "own": true,
+      "stone": "Scovillainita",
+      "name": "Mega-Scovillain",
+      "types": [
+        3,
+        1
+      ],
+      "hp": 99,
+      "spd": 110,
+      "atk": 1.46,
+      "pa": 1.46,
+      "sa": 1.46,
+      "df": 85,
+      "sd": 85
+    },
+    {
+      "base": 970,
+      "slot": 0,
+      "sprite": 3088,
+      "own": true,
+      "stone": "Glimmoranita",
+      "name": "Mega-Glimmora",
+      "types": [
+        12,
+        7
+      ],
+      "hp": 107,
+      "spd": 120,
+      "atk": 1.52,
+      "pa": 1.2,
+      "sa": 1.52,
+      "df": 105,
+      "sd": 96
+    },
+    {
+      "base": 978,
+      "slot": 0,
+      "sprite": 3089,
+      "own": true,
+      "stone": "Tatsugirita",
+      "name": "Mega-Tatsugiri",
+      "types": [
+        14,
+        2
+      ],
+      "hp": 101,
+      "spd": 117,
+      "atk": 1.44,
+      "pa": 1.06,
+      "sa": 1.44,
+      "df": 90,
+      "sd": 125
+    },
+    {
+      "base": 998,
+      "slot": 0,
+      "sprite": 3090,
+      "own": true,
+      "stone": "Baxcaliburita",
+      "name": "Mega-Baxcalibur",
+      "types": [
+        14,
+        5
+      ],
+      "hp": 122,
+      "spd": 115,
+      "atk": 1.66,
+      "pa": 1.66,
+      "sa": 1.28,
+      "df": 117,
+      "sd": 101
+    }
+  ]
+}

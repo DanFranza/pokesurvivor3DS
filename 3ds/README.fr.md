@@ -21,6 +21,7 @@ cd 3ds
 node tools/export_game.js      # données du jeu web → include/gamedata.h
 node tools/export_music.js     # partitions → include/music.h
 python3 tools/make_sprites.py  # sprites → romfs/gfx/ et include/spritemeta.h
+python3 tools/make_modern_sprites.py # nouvelles formes et méga-évolutions
 python3 tools/make_tiles.py    # décors → romfs/gfx/ et include/tiles.h
 make                           # produit pokesurvivor3ds.3dsx
 ```
@@ -33,12 +34,16 @@ Depuis le menu principal, ouvre **Options**, passe à la deuxième page et touch
 
 ## Contenu
 
+La seconde page des **Options** permet d’activer la 3D stéréoscopique sans lunettes ; le réglage est aussi accessible depuis la pause. L’effet dépend du curseur 3D et d’une console compatible.
+
 - Table des 18 types, faiblesses et messages d'efficacité du jeu web.
-- 103 attaques réparties entre 23 comportements, chacune avec quatre améliorations. Chaque Pokémon utilise son attaque initiale et les attaques correspondant à ses types. Une attaque au niveau maximal peut évoluer si l'amélioration requise a été choisie, en solo comme en coopération.
-- Ennemis aux comportements variés, boss, vagues, Pokémon chromatiques sauvages et décors par biome. Les liquides peuvent blesser ou ralentir ; les grands coffres s'ouvrent après 3,5 secondes à proximité. Une bombe peut apparaître après une élimination et blesser les ennemis proches.
+- À chaque montée de niveau, quatre cartes sont proposées sur deux pages lisibles, en solo comme en coopération. Carte rare « Sagesse » : +15 % d’expérience pendant la partie, une seule fois.
+- 176 attaques réparties entre 37 comportements, chacune avec quatre améliorations. Parmi elles, 73 attaques récentes compatibles avec le moteur 3DS, dont des attaques propres à certains Pokémon disponibles en carte à partir du niveau 10. Une attaque au niveau maximal peut évoluer si l'amélioration requise a été choisie, en solo comme en coopération.
+- 1 082 entrées de Pokédex, dont des formes régionales, et 91 méga-évolutions possibles. Un Pokémon compatible peut trouver une Méga-Gemme dans un coffre, puis appuyer sur SELECT en jeu pour se transformer temporairement. Certaines espèces disposent de deux formes ; la Méga-Gemme détermine laquelle est activée.
+- Ennemis aux comportements variés, boss, vagues, Pokémon chromatiques sauvages et des décors qui alternent toutes les quatre minutes. Les liquides peuvent blesser ou ralentir ; les grands coffres s'ouvrent après 3,5 secondes à proximité. Une bombe peut apparaître après une élimination et blesser les ennemis proches.
 - Progression permanente, collection, gacha des neuf générations avec garantie, choix de l'attaque initiale et exclusions d'attaques. Les améliorations sont propres à chaque Pokémon.
 - Sac accessible depuis le menu principal : aromates, pilules et patchs Talent, CT possédées et progression des neuf Charmes Chroma. Deux ou trois lignes par page selon le mode de lisibilité ; les objets et CT s’utilisent depuis la collection.
-- Boutique de Kecleon : menthes, capsules de talent et huit CT quotidiennes. Chaque Pokémon possède une nature et un talent. Seul un sous-ensemble des effets des talents est implémenté ; les autres donnent +8 % aux attaques de leur type.
+- Boutique de Kecleon : menthes, capsules de talent et huit CT quotidiennes parmi 92 CT. Chaque Pokémon possède une nature et un talent. Seul un sous-ensemble des effets des talents est implémenté ; les autres donnent +8 % aux attaques de leur type.
 - Musiques et effets sonores synthétisés. Langues : espagnol, anglais, français, italien et portugais brésilien. La traduction française des noms de Pokémon est disponible.
 - Événements : Miaouss voleur de pièces, Gromago transportant des tickets, faille avec un légendaire et Pokémon perdu à ramener à la marque verte.
 - Écran inférieur : trois pages pour les attaques et les barres, l'objet et les orbes, puis la carte des environs. En solo, les orbes sont affectables à L et R. Le stick ou la croix directionnelle déplace le personnage ; X/Y/B/A sélectionnent l'attaque active ; START met en pause et permet de réorganiser les attaques.
@@ -46,7 +51,7 @@ Depuis le menu principal, ouvre **Options**, passe à la deuxième page et touch
 - Météo : soleil, pluie, tempête de sable, neige et brouillard, avec effets selon les types et les biomes.
 - **Marché noir, propre à la version 3DS :** Pokémon épiques à 50 000 pièces, légendaires à 100 000 et Mewtwo ou Mew à 500 000 ; chance de chromatique indiquée dans le jeu. Le vendeur Miaouss réagit à une apparition chromatique.
 - Missions quotidiennes et hebdomadaires, trophées et récompenses. Compléter le Pokédex d'une région, légendaires compris, double le taux de chromatiques de sa bannière de 1 % à 2 %.
-- Jugement d'Arceus : Arceus peut être touché mais reste invincible ; une plaque aléatoire détermine son type.
+- Éthernatos Infinimax apparaît à 20 minutes : trois phases, quatre noyaux du bouclier, Rayon Infinimax et choix d’un pouvoir après la victoire (Méga-Évolution, Dynamax, Bracelet Z ou Téracristallisation). Le Jugement d'Arceus commence à 30 minutes ; Arceus peut être touché mais reste invincible et une plaque aléatoire détermine son type.
 
 ## Coopération et serveur communautaire
 
@@ -64,7 +69,7 @@ Le port TCP par défaut est `25570`. Il faut le rendre accessible aux joueurs. L
 
 ## Limitations et sauvegarde
 
-Le cloud, les amis, les titres et profils ainsi que les succès de groupe, d'objets et d'arènes ne sont pas inclus. Une partie dure 15 minutes avant le Jugement d'Arceus simplifié ; la version web dure 30 minutes. Les onze objets équipables du jeu web sont présents, à raison d'un objet tenu par partie.
+Le cloud, les amis, les titres et profils ainsi que les succès de groupe, d'objets et d'arènes ne sont pas inclus. Le combat contre Éthernatos se déroule sur la carte courante, sans arène séparée. Les onze objets équipables du jeu web et deux Méga-Gemmes sont présents, à raison d'un objet tenu par partie.
 
 La sauvegarde se trouve dans `sdmc:/3ds/pokesurvivor3ds.sav`.
 

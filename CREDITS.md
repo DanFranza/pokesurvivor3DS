@@ -1,5 +1,12 @@
 # Créditos
 
+## Juego original
+
+Las técnicas, Pokémon, formas, jefes y reglas de juego se basan en
+[PokéSurvivor de JPTER78](https://pokesurvivor.com/). Se mantienen sus avisos
+de copyright y la licencia PolyForm Noncommercial. El sprite especial de
+Eternatus Eternamax procede de los recursos del juego web original.
+
 ## Sprites
 
 Los sprites estilo *Pokémon Mundo Misterioso* vienen de
@@ -140,3 +147,62 @@ licencia en `assets/fonts/OFL.txt`). El juego usa una versión modificada,
 
 Pokémon es propiedad de Nintendo, Creatures Inc. y GAME FREAK.
 Este es un proyecto de fan sin ánimo de lucro.
+
+## Sprites de las megaevoluciones
+
+De [SpriteCollab](https://github.com/PMDCollab/SpriteCollab) (CC BY-NC 4.0), por sus autores:
+
+| Mega | Autores |
+|---|---|
+| Mega-Charizard X | Kevin0itachi, G〜, Kevin |
+| Mega-Alakazam | Michael12, baronessfaron |
+| Mega-Slowbro | Soulja, Emmuffin |
+| Mega-Gengar | Michael12, Emboarger, baronessfaron |
+| Mega-Kangaskhan | Deeshura |
+| Mega-Aerodactyl | Caitemis |
+| Mega-Mewtwo Y | JFain |
+| Mega-Steelix | baronessfaron |
+| Mega-Skarmory | Johanne2 |
+| Mega-Houndoom | Top_Kec |
+| Mega-Tyranitar | JFain |
+| Mega-Sceptile | Emmuffin |
+| Mega-Gardevoir | baronessfaron |
+| Mega-Sableye | Emmuffin |
+| Mega-Mawile | baronessfaron |
+| Mega-Medicham | JFain |
+| Mega-Manectric | Top_Kec |
+| Mega-Sharpedo | baronessfaron |
+| Mega-Camerupt | Caitemis |
+| Mega-Altaria | Emmuffin |
+| Mega-Banette | baronessfaron |
+| Mega-Absol | Emboarger |
+| Mega-Glalie | baronessfaron |
+| Mega-Latias | Emmuffin |
+| Mega-Latios | Emmuffin |
+| Mega-Rayquaza | Top_Kec |
+| Mega-Lopunny | JFain |
+| Mega-Lucario | baronessfaron |
+| Mega-Lucario Z | baronessfaron, recoloreado en el port desde el de Mega-Lucario |
+| Mega-Gallade | JFain |
+| Mega-Darkrai | Johanne2 |
+| Mega-Excadrill | Soulja, pi3.14, DeltaL |
+| Mega-Scrafty | pi3.14, Soulja, Emmuffin |
+| Mega-Eelektross | Top_Kec |
+| Mega-Floette | pi3.14, DeltaL |
+| Mega-Dragalge | Soulja, pi3.14, DeltaL |
+| Mega-Hawlucha | Emmuffin, Soulja |
+| Mega-Zygarde | pi3.14, DeltaL |
+| Mega-Diancie | baronessfaron |
+| Mega-Drampa | pi3.14, Soulja, DeltaL |
+| Mega-Zeraora | pi3.14, DeltaL |
+| Mega-Tatsugiri | Emmuffin |
+
+Las megas sin sprite en SpriteCollab usan el de la web (más abajo) o el de su forma normal. Las megapiedras: dibujos de los objetos de
+[PokeAPI](https://github.com/PokeAPI/sprites) (de los juegos, © Nintendo / Game Freak).
+<!-- /megas -->
+
+## Pokémon y megas de la Gran Actualización
+
+Vienen de PokéSurvivor (JPTER78), con su permiso: las formas regionales (Vulpix de Alola, Meowth de Galar, Growlithe de Hisui…) son de SpriteCollab (CC BY-NC 4.0, sus artistas en la tabla de arriba y en los créditos de pokesurvivor.com).
+
+Los 59 Pokémon que faltaban (Simisear, Zarude, Miraidon, Pecharunt…) y las megaevoluciones que SpriteCollab no tiene son material de Pokémon Edición Reloaded, de F3R y de los dibujantes que han participado en él, como Jhony_Ryu (pokemon-reloaded.blogspot.com), que la web usa con crédito.

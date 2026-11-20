@@ -8,9 +8,8 @@ escribe, para cada movimiento de gamedata.h, qué forma/paleta lleva.
 Uso (desde 3ds/):  python3 tools/make_vfx.py     (requiere Pillow, node y tex3ds)
 Atlas: celdas de 16x16; columna = (forma, fotograma), fila = paleta.
 """
-import json, re, subprocess, tempfile
+import json, re, subprocess, sys, tempfile
 from pathlib import Path
-from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parents[1]
@@ -44,6 +43,7 @@ console.log(JSON.stringify(out));
 
 
 def main():
+    metadata_only = '--metadata-only' in sys.argv
     gd = (OUT / "include/gamedata.h").read_text()
     body = gd[gd.index("static const MoveDef MOVES"):]
     body = body[:body.index("\n};")]
@@ -66,29 +66,31 @@ def main():
         n += d["shapes"][s]["frames"]
     W, H = 1024, 512
     assert n * CELL <= W and len(pals) * CELL <= H, (n, len(pals))
-    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    px = img.load()
+    if not metadata_only:
+        from PIL import Image
+        img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        px = img.load()
 
-    def rgb(c):
-        if c.startswith("rgba"):
-            a = [float(x) for x in c[5:-1].split(",")]
-            return int(a[0]), int(a[1]), int(a[2]), int(a[3] * 255)
-        h = int(c[1:], 16)
-        return h >> 16 & 255, h >> 8 & 255, h & 255, 255
-    for pi, p in enumerate(pals):
-        for s in shapes:
-            S = d["shapes"][s]
-            for f in range(S["frames"]):
-                ox, oy = (col[s] + f) * CELL, pi * CELL
-                for x, y, w, h, c in d["cells"][f"{s}|{p}|{f}"]:
-                    for yy in range(int(y), int(y + h)):
-                        for xx in range(int(x), int(x + w)):
-                            px[ox + xx, oy + yy] = rgb(c)
-    with tempfile.TemporaryDirectory() as t:
-        png = Path(t) / "vfx.png"
-        img.save(png)
-        subprocess.run(["tex3ds", "-f", "rgba5551", "-o", str(OUT / "romfs/gfx/vfx.t3x"), str(png)],
-                       check=True, capture_output=True)
+        def rgb(c):
+            if c.startswith("rgba"):
+                a = [float(x) for x in c[5:-1].split(",")]
+                return int(a[0]), int(a[1]), int(a[2]), int(a[3] * 255)
+            h = int(c[1:], 16)
+            return h >> 16 & 255, h >> 8 & 255, h & 255, 255
+        for pi, p in enumerate(pals):
+            for s in shapes:
+                S = d["shapes"][s]
+                for f in range(S["frames"]):
+                    ox, oy = (col[s] + f) * CELL, pi * CELL
+                    for x, y, w, h, c in d["cells"][f"{s}|{p}|{f}"]:
+                        for yy in range(int(y), int(y + h)):
+                            for xx in range(int(x), int(x + w)):
+                                px[ox + xx, oy + yy] = rgb(c)
+        with tempfile.TemporaryDirectory() as t:
+            png = Path(t) / "vfx.png"
+            img.save(png)
+            subprocess.run(["tex3ds", "-f", "rgba5551", "-o", str(OUT / "romfs/gfx/vfx.t3x"), str(png)],
+                           check=True, capture_output=True)
     sidx = {s: i for i, s in enumerate(shapes)}
     pidx = {p: i for i, p in enumerate(pals)}
     L = ["// GENERADO por tools/make_vfx.py — no editar", "#pragma once",

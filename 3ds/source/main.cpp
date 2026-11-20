@@ -23,6 +23,7 @@ static int gDexGen = 1, gDexPage, gDexSel, gDexTop, gDexSort;
 static int gStartChoice[2], gNStart;
 static int gSelBtn = 3, gSelMove = -1;
 static CardSet gCards;
+static int gCardPage;
 static float gMsgT;
 static char gMsg[64];
 static PullResult gPulls[10];
@@ -403,7 +404,7 @@ static void drawKecleonTop(u64 now) {
     C2D_DrawRectSolid(54, 53, 0.71f, 301, 2, INK);
 
     // Kecleon: verde y morado (mismo sprite teñido) paseando detrás del mostrador
-    const int KD = hwOn() && sprHas(1053) ? 1053 : 352;
+    const int KD = hwOn() && sprHas(3903) ? 3903 : 352;
     if (sprHas(KD)) {
         float t = now / 1000.0f;
         for (int k = 0; k < 2; k++) {
@@ -795,6 +796,10 @@ static void drawOptions() {
             if (button(x, 62, 144, 40, k ? "Legibilidad mejorada" : "Normal", k ? COL(160, 100, 40, 255) : COL(60, 100, 160, 255), 0.4f) && !cur) { gSave.bigUI = (u8)k; saveWrite(); sfxPlay(SFX_UI); }
         }
         if (button(35, 119, 250, 48, "Música", COL(145, 75, 190, 255), 0.6f, IC_SOUND)) { gMusicPage = 0; gState = ST_MUSIC; sfxPlay(SFX_UI); }
+        if (button(35, 173, 250, 28, gSave.musicPad[0] ? "3D sin gafas: sí" : "3D sin gafas: no",
+                   COL(75, 135, 165, 255), 0.43f)) {
+            gSave.musicPad[0] ^= 1; saveWrite(); sfxPlay(SFX_UI);
+        }
     }
     if (arrowBtn(8, 207, 48, 28, false, gOptionsPage > 0)) { gOptionsPage = 0; sfxPlay(SFX_UI); }
     if (arrowBtn(60, 207, 48, 28, true, gOptionsPage < 1)) { gOptionsPage = 1; sfxPlay(SFX_UI); }
@@ -1127,6 +1132,9 @@ static void drawLoadoutBottom() {
         snprintf(gTmp, sizeof gTmp, T("Recarga %.1f s · %s"), gMoves[gSelBtn].v[K_CD], T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
         text(gTmp, 160, 171, 0.42f, COL(170, 200, 255, 255), true);
     }
+    if (gAfterPause && button(8, 196, 98, 36, gSave.musicPad[0] ? "3D: sí" : "3D: no", COL(75, 135, 165, 255), 0.48f)) {
+        gSave.musicPad[0] ^= 1; saveWrite(); sfxPlay(SFX_UI);
+    }
     if (button(114, 196, 100, 36, gAfterPause ? "Seguir" : "¡Jugar!", COL(60, 170, 80, 255), 0.6f)) {
         if (gAfterPause) { gState = ST_PLAY; gAfterPause = false; }
         else beginRun();
@@ -1219,6 +1227,7 @@ static void drawPlayBottom() {
     panel(8, 30, 304, 46, EDGE, PANEL);
     text("Objeto equipado", 16, 31, 0.38f, COL(170, 195, 245, 255));
     text(playItem() >= 0 ? itemName(playItem()) : T("Ninguno"), 16, 48, 0.5f, WHITE);
+    if (playItem() >= 11) text(T("SELECT: Mega"), 224, 48, 0.38f, GOLD);
     if (gCoop) {
         text("Orbes no disponibles en cooperativo", 160, 120, 0.4f, COL(170, 195, 245, 255), true);
         return;
@@ -1242,17 +1251,22 @@ static void drawPlayBottom() {
 }
 static void drawLevelUp() {
     bgFill();
-    snprintf(gTmp, sizeof gTmp, T("¡Nivel %d! Elige una mejora"), playLevel());
+    if (playPowerOffer()) snprintf(gTmp, sizeof gTmp, "%s", T("¡Elige un poder de Eternatus!"));
+    else snprintf(gTmp, sizeof gTmp, T("¡Nivel %d! Elige una mejora"), playLevel());
     text(gTmp, 160, 0, 0.6f, COL(255, 230, 120, 255), true);
-    for (int i = 0; i < gCards.n; i++) {
-        float y = 24 + i * 62;
-        panel(8, y, 304, 58, gCards.c[i].col | 0xFF000000u);
-        text(gCards.c[i].title, 18, y + 3, 0.5f, WHITE);
-        textWrap(gCards.c[i].desc, 18, y + 26, 286, 0.38f, COL(170, 200, 255, 255));
-        if (tapIn(8, y, 304, 58)) { playApplyCard(gCards.c[i]); sfxPlay(SFX_LEVEL); gState = ST_PLAY; return; }
+    for (int k = 0; k < 2; k++) {
+        int i = gCardPage * 2 + k; if (i >= gCards.n) break;
+        float y = 27 + k * 77;
+        panel(8, y, 304, 70, gCards.c[i].col | 0xFF000000u);
+        text(gCards.c[i].title, 18, y + 5, 0.56f, WHITE);
+        textWrap(gCards.c[i].desc, 18, y + 32, 286, 0.43f, COL(170, 200, 255, 255));
+        if (tapIn(8, y, 304, 70)) { playApplyCard(gCards.c[i]); sfxPlay(SFX_LEVEL); gState = ST_PLAY; return; }
     }
+    if (arrowBtn(8, 185, 44, 22, false, gCardPage > 0)) gCardPage--;
+    if (arrowBtn(58, 185, 44, 22, true, (gCardPage + 1) * 2 < gCards.n)) gCardPage++;
+    snprintf(gTmp, sizeof gTmp, "%d/%d", gCardPage + 1, (gCards.n + 1) / 2); text(gTmp, 160, 187, 0.42f, WHITE, true);
     snprintf(gTmp, sizeof gTmp, T("Cambiar cartas (%d)"), playRerolls());
-    if (button(60, 212, 200, 24, gTmp, playRerolls() > 0 ? EDGE : COL(60, 60, 80, 255), 0.45f) && playRerolls() > 0) { playReroll(gCards); sfxPlay(SFX_UI); }
+    if (!playPowerOffer() && button(60, 212, 200, 24, gTmp, playRerolls() > 0 ? EDGE : COL(60, 60, 80, 255), 0.45f) && playRerolls() > 0) { playReroll(gCards); gCardPage = 0; sfxPlay(SFX_UI); }
 }
 
 static void finishRun() {
@@ -1648,17 +1662,21 @@ static void drawCoopWait() {
 static void coopSend(u16 cmd) { coopQueueCmd(cmd); sfxPlay(SFX_LEVEL); gCoopCards = false; }
 static void drawCoopCards() {
     bgFill();
-    snprintf(gTmp, sizeof gTmp, "¡Nivel! Elige una mejora");
+    snprintf(gTmp, sizeof gTmp, "%s", T(playPowerOffer() ? "¡Elige un poder de Eternatus!" : "¡Nivel! Elige una mejora"));
     text(gTmp, 160, 0, 0.6f, COL(255, 230, 120, 255), true);
-    for (int i = 0; i < gCards.n; i++) {
-        float y = 24 + i * 62;
-        panel(8, y, 304, 58, gCards.c[i].col | 0xFF000000u);
-        text(gCards.c[i].title, 18, y + 3, 0.5f, WHITE);
-        textWrap(gCards.c[i].desc, 18, y + 26, 286, 0.38f, COL(170, 200, 255, 255));
-        if (tapIn(8, y, 304, 58)) { coopSend(0x8000 | (gCards.c[i].kind & 3) << 8 | (gCards.c[i].arg & 0xff)); return; }
+    for (int k = 0; k < 2; k++) {
+        int i = gCardPage * 2 + k; if (i >= gCards.n) break;
+        float y = 27 + k * 77;
+        panel(8, y, 304, 70, gCards.c[i].col | 0xFF000000u);
+        text(gCards.c[i].title, 18, y + 5, 0.56f, WHITE);
+        textWrap(gCards.c[i].desc, 18, y + 32, 286, 0.43f, COL(170, 200, 255, 255));
+        if (tapIn(8, y, 304, 70)) { coopSend(0x8000 | (gCards.c[i].kind & 3) << 8 | (gCards.c[i].arg & 0xff)); return; }
     }
+    if (arrowBtn(8, 185, 44, 22, false, gCardPage > 0)) gCardPage--;
+    if (arrowBtn(58, 185, 44, 22, true, (gCardPage + 1) * 2 < gCards.n)) gCardPage++;
+    snprintf(gTmp, sizeof gTmp, "%d/%d", gCardPage + 1, (gCards.n + 1) / 2); text(gTmp, 160, 187, 0.42f, WHITE, true);
     snprintf(gTmp, sizeof gTmp, T("Cambiar cartas (%d)"), playRerolls());
-    if (button(60, 212, 200, 24, gTmp, playRerolls() > 0 ? EDGE : COL(60, 60, 80, 255), 0.45f) && playRerolls() > 0) { playReroll(gCards); sfxPlay(SFX_UI); }
+    if (!playPowerOffer() && button(60, 212, 200, 24, gTmp, playRerolls() > 0 ? EDGE : COL(60, 60, 80, 255), 0.45f) && playRerolls() > 0) { playReroll(gCards); gCardPage = 0; sfxPlay(SFX_UI); }
 }
 static void drawCoopItem() {
     bgFill();
@@ -1879,11 +1897,13 @@ static void drawBan() {
 int main() {
     osSetSpeedupEnable(true);   // New 3DS: CPU a 804 MHz (no afecta a la Old 3DS)
     gfxInitDefault();
+    gfxSet3D(true);              // allocate both upper-screen eye buffers
     romfsInit();
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
     C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
     C2D_Prepare();
     C3D_RenderTarget* top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
+    C3D_RenderTarget* topRight = C2D_CreateScreenTarget(GFX_TOP, GFX_RIGHT);
     C3D_RenderTarget* bot = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
     textInit();
     iconsLoad();
@@ -1899,6 +1919,7 @@ int main() {
 
     u64 last = osGetTime();
     bool quit = false;
+    bool stereoActive = true;
     while (aptMainLoop() && !quit) {
         hidScanInput();
         u32 down = hidKeysDown(), held = hidKeysHeld();
@@ -1948,7 +1969,7 @@ int main() {
 
         if (gState == ST_PLAY && gCoop) {
             int ov = coopOverlay();
-            if (ov == 1 && !gCoopCards) { playBuildCards(gCards); gCoopCards = true; }
+            if (ov == 1 && !gCoopCards) { playBuildCards(gCards); gCardPage = 0; gCoopCards = true; }
             if (ov != 1) gCoopCards = false;
             int jx = 0, jy = 0;
             bool ts = gTouching;
@@ -1957,6 +1978,7 @@ int main() {
             gTouching = ts;
             gCoopBtn |= playCoopTakeBtn();
             for (int i = 0; i < 4; i++) if (down & BTN_KEYS[i]) gCoopBtn |= 1 << i;
+            if (!ov && (down & KEY_SELECT)) gCoopBtn |= 16;
             gAcc = fminf(gAcc + dt, 0.1f);
             const float TICK = 1.0f / 30;
             bool stalled = false;
@@ -1979,7 +2001,7 @@ int main() {
             int jx = 0, jy = 0;
             readJoy(jx, jy, held);
             playUpdate(dt, down, held, jx, jy);
-            if (playState() == PS_LEVELUP) { playBuildCards(gCards); gState = ST_LEVELUP; }
+            if (playState() == PS_LEVELUP) { playBuildCards(gCards); gCardPage = 0; gState = ST_LEVELUP; }
             else if (playState() == PS_BOND) { gState = ST_BOND; for (int i = 0; i < 4; i++) gBondSel[i] = false; }
             else if (playState() == PS_ITEM) { gState = ST_ITEM; }
             else if (playState() == PS_OVER || playState() == PS_WIN) { finishRun(); gState = ST_OVER; }
@@ -1989,11 +2011,15 @@ int main() {
 
         kbdRun();
         onlinePoll();
+        bool stereo = gSave.musicPad[0] && osGet3DSliderState() > 0.01f && topRight;
+        if (stereo != stereoActive) { gfxSet3D(stereo); stereoActive = stereo; }
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         textFrame();
         C2D_TargetClear(top, COL(0, 0, 0, 255));
+        if (stereo) C2D_TargetClear(topRight, COL(0, 0, 0, 255));
         C2D_TargetClear(bot, COL(0, 0, 0, 255));
-        C2D_SceneBegin(top);
+        for (int eyeIndex = 0; eyeIndex < (stereo ? 2 : 1); eyeIndex++) {
+        C2D_SceneBegin(eyeIndex ? topRight : top);
         switch (gState) {
             case ST_MENU: drawMenuTop(now); break;
             case ST_BAG: drawBagTop(now); break;
@@ -2011,13 +2037,15 @@ int main() {
             case ST_QUIZ: drawQuizTop(now); break;
             case ST_LANG: case ST_OPTIONS: topBg(); tileBg(); logo(200, 70, 1.3f); break;
             case ST_LOADING: topBg(); text("Cargando…", 200, 100, 0.8f, WHITE, true); break;
-            case ST_PLAY: case ST_LEVELUP: case ST_BOND: case ST_ITEM: playDraw(now);
+            case ST_PLAY: case ST_LEVELUP: case ST_BOND: case ST_ITEM:
+                playDraw(now, stereo ? (eyeIndex ? 3.0f : -3.0f) * osGet3DSliderState() : 0);
                 if (gCoop && gState == ST_PLAY && gStall > 0.4f) text("Esperando al compañero…", 200, 10, 0.5f, COL(255, 220, 90, 255), true);
                 else if (gCoop && gState == ST_PLAY && playCoopBond()) text("Vínculo: partida en pausa", 200, 10, 0.5f, COL(255, 160, 220, 255), true);
                 break;
             case ST_COOP: case ST_COOPWAIT: case ST_COOPSEL: topBg(); tileBg(); logo(200, 70, 1.3f); break;
             case ST_ACH: drawAchTop(); break;
             case ST_OVER: topBg(); text(gRun.won ? "¡Victoria!" : "Fin de la partida", 200, 100, 0.9f, WHITE, true); break;
+        }
         }
         C2D_SceneBegin(bot);
         gBotScene = true;

@@ -234,13 +234,41 @@ void icon(int ic, float x, float y, float sc, u32 tint, float z) {
 Save gSave;
 #define SAVE_MAGIC 0x50533344u
 static const char* SAVE_PATH = "sdmc:/3ds/pokesurvivor3ds.sav";
+static void saveMigrate(const SaveLegacy& old) {
+#define COPY_SCALAR(f) gSave.f = old.f
+#define COPY_ARRAY(f) memcpy(gSave.f, old.f, sizeof old.f)
+    COPY_SCALAR(magic); COPY_SCALAR(coins); COPY_SCALAR(t1); COPY_SCALAR(t10);
+    COPY_SCALAR(best); COPY_SCALAR(bestLevel); COPY_SCALAR(runs); COPY_SCALAR(kills);
+    COPY_ARRAY(perm); COPY_ARRAY(owned); COPY_ARRAY(bannedMove); COPY_ARRAY(pity);
+    COPY_SCALAR(lastChar); COPY_ARRAY(startMove); COPY_SCALAR(vol);
+    COPY_SCALAR(lang); COPY_SCALAR(langSet); COPY_ARRAY(shiny); COPY_ARRAY(shinyOn);
+    COPY_SCALAR(dayKey); COPY_SCALAR(weekKey); COPY_ARRAY(md); COPY_ARRAY(mw);
+    COPY_ARRAY(ach); COPY_ARRAY(legends); COPY_ARRAY(stat); COPY_ARRAY(items);
+    COPY_ARRAY(pupg); COPY_SCALAR(pupgMig); COPY_SCALAR(seed);
+    COPY_ARRAY(pstart2); COPY_ARRAY(startMove2); COPY_ARRAY(pnat); COPY_ARRAY(pabil);
+    COPY_ARRAY(ptm); COPY_ARRAY(bag); COPY_ARRAY(tms); COPY_ARRAY(nick); COPY_ARRAY(fav);
+    COPY_SCALAR(wins); COPY_ARRAY(pban); COPY_SCALAR(bigUI); COPY_SCALAR(quizPending);
+    COPY_SCALAR(candy); COPY_ARRAY(skin); COPY_ARRAY(skinOn); COPY_ARRAY(favoritePad);
+    COPY_ARRAY(favoriteMon); COPY_ARRAY(musicPad); COPY_SCALAR(musicChoice);
+    COPY_ARRAY(ptmHi);
+#undef COPY_SCALAR
+#undef COPY_ARRAY
+}
 void saveLoad() {
     memset(&gSave, 0, sizeof gSave);
     FILE* f = fopen(SAVE_PATH, "rb");
-    bool ok = false;
+    bool ok = false, migrated = false;
     if (f) {   // una partida guardada más corta (versión anterior) sigue valiendo: los campos nuevos quedan a 0
-        size_t n = fread(&gSave, 1, sizeof gSave, f);
-        ok = n >= offsetof(Save, vol) + sizeof(float) && gSave.magic == SAVE_MAGIC;
+        fseek(f, 0, SEEK_END); long size = ftell(f); rewind(f);
+        if (size >= (long)sizeof(Save)) {
+            size_t n = fread(&gSave, 1, sizeof gSave, f);
+            ok = n == sizeof gSave && gSave.magic == SAVE_MAGIC;
+        } else {
+            SaveLegacy old = {};
+            size_t n = fread(&old, 1, sizeof old, f);
+            ok = n >= offsetof(SaveLegacy, vol) + sizeof(float) && old.magic == SAVE_MAGIC;
+            if (ok) { saveMigrate(old); migrated = true; }
+        }
         fclose(f);
     }
     if (!ok) {
@@ -259,6 +287,7 @@ void saveLoad() {
         for (int i = 0; i < NPERM; i++) if (permLvOf(d, i) > PERM[i].max) permSetLv(d, i, PERM[i].max);
     if (gSave.lang >= LANG_N) { gSave.lang = LANG_EN; gSave.langSet = 0; }
     if (!gSave.seed) { gSave.seed = (u32)osGetTime() * 2654435761u + 0x9E3779B9u; if (!gSave.seed) gSave.seed = 1; saveWrite(); }
+    else if (migrated) saveWrite();
 }
 int permLvOf(int di, int id) { return id < NPERM_OLD ? gSave.pupg[di][id] : gSave.pstart2[di]; }
 void permSetLv(int di, int id, int v) { if (id < NPERM_OLD) gSave.pupg[di][id] = (u8)v; else gSave.pstart2[di] = (u8)v; }
@@ -349,7 +378,7 @@ static time_t hwEnd(int year) { struct tm t; memset(&t, 0, sizeof t); t.tm_year 
 const int SKIN_BASE[3] = {94, 25, 197};
 int skinNum(int di) {
     int d = DEX_NUM[di];
-    for (int k = 0; k < 3; k++) if (d == SKIN_BASE[k] && gSave.skin[k] && gSave.skinOn[k] && sprHas(1050 + k)) return 1050 + k;
+    for (int k = 0; k < 3; k++) if (d == SKIN_BASE[k] && gSave.skin[k] && gSave.skinOn[k] && sprHas(3900 + k)) return 3900 + k;
     return d;
 }
 bool hwOn() {

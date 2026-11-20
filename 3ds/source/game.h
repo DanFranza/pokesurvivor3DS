@@ -14,7 +14,7 @@
 
 #define COL(r, g, b, a) C2D_Color32(r, g, b, a)
 static const float TOP_W = 400, TOP_H = 240;
-static const float WIN_TIME = 900;          // sobrevivir 15 min = victoria
+static const float WIN_TIME = 1800;         // Sentencia de Arceus a los 30 minutos
 
 // ---------- util (core.cpp) ----------
 u32 rnd();
@@ -71,49 +71,52 @@ void tileDraw(const TCell& c, float x, float y, float z, const C2D_ImageTint* ti
 // ---------- guardado y progreso permanente (core.cpp) ----------
 struct MSlot { u8 def, tier, param, claimed; int prog; };   // una misión activa (def = índice en las plantillas)
 #define NPERM_OLD 14                            // las mejoras guardadas antes de «Segundo movimiento inicial»
-struct Save {
+template<int N, int M> struct SaveLayout {
     u32 magic;
     int coins, t1, t10, best, bestLevel, runs, kills;
     u8 perm[NPERM_OLD];
-    u8 owned[DEX_N];
-    u8 bannedMove[NMOVES];
+    u8 owned[N];
+    u8 bannedMove[103];                         // ancienne taille fixe : préserve les sauvegardes existantes
     int pity[10];
     int lastChar;
-    u8 startMove[DEX_N];                        // movimiento inicial elegido por Pokémon (0 = el de siempre)
+    u8 startMove[N];                            // movimiento inicial elegido por Pokémon (0 = el de siempre)
     float vol;
     u8 lang, langSet;                           // idioma elegido (LANG_*) y si ya se eligió
-    u8 shiny[DEX_N];                            // shinies conseguidos
-    u8 shinyOn[DEX_N];                          // 1 = usa su versión shiny
+    u8 shiny[N];                                // shinies conseguidos
+    u8 shinyOn[N];                              // 1 = usa su versión shiny
     int dayKey, weekKey;                        // misiones: día / semana de la última renovación
     MSlot md[3], mw[2];                         // misiones diarias y semanales
     u8 ach[256];                                // logros ya conseguidos
-    u8 legends[DEX_N];                          // legendarios vencidos en una grieta
+    u8 legends[N];                              // legendarios vencidos en una grieta
     int stat[8];                                // SB_*: estadísticas para los logros
     u8 items[16];                               // objetos equipables encontrados
-    u8 pupg[DEX_N][NPERM_OLD];                      // mejoras de CADA Pokémon (perm[] es el formato antiguo)
+    u8 pupg[N][NPERM_OLD];                      // mejoras de CADA Pokémon (perm[] es el formato antiguo)
     u8 pupgMig;                                 // 1 = perm[] ya pasado al compañero
     // --- añadido con la Tienda Kecleon (siempre al final: las partidas antiguas siguen valiendo) ---
     u32 seed;                                   // semilla de la cuenta: de ella salen la naturaleza y la habilidad de cada Pokémon
-    u8 pstart2[DEX_N];                          // mejora «Segundo movimiento inicial» (0/1)
-    u8 startMove2[DEX_N];                       // el segundo movimiento inicial elegido (0 = al azar)
-    u8 pnat[DEX_N];                             // naturaleza cambiada con Menta (id + 1)
-    u8 pabil[DEX_N];                            // habilidad elegida con Cápsula (casilla + 1)
-    u64 ptm[DEX_N];                             // MT enseñadas (bit i = MT i)
+    u8 pstart2[N];                              // mejora «Segundo movimiento inicial» (0/1)
+    u8 startMove2[N];                           // el segundo movimiento inicial elegido (0 = al azar)
+    u8 pnat[N];                                 // naturaleza cambiada con Menta (id + 1)
+    u8 pabil[N];                                // habilidad elegida con Cápsula (casilla + 1)
+    u64 ptm[N];                                 // MT enseñadas (bit i = MT i)
     u16 bag[3];                                 // Mochila: Menta, Cápsula Habilidad, Cápsula Habilidad Oculta
-    u16 tms[NTM];                               // MT sin usar
+    u16 tms[M];                                 // MT sin usar
     char nick[16];                              // pseudo online
     char fav[6][40];                            // servidores favoritos
     u32 wins;                                   // victorias totales (clasificación online)
-    u16 pban[DEX_N][3];                         // movimientos vetados por Pokémon (id+1; 0 = libre)
+    u16 pban[N][3];                             // movimientos vetados por Pokémon (id+1; 0 = libre)
     u8 bigUI;                                   // 1 = legibilidad mejorada (2 elementos por página)
     u8 quizPending;                             // 1 = primera partida: falta el test de personalidad
     u32 candy;                                  // caramelos de Halloween
     u8 skin[3], skinOn[3];                      // disfraces de bruja (Gengar, Pikachu, Umbreon): comprado / puesto
     u8 favoritePad[2];                          // antiguo relleno final de la estructura
-    u8 favoriteMon[DEX_N];                      // favoritos de la colección
+    u8 favoriteMon[N];                          // favoritos de la colección
     u8 musicPad[2];                             // antiguo relleno final
     u8 musicChoice;                             // 0 música original, 1–6 pistas añadidas
+    u64 ptmHi[N];                               // MT 64–91 enseñadas; append-only pour préserver le format
 };
+using Save = SaveLayout<DEX_N, NTM>;
+using SaveLegacy = SaveLayout<966, 58>;
 enum { SB_BOSS, SB_EVO, SB_RIFT, SB_PULLS, SB_MIS, SB_JUDGE, SB_JBEST };
 extern Save gSave;
 inline bool moveBanned(int di, int m) { for (int k = 0; k < 3; k++) if (gSave.pban[di][k] == m + 1) return true; return false; }
@@ -218,7 +221,7 @@ struct Card {
     char title[48], desc[96];
     u32 col;
 };
-struct CardSet { Card c[3]; int n; };
+struct CardSet { Card c[4]; int n; };
 
 void playReset(int charIdx, const int* startMoves, int nStart);
 
@@ -231,6 +234,7 @@ void playCoopFrame(float dt);                    // efectos visuales (por fotogr
 u8 playCoopTakeBtn();                            // toques en X/Y/B/A pendientes
 u32 playCoopChecksum();
 int playCoopPending();                           // niveles por elegir del jugador local
+bool playPowerOffer();                           // recompensa de Eternatus pendiente
 int playCoopBond();                              // vínculo por decidir: 1 = yo · 2 = el compañero
 bool playCoopDead();
 void playCoopPartner(float* x, float* y, float* hpFrac, bool* dead);
@@ -265,7 +269,7 @@ int playOrbBinding(int button);
 void playOrbAssign(int slot, int button);
 void playUpdate(float dt, u32 down, u32 held, int jx, int jy);
 void playDrawMap(int localPlayer);
-void playDraw(u64 ms);                          // pantalla superior
+void playDraw(u64 ms, float eye = 0);           // pantalla superior; desplazamiento estereoscópico
 void playPreloadSprites();
 PlayState playState();
 void playSetState(PlayState s);

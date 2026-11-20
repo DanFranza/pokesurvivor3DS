@@ -16,16 +16,16 @@
 
 // ---------------------------------------------------------------- tipos de datos
 struct Enemy {
-    bool on, boss, moving, legend, judge, shiny, fury, binit, arceus;
+    bool on, boss, moving, legend, judge, shiny, fury, binit, arceus, eterna, ecore;
     u8 bmode, bst, batk, bside; float bcd, bmodeT, bt, bax, bay, bdx, bdy;
     short di;                       // fila en DEX
     u8 beh, dir, st;
     float x, y, hp, maxHp, spd, dmg, xp, r, flash, t, t2, tx, ty, kx, ky, shield, hitCd, took;
     float shotDmg, shotCd, range;
     short minion; u8 fanN, zones;
-    float burn, burnT, burnTick, poison, poiT, poiTick, slow, slowT, stun;
+    float burn, burnT, burnTick, poison, poiT, poiTick, slow, slowT, stun, shredT;
     float orbCd[8];
-    int id;
+    int id; u8 ephase, coreSlot; float ecast;
 };
 struct Shot {
     bool on, boom, back; u8 own;
@@ -40,9 +40,11 @@ struct Field {
     bool on; u8 kind, type, own; short mid;
     float x, y, t, life, r, dmg, ca, sa, next, a;
     int n, i;
+    int hits[40]; u8 nh;
     float v[NK_];
 };
-enum { FD_MINE, FD_METEOR, FD_TURRET, FD_PATCH, FD_CHARGE, FD_SPIN, FD_QUAKE, FD_VORTEX, FD_STUN };
+enum { FD_MINE, FD_METEOR, FD_TURRET, FD_PATCH, FD_CHARGE, FD_SPIN, FD_QUAKE, FD_VORTEX, FD_STUN,
+       FD_TREMOR, FD_WAVE, FD_CROSS, FD_PUNCH, FD_DECOY };
 enum { FX_RING, FX_ARC, FX_BEAM, FX_PART, FX_TEXT, FX_FLASH, FX_BOLT, FX_BUFF };
 struct Fx {
     bool on; u8 kind, rimmed;
@@ -57,7 +59,10 @@ struct Player {
     int di;
     float buffAtk, buffAtkT, buffSpd, buffSpdT, buffDef, buffDefT;
     float slowT, liqT;
+    float restT, screenT[2], screenK[2];
     int rerolls;
+    int mega; float megaT, megaCd, megaHp, megaRegen, megaAtk, megaSpd, megaCdScale, megaArmor;
+    int power; bool powerOn; float powerT, powerCd, powerHp, powerTick;
     float orbA[4];
     int actK, actDir; float actS, actD;   // animación de ataque en curso (0 = ninguna)
 };
@@ -73,8 +78,8 @@ static const TierT TIERS[6] = {
     {260, 445, 515, 88, 70, 14, 13, 7},  {380, 495, 560, 150, 66, 22, 24, 7}, {500, 530, 620, 250, 72, 28, 38, 7}};
 struct BossSlot { float at, hp, dmg, xp; int bstLo, bstHi; };
 static const BossSlot BOSS_SLOTS[5] = {
-    {180, 1400, 34, 220, 490, 545}, {360, 3200, 42, 420, 520, 580}, {540, 5600, 48, 680, 540, 600},
-    {720, 9000, 56, 1000, 580, 700}, {900, 16000, 68, 1800, 600, 700}};
+    {120, 1400, 34, 220, 490, 545}, {360, 3200, 42, 420, 520, 580}, {600, 5600, 48, 680, 540, 600},
+    {840, 9000, 56, 1000, 580, 700}, {1080, 16000, 68, 1800, 600, 700}};
 
 // ---------------------------------------------------------------- estado global
 static Enemy gE[MAXE];
@@ -95,8 +100,9 @@ struct Ctx {
     int rerollsLeft, target;
     float aimX, aimY;
     u32 manualDown;
-    int statTaken[9];
+    int statTaken[10];
     int pend;                       // niveles por elegir (cooperativo: la partida no se pausa)
+    bool powerOffer;
     bool dead, shiny;
     MonStat ms; int abil;           // estadísticas con naturaleza · habilidad
     bool bondWait, adead;           // vínculo por decidir (pausa) · caído dentro de la grieta
@@ -139,6 +145,8 @@ static PlayState gPS = PS_RUN;
 static float gTime, gSpawnAcc, gSurgeT, gShake, gBannerT, gPreT;
 static char gBanner[80];
 static int gKills, gBossesDown, gCoins, gT1, gT10, gNextId, gChar, gSet, gNextBoss;
+static bool gEternaSpawned;
+static float gEternaFightT;
 static int gKillsType[18], gChests, gEvolves, gRifts;
 static float gCamX, gCamY;
 // Orbes: cuatro tipos distintos, hasta tres unidades por tipo.
@@ -162,7 +170,7 @@ static float gLostT;
 static Enemy sE[MAXE]; static Pick sP[MAXP]; static Field sF[MAXF];
 // objetos equipables
 struct ItemDef { const char* name; const char* desc; };
-static const ItemDef ITEMS[11] = {
+static const ItemDef ITEMS[13] = {
     {"Restos", "Recuperas un 1,5% de tu vida por segundo."},
     {"Cinta Elección", "+40% de daño, pero no puedes cambiar de movimiento."},
     {"Garra Rápida", "-20% de recarga en todos tus movimientos."},
@@ -173,7 +181,9 @@ static const ItemDef ITEMS[11] = {
     {"Vidasfera", "+30% de daño, pero cada ataque te quita vida."},
     {"Pañuelo Elección", "+35% de velocidad."},
     {"Casco Dentado", "Los que te tocan reciben daño."},
-    {"Chaleco Asalto", "-20% de daño recibido."}};
+    {"Chaleco Asalto", "-20% de daño recibido."},
+    {"Megapiedra A", "SELECT: megaevolución temporal; recarga de 40 s."},
+    {"Megapiedra B", "SELECT: segunda megaevolución; recarga de 40 s."}};
 // la Sentencia de Arceus (al llegar a WIN_TIME): arena enorme, Arceus invencible y legendarios cada vez más fuertes
 static int gJPlate;
 static int gJ, gJN, gJDowns, gJArDi, gJNs; static u8 gJDir; static bool gJMoving;
@@ -254,7 +264,7 @@ void moveRecompute(MoveInst& m) {
         }
     }
 }
-const char* moveName(const MoveInst& m) { return m.evo ? EVO_NAME[m.id] : MOVES[m.id].name; }
+const char* moveName(const MoveInst& m) { return T(m.evo ? EVO_NAME[m.id] : MOVES[m.id].name); }
 
 // ---------------------------------------------------------------- efectos
 static Fx* newFx(u8 kind, float life) {
@@ -408,7 +418,14 @@ static float atkBase(const MoveDef& d) {
     const MonStat& m = gCur->ms;
     float a = P.atkMul * (P.buffAtkT > 0 ? 1 + P.buffAtk : 1) * m.atk;
     float fit = d.cat == 0 ? m.pa / m.atk : d.cat == 1 ? m.sa / m.atk : 1;
-    if (d.cat != 2 && p.t2 == 255 && d.type == p.t1) fit *= 1.2f;
+    int t1 = p.t1, t2 = p.t2;
+    if (P.mega >= 0) {
+        const MegaDef& mega = MEGAS[P.mega];
+        fit *= d.cat == 0 ? mega.pa / fmaxf(0.1f, p.pa) : d.cat == 1 ? mega.sa / fmaxf(0.1f, p.sa) : 1;
+        t1 = mega.t1; t2 = mega.t2;
+    }
+    if (d.cat != 2 && t2 == 255 && d.type == t1) fit *= 1.2f;
+    if (P.powerOn && P.power == 3 && (d.type == t1 || d.type == t2)) fit *= 1.8f;
     return a * fit;
 }
 static float xpFor(int lv) { return floorf((8 + lv * 6 + powf((float)lv, 1.75f) * 1.6f) * 4); }
@@ -531,12 +548,34 @@ static void rollRun() {
 }
 void playPreloadSprites() {
     sprLoad(DEX_NUM[P.di]); sprLoad(skinNum(P.di));
+    if (sprHas(890)) sprLoad(890);
     for (int ti = 0; ti < 6; ti++) for (int k = 0; k < gNCast[ti]; k++) { sprLoad(DEX_NUM[gCast[ti][k].di]); if (gCast[ti][k].minion) sprLoad(gCast[ti][k].minion); }
     for (int s = 0; s < 5; s++) sprLoad(DEX_NUM[gBossDef[s].di]);
 }
 
 // ---------------------------------------------------------------- recogidas
-static int itemRoll() { int i; do i = rnd() % 11; while (i == gItem); return i; }
+static int megaIndex(int dex, int slot) {
+    for (int i = 0; i < NMEGAS; i++) if (MEGAS[i].base == dex && MEGAS[i].slot == slot) return i;
+    return -1;
+}
+static const char* megaDisplayName(int k) {
+    static char name[80];
+    const MegaDef& m = MEGAS[k];
+    int di = dexIndexOf(m.base);
+    const char* base = di >= 0 ? pname(di) : m.name;
+    size_t len = strlen(m.name);
+    const char* suffix = len > 2 && m.name[len - 2] == ' ' && strchr("XYZ", m.name[len - 1]) ? m.name + len - 2 : "";
+    snprintf(name, sizeof name, "%s%s%s", gSave.lang == LANG_FR ? "Méga-" : "Mega-", base, suffix);
+    return name;
+}
+static int itemRoll() {
+    int dex = DEX_NUM[P.di];
+    if (megaIndex(dex, 0) >= 0 && frand() < 0.10f) {
+        int slot = megaIndex(dex, 1) >= 0 && (rnd() & 1) ? 1 : 0;
+        if (gItem != 11 + slot) return 11 + slot;
+    }
+    int i; do i = rnd() % 11; while (i == gItem); return i;
+}
 static void dropPick(u8 kind, float x, float y, float val);
 static void orbDrop(float x, float y, float chance);
 static void dropPick(u8 kind, float x, float y, float val) {
@@ -593,6 +632,11 @@ static void shinyCaught(Enemy& e) {
 static void killEnemy(Enemy& e) {
     if (!e.on) return;
     e.on = false;
+    if (e.ecore) {
+        fxRing(e.x, e.y, 9, 65, 0xff526e, 0.5f, 5);
+        sfxPlay(SFX_BOSS);
+        return;
+    }
     gKills++;
     {
         const DexE& dp = DEX[e.di];
@@ -614,6 +658,12 @@ static void killEnemy(Enemy& e) {
     float r = frand();
     if (e.boss) {
         gBossesDown++;
+        if (e.eterna) {
+            gCoins += 600; gT10++;
+            banner(T("¡Victoria ante Eternatus Eternamax!"), 4.0f);
+            for (int i = 0; i < gNP; i++) if (!gC[i].dead) gC[i].powerOffer = true;
+            if (gNP == 1) gPS = PS_LEVELUP;
+        }
         dropPick(5, e.x - 26, e.y - 10, (float)itemRoll());
         for (int i = 0; i < 12; i++) dropPick(1, e.x + frange(-24, 24), e.y + frange(-18, 18), 3);
         if (frand() < 1.0f / 3) dropPick(3, e.x, e.y - 10, 10);   // ticket ×10 (como en la web)
@@ -632,6 +682,19 @@ static void killEnemy(Enemy& e) {
 }
 
 static void damageEnemyRaw(Enemy& e, float dmg) {
+    if (e.eterna) {
+        if (e.ephase == 2 || e.ephase == 4) {
+            for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].ecore) {
+                e.flash = 0.08f;
+                return;
+            }
+        }
+        if (e.ephase == 1) dmg = fminf(dmg, fmaxf(0, e.hp - e.maxHp * (2.0f / 3)));
+        if (e.ephase == 2) dmg = fminf(dmg, fmaxf(0, e.hp - e.maxHp / 3));
+        if (e.ephase == 3) dmg = fminf(dmg, fmaxf(0, e.hp - e.maxHp * 0.1f));
+        if (e.ephase == 4) dmg = 0;
+        if (e.ephase == 5) dmg *= 1.5f;
+    }
     if (e.arceus) {   // invencible: sólo una parte mínima del daño, cada vez menos
         e.hp = fmaxf(1, e.hp - dmg * 0.06f / (1 + gJT / 45));
         e.flash = 0.08f;
@@ -675,8 +738,9 @@ static void hitEnemy(Enemy& e, float dmg, int type, int cat, float burn, float p
     const DexE& p = DEX[e.di];
     float tm = e.arceus ? typeMult(type, gJPlate, 255) : typeMult(type, p.t1, p.t2);
     float g = cat == 2 ? 1 : guardMul(cat == 1 ? p.sd : p.df);
-    bool crit = frand() < P.crit + (gOrbFocusT > 0 ? 0.6f : 0);
-    float d = dmg * tm * g * (crit ? 1.5f : 1) * wxMult(type) * abilOut(e, type, cat);
+    float critUp = mid >= 0 && mid < NMOVES ? MOVES[mid].v[K_CRITUP] : 0;
+    bool crit = frand() < fminf(0.6f, P.crit + critUp + (gOrbFocusT > 0 ? 0.6f : 0));
+    float d = dmg * tm * g * (crit ? 1.5f : 1) * wxMult(type) * abilOut(e, type, cat) * (e.shredT > 0 ? 1.25f : 1);
     for (int b = 0; b < 4; b++) if (gMoves[b].id == mid) gMoves[b].dealt += d;
     knock *= e.boss ? 0.25f : 1;
     float L = sqrtf(dx * dx + dy * dy);
@@ -721,12 +785,17 @@ static float reachOf(const MoveInst& m) {
         case MK_SPIN: case MK_SHOVE: case MK_CHARGE: return v[K_RADIUS] + 20;
         case MK_QUAKE: return (int)v[K_COUNT] * 34 + v[K_RADIUS];
         case MK_VORTEX: case MK_STUN: return 300;
+        case MK_TREMOR: case MK_WAVE: case MK_PUNCH: case MK_SCISSOR: case MK_BLITZ: case MK_BOOM: return v[K_RADIUS] + 40;
+        case MK_CROSS: return 300;
+        case MK_STORM: return 460;
+        case MK_LEAP: return v[K_RANGE] > 0 ? v[K_RANGE] : 220;
         default: return 360;
     }
 }
 static bool needsTarget(int kind) {
     switch (kind) {
-        case MK_AURA: case MK_NOVA: case MK_BUFF: case MK_MINE: case MK_TURRET: case MK_TRAIL: case MK_ORBIT: return false;
+        case MK_AURA: case MK_NOVA: case MK_BUFF: case MK_MINE: case MK_TURRET: case MK_TRAIL: case MK_ORBIT:
+        case MK_GUARD: case MK_REST: case MK_SCREEN: case MK_DECOY: case MK_WEATHER: return false;
         default: return true;
     }
 }
@@ -738,6 +807,24 @@ static Field* newField(int kind, const MoveInst& m, float x, float y) {
     }
     return nullptr;
 }
+static void impactExtras(Enemy& e, const float* v, int mid, float dmg) {
+    if (v[K_SHRED] > 0 && e.on) e.shredT = fmaxf(e.shredT, v[K_SHRED]);
+    if (v[K_DRAIN] > 0) healPlayer(v[K_DRAIN]);
+    float x = e.x, y = e.y; int id = e.id;
+    if (v[K_SPLASH] > 0) {
+        fxRing(x, y, 4, v[K_SPLASH], TYPE_RGB[MOVES[mid].type], 0.25f, 3);
+        for (int k = 0; k < MAXE; k++) if (gE[k].on && gE[k].id != id && distf(gE[k].x, gE[k].y, x, y) <= v[K_SPLASH] + gE[k].r)
+            damageEnemyRaw(gE[k], dmg * 0.6f);
+    }
+    if (v[K_PUDDLE] > 0) {
+        MoveInst tmp = {}; tmp.id = mid; memcpy(tmp.v, v, sizeof tmp.v);
+        Field* f = newField(FD_PATCH, tmp, x, y);
+        if (f) { f->life = v[K_PUDDLE]; f->r = v[K_PR] > 0 ? v[K_PR] : 30; f->dmg = dmg * 0.3f; }
+        int count = 0;
+        for (int k = 0; k < MAXF; k++) if (gF[k].on && gF[k].kind == FD_PATCH && gF[k].mid == mid && gF[k].own == gCi) count++;
+        for (int k = 0; k < MAXF && count > 12; k++) if (gF[k].on && gF[k].kind == FD_PATCH && gF[k].mid == mid && gF[k].own == gCi && &gF[k] != f) { gF[k].on = false; count--; }
+    }
+}
 static float segDist2(float ax, float ay, float bx, float by, float cx, float cy) {
     float dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
     float t = l2 > 0 ? clampf(((cx - ax) * dx + (cy - ay) * dy) / l2, 0, 1) : 0;
@@ -746,6 +833,7 @@ static float segDist2(float ax, float ay, float bx, float by, float cx, float cy
 }
 static void hitMove(Enemy& e, float dmg, int type, int cat, const float* v, float dx, float dy, int mid, float knockOverride = -1) {
     hitEnemy(e, dmg, type, cat, v[K_BURN], v[K_POISON], v[K_SLOW], knockOverride >= 0 ? knockOverride : v[K_KNOCK], dx, dy, mid);
+    impactExtras(e, v, mid, dmg);
 }
 
 static int nearestEnemy(float x, float y, float maxD, const int* skipIds = nullptr, int nSkip = 0) {
@@ -777,13 +865,20 @@ static void blastAt(const Field& f, float r, float k) {
         if (distf(e.x, e.y, f.x, f.y) <= r + e.r) hitMove(e, f.dmg * k, f.type, MOVES[f.mid].cat, f.v, e.x - f.x, e.y - f.y, f.mid);
     }
 }
+static bool fieldFirstHit(Field& f, int id) {
+    for (int i = 0; i < f.nh; i++) if (f.hits[i] == id) return false;
+    if (f.nh >= 40) return false;
+    f.hits[f.nh++] = id; return true;
+}
 static void breakProps(float x, float y, float r, float dmg);
 
 // misma tabla que la web: tipo de movimiento → animación (0 Attack, 1 Shoot, 2 Charge; -1 = caminar)
 static int actKindOf(int k) {
     switch (k) {
-        case MK_MELEE: case MK_NOVA: case MK_DASH: case MK_SPIN: case MK_SHOVE: case MK_QUAKE: case MK_STUN: case MK_CHARGE: return 0;
-        case MK_AURA: case MK_BUFF: case MK_ORBIT: case MK_MINE: case MK_METEOR: case MK_TURRET: case MK_VORTEX: return 2;
+        case MK_MELEE: case MK_NOVA: case MK_DASH: case MK_SPIN: case MK_SHOVE: case MK_QUAKE: case MK_STUN: case MK_CHARGE:
+        case MK_TREMOR: case MK_WAVE: case MK_PUNCH: case MK_SCISSOR: case MK_BLITZ: case MK_LEAP: case MK_BOOM: return 0;
+        case MK_AURA: case MK_BUFF: case MK_ORBIT: case MK_MINE: case MK_METEOR: case MK_TURRET: case MK_VORTEX:
+        case MK_CROSS: case MK_STORM: case MK_GUARD: case MK_REST: case MK_SCREEN: case MK_DECOY: case MK_WEATHER: return 2;
         case MK_TRAIL: return -1;
         default: return 1;
     }
@@ -1026,6 +1121,113 @@ static bool castMove(int b) {
             f->life = 0.45f; f->r = v[K_RADIUS]; f->dmg = dmg;
             break;
         }
+        case MK_TREMOR: {
+            Field* f = newField(FD_TREMOR, m, P.x, P.y); if (!f) break;
+            f->life = 0.55f; f->r = v[K_RADIUS]; f->dmg = dmg;
+            shake(0.4f); sfxPlay(SFX_BOOM); break;
+        }
+        case MK_WAVE: {
+            Field* f = newField(FD_WAVE, m, P.x - ca * 50, P.y - sa * 50); if (!f) break;
+            f->life = (v[K_RADIUS] + 50) / fmaxf(1, v[K_SPEED]);
+            f->r = v[K_WIDTH] * 0.5f; f->dmg = dmg; f->ca = ca; f->sa = sa;
+            sfxPlay(SFX_BEAM); break;
+        }
+        case MK_CROSS: {
+            if (gTarget < 0) return false;
+            Field* f = newField(FD_CROSS, m, gE[gTarget].x, gE[gTarget].y); if (!f) break;
+            f->life = 0.3f; f->r = v[K_RADIUS]; f->a = v[K_WIDTH]; f->dmg = dmg;
+            break;
+        }
+        case MK_STORM: {
+            int n = (int)fmaxf(1, v[K_COUNT]);
+            for (int i = 0; i < n; i++) {
+                int ei = nearestEnemy(P.x + frange(-130, 130), P.y + frange(-100, 100), 460);
+                if (ei < 0) break;
+                Field* f = newField(FD_METEOR, m, gE[ei].x + frange(-12, 12), gE[ei].y + frange(-8, 8)); if (!f) break;
+                f->t = -i * 0.09f; f->life = 0.32f; f->r = v[K_RADIUS]; f->dmg = dmg;
+            }
+            sfxPlay(SFX_BEAM); break;
+        }
+        case MK_PUNCH: {
+            Field* f = newField(FD_PUNCH, m, P.x, P.y); if (!f) break;
+            f->n = (int)fmaxf(1, v[K_COUNT]); f->dmg = dmg; f->r = v[K_RADIUS]; f->ca = ca; f->sa = sa;
+            break;
+        }
+        case MK_SCISSOR: {
+            for (float off : {-0.45f, 0.45f}) {
+                float a = P.aim + off, half = v[K_ARC] * 0.5f;
+                fxArc(P.x, P.y - 8, v[K_RADIUS], a, v[K_ARC], rgb, 0.22f);
+                for (int i = 0; i < MAXE; i++) {
+                    Enemy& e = gE[i]; if (!e.on) continue;
+                    float dd = distf(e.x, e.y, P.x, P.y);
+                    if (dd > v[K_RADIUS] + e.r) continue;
+                    float da = atan2f(e.y - P.y, e.x - P.x) - a;
+                    while (da > PI_F) da -= 6.283f; while (da < -PI_F) da += 6.283f;
+                    if (fabsf(da) <= half + e.r / (dd + 1)) hitMove(e, dmg, d.type, d.cat, v, e.x - P.x, e.y - P.y, m.id);
+                }
+            }
+            breakProps(P.x + ca * v[K_RADIUS] * 0.5f, P.y + sa * v[K_RADIUS] * 0.5f, v[K_RADIUS], dmg);
+            sfxPlay(SFX_HIT); break;
+        }
+        case MK_BLITZ: {
+            int seen[12], ns = 0, n = (int)fminf(12, fmaxf(1, v[K_COUNT]));
+            for (int i = 0; i < n; i++) {
+                int ei = nearestEnemy(P.x, P.y, v[K_RADIUS], seen, ns);
+                if (ei < 0) break;
+                Enemy& e = gE[ei]; seen[ns++] = e.id;
+                float ox = P.x, oy = P.y;
+                P.x = e.x - ca * (e.r + 12); P.y = e.y - sa * (e.r + 12); pushOut(P.x, P.y, 7);
+                fxBeam(ox, oy - 8, P.x, P.y - 8, 12, rgb, 0.15f);
+                hitMove(e, dmg, d.type, d.cat, v, e.x - ox, e.y - oy, m.id);
+            }
+            P.invuln = fmaxf(P.invuln, 0.4f); sfxPlay(SFX_HIT); break;
+        }
+        case MK_LEAP: {
+            if (gTarget < 0) return false;
+            float ox = P.x, oy = P.y; P.x = gE[gTarget].x; P.y = gE[gTarget].y; pushOut(P.x, P.y, 7);
+            P.invuln = fmaxf(P.invuln, 0.45f);
+            float power = gItem < 0 && v[K_NOITEM] > 0 ? v[K_NOITEM] : 1;
+            fxBeam(ox, oy - 8, P.x, P.y - 8, 12, rgb, 0.25f);
+            fxRing(P.x, P.y, 6, v[K_RADIUS], rgb, 0.35f, 4);
+            for (int i = 0; i < MAXE; i++) if (gE[i].on && distf(P.x, P.y, gE[i].x, gE[i].y) <= v[K_RADIUS] + gE[i].r)
+                hitMove(gE[i], dmg * power, d.type, d.cat, v, gE[i].x - P.x, gE[i].y - P.y, m.id);
+            breakProps(P.x, P.y, v[K_RADIUS], dmg); sfxPlay(SFX_HIT); break;
+        }
+        case MK_GUARD:
+            P.invuln = fmaxf(P.invuln, v[K_DUR]);
+            fxRing(P.x, P.y - 8, 30, 8, rgb, 0.3f, 3); sfxPlay(SFX_PICK); break;
+        case MK_REST:
+            if (P.hp >= P.maxHp * 0.98f) return false;
+            healPlayer(P.maxHp * v[K_AMOUNT]); P.restT = v[K_DUR];
+            fxRing(P.x, P.y - 8, 6, 60, rgb, 0.5f, 3); sfxPlay(SFX_PICK); break;
+        case MK_SCREEN: {
+            int cat = v[K_SHIELD] >= 1 ? 1 : 0;
+            P.screenT[cat] = v[K_DUR]; P.screenK[cat] = v[K_AMOUNT];
+            fxRing(P.x, P.y - 8, 10, 45, rgb, 0.4f, 3); sfxPlay(SFX_PICK); break;
+        }
+        case MK_DECOY: {
+            int n = (int)fmaxf(1, v[K_COUNT]);
+            for (int i = 0; i < n; i++) {
+                float a = P.aim + PI_F + (i - (n - 1) * 0.5f) * 0.9f;
+                Field* f = newField(FD_DECOY, m, P.x + cosf(a) * 50, P.y + sinf(a) * 40); if (!f) break;
+                f->life = v[K_DUR]; f->r = v[K_RADIUS];
+                fxBurst(f->x, f->y - 8, 0xe8fbff, 8, 90);
+            }
+            break;
+        }
+        case MK_BOOM:
+            P.hp = fmaxf(1, P.hp * (1 - v[K_COST]));
+            fxRing(P.x, P.y, 8, v[K_RADIUS], rgb, 0.35f, 6);
+            fxBurst(P.x, P.y - 8, rgb, 30, 260);
+            for (int i = 0; i < MAXE; i++) if (gE[i].on && distf(P.x, P.y, gE[i].x, gE[i].y) <= v[K_RADIUS] + gE[i].r)
+                hitMove(gE[i], dmg, d.type, d.cat, v, gE[i].x - P.x, gE[i].y - P.y, m.id);
+            breakProps(P.x, P.y, v[K_RADIUS], dmg); shake(1); sfxPlay(SFX_BOOM); break;
+        case MK_WEATHER: {
+            int k = (int)v[K_WX] + 1;
+            if (k < 1 || k > 3) break;
+            gWx = k; gWxT = 0; gWxDur = v[K_DUR];
+            fxRing(P.x, P.y - 8, 8, 70, rgb, 0.5f, 3); sfxPlay(SFX_PICK); break;
+        }
         default: break;
     }
     return true;
@@ -1102,7 +1304,12 @@ static void hurtPlayer(float dmg, int cat, int srcDi, bool tru = false) {
             if (t.op == AO_IN_ALL || (t.op == AO_IN_CAT && cat == t.a) || (t.op == AO_IN_FULL && P.hp >= P.maxHp * 0.95f)) g *= t.k;
         }
     }
-    float red = tru ? 0 : clampf(P.dmgReduce + P.itemReduce + (P.buffDefT > 0 ? P.buffDef : 0), 0, 0.8f);
+    float red = tru ? 0 : clampf(P.dmgReduce + P.itemReduce + (P.buffDefT > 0 ? P.buffDef : 0)
+                                   + (cat >= 0 && cat < 2 && P.screenT[cat] > 0 ? P.screenK[cat] : 0), 0, 0.8f);
+    if (P.mega >= 0 && srcDi >= 0 && !tru) {
+        const MegaDef& mega = MEGAS[P.mega]; const DexE& base = DEX[P.di];
+        g *= cat == 1 ? guardMul(mega.sd) / guardMul(base.sd) : guardMul(mega.df) / guardMul(base.df);
+    }
     float d = dmg * g * (1 - red);
     P.hp -= d; P.invuln = 0.55f; P.flash = 0.2f;
     char b[12]; snprintf(b, sizeof b, "-%d", (int)(d + 0.5f));
@@ -1205,6 +1412,75 @@ static void spawnMinions(Enemy& e) {
 }
 
 static void bossAI(Enemy& e, float dt, float dx, float dy, float dist, float ux, float uy) {
+    if (e.eterna) {
+        gEternaFightT += dt;
+        if (e.ephase == 1 && e.hp <= e.maxHp * (2.0f / 3) + 1) {
+            e.ephase = 2;
+            banner(T("¡Escudo Dinamax! Destruye los cuatro núcleos"), 4.0f);
+            for (int k = 0; k < 4; k++) {
+                Def d = {}; d.di = e.di; d.beh = B_CHASE; d.hp = 650; d.spd = 0; d.dmg = e.dmg * 0.4f;
+                int q = spawnEnemy(d, e.x, e.y, false, false, 0);
+                if (q >= 0) { gE[q].ecore = true; gE[q].coreSlot = k; gE[q].r = 16; gE[q].maxHp = gE[q].hp = e.maxHp * 0.055f; gE[q].xp = 0; }
+            }
+            e.ecast = 0;
+        }
+        if (e.ephase == 2) {
+            bool cores = false;
+            for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].ecore) cores = true;
+            if (!cores && e.hp <= e.maxHp / 3 + 1) {
+                e.ephase = 3; e.ecast = 0;
+                banner(T("¡Eternatus Eternamax entra en furia!"), 4.0f);
+                shake(0.8f);
+            }
+        }
+        if (e.ephase == 3 && e.hp <= e.maxHp * 0.1f + 1) {
+            e.ephase = 4; e.ecast = 8.0f;
+            banner(T("¡Rayo Eternamax! Rompe el Núcleo Eterno"), 4.0f);
+            Def d = {}; d.di = e.di; d.beh = B_CHASE; d.hp = 800; d.spd = 0;
+            int q = spawnEnemy(d, e.x, e.y - 70, false, false, 0);
+            if (q >= 0) { gE[q].ecore = true; gE[q].coreSlot = 4; gE[q].r = 18; gE[q].maxHp = gE[q].hp = e.maxHp * 0.025f; gE[q].xp = 0; }
+        }
+        if (e.ephase == 4) {
+            bool core = false;
+            for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].ecore && gE[i].coreSlot == 4) core = true;
+            if (!core) {
+                e.ephase = 5; e.stun = 6;
+                banner(T("¡Núcleo roto! Eternatus está aturdido"), 3.0f);
+                return;
+            }
+            e.ecast -= dt;
+            if (e.ecast <= 0) {
+                for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].ecore && gE[i].coreSlot == 4) gE[i].on = false;
+                hazCircle(P.x, P.y, 150, 1.2f, e.shotDmg * 2.5f, 0xff5279);
+                e.ephase = 6; e.ecast = 2;
+            }
+            return;
+        }
+        if (e.ephase == 5) e.ephase = 6;
+        e.t += dt;
+        e.moving = false;
+        e.ecast -= dt;
+        if (e.ecast <= 0) {
+            float ang = atan2f(dy, dx);
+            u32 col = 0xff5279;
+            int cast = rnd() % (e.ephase == 1 ? 3 : e.ephase == 2 ? 4 : 6);
+            if (cast == 0) { // Rayo Infinito : barrido de líneas annoncées
+                for (int i = -2; i <= 2; i++) hazLine(e.x, e.y - 20, ang + i * 0.26f, 500, 26, 0.9f + (i + 2) * 0.1f, e.shotDmg * 1.3f, col);
+            } else if (cast == 1) { // Bomba Lodo
+                for (int i = 0; i < 5; i++) hazCircle(P.x + frange(-90, 90), P.y + frange(-75, 75), 42, 0.85f + i * 0.09f, e.shotDmg, 0xb04fe0);
+            } else if (cast == 2) { // Energie Dinamax
+                for (int i = 0; i < 14; i++) eshot(e.x, e.y - 24, i * 6.283185f / 14, 125, e.shotDmg, col, 7);
+            } else if (cast == 3) { // Canon Dynamax
+                hazLine(e.x, e.y - 20, ang, 620, 62, 1.4f, e.shotDmg * 1.7f, col);
+            } else if (cast == 4) { // Spirale Infinie
+                for (int i = 0; i < 24; i++) eshot(e.x, e.y - 24, i * 6.283185f / 24 + gEternaFightT, 145, e.shotDmg, col, 7);
+            } else { // Nuit Obscure : zones d'impact avec préavis
+                for (int i = 0; i < 7; i++) hazCircle(P.x + frange(-130, 130), P.y + frange(-110, 110), 52, 1.3f + i * 0.1f, e.shotDmg * 1.2f, col);
+            }
+            e.ecast = (e.ephase == 3 ? 2.5f : 3.4f) * (gEternaFightT > 300 ? 0.7f : 1);
+        }
+        return;
+    }
     const DexE& dp = DEX[e.di];
     u32 col = TYPE_RGB[dp.t1];
     if (!e.binit) { e.binit = true; e.bmodeT = frange(3, 6); e.bcd = 1.0f; e.bside = rnd() & 1; }
@@ -1275,7 +1551,26 @@ static void bossAI(Enemy& e, float dt, float dx, float dy, float dist, float ux,
     if (fabsf(ux) > fabsf(uy)) e.dir = ux > 0 ? 1 : 3; else e.dir = uy > 0 ? 0 : 2;
 }
 static void enemyAI(Enemy& e, float dt) {
-    float dx = P.x - e.x, dy = P.y - e.y, dist = sqrtf(dx * dx + dy * dy);
+    if (e.ecore) {
+        Enemy* boss = nullptr;
+        for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].eterna) { boss = &gE[i]; break; }
+        if (!boss) { e.on = false; return; }
+        float a = gEternaFightT * 0.34f + e.coreSlot * PI_F * 0.5f + PI_F * 0.25f;
+        e.x = boss->x + (e.coreSlot == 4 ? 0 : cosf(a) * 110);
+        e.y = boss->y + (e.coreSlot == 4 ? -70 : sinf(a) * 70);
+        e.kx = e.ky = 0; e.moving = false;
+        return;
+    }
+    float dx = P.x - e.x, dy = P.y - e.y;
+    if (!e.boss && e.beh != B_THIEF) {
+        float best = dx * dx + dy * dy;
+        for (int k = 0; k < MAXF; k++) {
+            const Field& f = gF[k]; if (!f.on || f.kind != FD_DECOY) continue;
+            float ax = f.x - e.x, ay = f.y - e.y, dd = ax * ax + ay * ay;
+            if (dd < f.r * f.r && dd < best) { best = dd; dx = ax; dy = ay; }
+        }
+    }
+    float dist = sqrtf(dx * dx + dy * dy);
     float ux = dist > 0.01f ? dx / dist : 0, uy = dist > 0.01f ? dy / dist : 0;
     float spd = e.spd * wxSpeed(DEX[e.di].t1, DEX[e.di].t2);
     e.t += dt;
@@ -1401,6 +1696,22 @@ static void spawnWave(float dt) {
         if (s >= 0) { char b[48]; snprintf(b, sizeof b, "¡%s salvaje apareció!", pname(gBossDef[gNextBoss].di)); banner(b, 3.4f); shake(0.8f); sfxPlay(SFX_BOSS); }
         gNextBoss++;
         musicPlay(MUS_BOSS);
+    }
+    if (!gEternaSpawned && gTime >= 1200 && gTime < WIN_TIME && sprHas(890)) {
+        int di = dexIndexOf(890);
+        if (di >= 0) {
+            Def d = {};
+            d.di = di; d.beh = B_CHARGER; d.hp = 24000; d.spd = 75;
+            d.dmg = 85; d.shotDmg = 54; d.shotCd = 1.1f; d.range = 300; d.xp = 2400;
+            float a = frand() * 6.283f;
+            int s = spawnEnemy(d, P.x + cosf(a) * 245, P.y + sinf(a) * 210, true, false, gTime);
+            if (s >= 0) {
+                gEternaSpawned = true; gEternaFightT = 0;
+                gE[s].r = 46; gE[s].eterna = true; gE[s].shiny = false; gE[s].ephase = 1; gE[s].ecast = 3.0f;
+                banner(T("¡Apareció Eternatus Eternamax!"), 4.0f); shake(1.0f);
+                musicPlay(MUS_BOSS); sfxPlay(SFX_BOSS);
+            }
+        }
     }
     float rate = (1.6f + gTime * 0.028f + powf(gTime / 60, 1.6f) * 0.5f) * 0.24f;
     gSpawnAcc += rate * (bossAlive ? 0.25f : 1) * dt;
@@ -1541,6 +1852,77 @@ static void updateFields(float dt) {
                     breakProps(f.x, f.y, f.r, f.dmg); sfxPlay(SFX_BOOM); f.on = false;
                 }
                 break;
+            case FD_TREMOR: {
+                float radius = f.r * clampf(f.t / f.life, 0, 1);
+                fxRing(f.x, f.y, radius - 5, radius, rgb, 0.09f, 2);
+                for (int k = 0; k < MAXE; k++) {
+                    Enemy& e = gE[k]; if (!e.on || !fieldFirstHit(f, e.id)) continue;
+                    float dd = distf(e.x, e.y, f.x, f.y);
+                    if (dd > radius + e.r || dd < radius - 28 - e.r) { f.nh--; continue; }
+                    hitMove(e, f.dmg, f.type, d.cat, f.v, e.x - f.x, e.y - f.y, f.mid);
+                }
+                if (f.t >= f.life) { breakProps(f.x, f.y, f.r, f.dmg); f.on = false; }
+                break;
+            }
+            case FD_WAVE: {
+                f.x += f.ca * f.v[K_SPEED] * dt; f.y += f.sa * f.v[K_SPEED] * dt;
+                fxBeam(f.x - f.ca * 12, f.y - f.sa * 12, f.x + f.ca * 12, f.y + f.sa * 12, f.r * 2, rgb, 0.12f);
+                for (int k = 0; k < MAXE; k++) {
+                    Enemy& e = gE[k]; if (!e.on) continue;
+                    float dx = e.x - f.x, dy = e.y - f.y;
+                    if (fabsf(dx * f.ca + dy * f.sa) > 24 + e.r || fabsf(-dx * f.sa + dy * f.ca) > f.r + e.r) continue;
+                    if (!fieldFirstHit(f, e.id)) continue;
+                    hitMove(e, f.dmg, f.type, d.cat, f.v, f.ca, f.sa, f.mid);
+                    if (e.on && !e.boss) { e.x += f.ca * 12; e.y += f.sa * 12; }
+                }
+                breakProps(f.x, f.y, f.r, f.dmg);
+                if (f.t >= f.life) f.on = false;
+                break;
+            }
+            case FD_CROSS:
+                if (f.t >= f.life) {
+                    fxRing(f.x, f.y, 4, f.r, rgb, 0.35f, 4);
+                    for (int k = 0; k < MAXE; k++) {
+                        Enemy& e = gE[k]; if (!e.on) continue;
+                        float dx = fabsf(e.x - f.x), dy = fabsf(e.y - f.y);
+                        if ((dx <= f.r + e.r && dy <= f.a * 0.5f + e.r) || (dy <= f.r + e.r && dx <= f.a * 0.5f + e.r))
+                            hitMove(e, f.dmg, f.type, d.cat, f.v, e.x - f.x, e.y - f.y, f.mid);
+                    }
+                    breakProps(f.x, f.y, f.r, f.dmg); sfxPlay(SFX_BOOM); f.on = false;
+                }
+                break;
+            case FD_PUNCH:
+                f.next -= dt;
+                if (f.next <= 0) {
+                    f.next = 0.12f; f.i++;
+                    float power = f.i >= f.n ? 1.4f : 1;
+                    fxArc(P.x, P.y - 8, f.r, atan2f(f.sa, f.ca), f.v[K_ARC], rgb, 0.18f);
+                    for (int k = 0; k < MAXE; k++) {
+                        Enemy& e = gE[k]; if (!e.on) continue;
+                        float dx = e.x - P.x, dy = e.y - P.y, dd = sqrtf(dx * dx + dy * dy);
+                        if (dd > f.r + e.r) continue;
+                        if (dx * f.ca + dy * f.sa < dd * cosf(f.v[K_ARC] * 0.5f) - e.r) continue;
+                        hitMove(e, f.dmg * power, f.type, d.cat, f.v, dx, dy, f.mid);
+                        if (e.on && f.v[K_STUN] > 0) e.stun = fmaxf(e.stun, f.v[K_STUN]);
+                        if (f.i >= f.n && f.v[K_ZAP] > 0) {
+                            int seen[5] = {e.id}, ns = 1;
+                            for (int z = 0; z < (int)fminf(4, f.v[K_ZAP]); z++) {
+                                int zi = nearestEnemy(e.x, e.y, 130, seen, ns);
+                                if (zi < 0) break;
+                                Enemy& next = gE[zi]; seen[ns++] = next.id;
+                                fxBolt(e.x, e.y - 8, next.x, next.y - 8, rgb);
+                                hitMove(next, f.dmg * 0.6f, f.type, d.cat, f.v, next.x - e.x, next.y - e.y, f.mid);
+                            }
+                        }
+                    }
+                    breakProps(P.x + f.ca * f.r * 0.5f, P.y + f.sa * f.r * 0.5f, f.r * 0.5f, f.dmg);
+                    sfxPlay(SFX_HIT);
+                    if (f.i >= f.n) f.on = false;
+                }
+                break;
+            case FD_DECOY:
+                if (f.t >= f.life) f.on = false;
+                break;
         }
     }
 }
@@ -1577,6 +1959,9 @@ static void updateShots(float dt) {
             bool seen = false; for (int h = 0; h < s.nh; h++) if (s.hits[h] == e.id) seen = true;
             if (seen) continue;
             hitEnemy(e, s.dmg, s.type, s.cat, s.burn, s.poison, s.slow, s.knock, s.vx, s.vy, s.mid);
+            const float* payload = MOVES[s.mid].v;
+            for (int b = 0; b < 4; b++) if (gMoves[b].id == s.mid) { payload = gMoves[b].v; break; }
+            impactExtras(e, payload, s.mid, s.dmg);
             if (s.nh < 8) s.hits[s.nh++] = e.id;
             fxRing(s.x, s.y, 3, 14, TYPE_RGB[s.type], 0.18f, 2);
             if (!s.boom && s.pierce == 0) {
@@ -1638,6 +2023,7 @@ static void updateEnemies(float dt) {
             continue;
         }
         if (e.flash > 0) e.flash -= dt;
+        if (e.shredT > 0) e.shredT = fmaxf(0, e.shredT - dt);
         if (e.stun > 0) e.stun -= dt;
         if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slow = 0; }
         if (e.burn > 0) {
@@ -1729,27 +2115,136 @@ static void itemApply(int id, bool on) {
         default: break;
     }
 }
+static void megaEnd() {
+    if (P.mega < 0) return;
+    P.atkMul /= P.megaAtk;
+    P.spdMul /= P.megaSpd;
+    P.cdMul /= P.megaCdScale;
+    P.dmgReduce -= P.megaArmor;
+    P.regen -= P.megaRegen;
+    P.maxHp = fmaxf(1, P.maxHp - P.megaHp);
+    P.hp = fminf(P.hp, P.maxHp);
+    P.mega = -1; P.megaT = 0;
+    if (P.power == 0) { P.powerOn = false; P.powerCd = 90; P.megaCd = 0; }
+    else P.megaCd = P.power == 4 ? 35 : 40;
+    fxRing(P.x, P.y - 8, 60, 8, 0xffffff, 0.4f, 3);
+}
+static void megaStart() {
+    if (P.mega >= 0 || P.megaCd > 0 || P.hp <= 0) return;
+    bool fromPower = P.power == 0;
+    if (fromPower && P.powerCd > 0) return;
+    if (!fromPower && (gItem < 11 || gItem > 12)) return;
+    int k = megaIndex(DEX_NUM[P.di], fromPower ? 0 : gItem - 11);
+    if (k < 0) return;
+    const MegaDef& m = MEGAS[k];
+    const DexE& b = DEX[P.di];
+    P.mega = k;
+    size_t len = strlen(m.name);
+    bool z = len > 2 && m.name[len - 2] == ' ' && m.name[len - 1] == 'Z';
+    P.megaT = fromPower ? 40 : (z ? 15 : 20) + (P.power == 4 ? 10 : 0);
+    if (fromPower) P.powerOn = true;
+    P.megaHp = m.hp - b.hp;
+    P.maxHp += P.megaHp;
+    P.hp = fminf(P.maxHp, P.hp + fmaxf(0, P.megaHp));
+    P.megaAtk = (z ? 1.4f : 1.25f) * (P.power == 4 ? 1.1f : 1.0f);
+    P.megaSpd = (z ? 1.25f : 1.15f) * m.spd / fmaxf(1, b.spd);
+    P.megaCdScale = z ? 0.65f : 0.75f;
+    P.megaArmor = z ? 0.2f : 0.15f;
+    P.atkMul *= P.megaAtk;
+    P.spdMul *= P.megaSpd;
+    P.cdMul *= P.megaCdScale;
+    P.dmgReduce += P.megaArmor;
+    P.megaRegen = P.maxHp * (z ? 0.02f : 0.015f);
+    P.regen += P.megaRegen;
+    P.invuln = fmaxf(P.invuln, 1.2f);
+    for (int i = 0; i < 5; i++) fxRing(P.x, P.y - 8, 110 - i * 17, 8, i & 1 ? 0xffd23f : 0xc47bff, 0.6f, 4);
+    fxBurst(P.x, P.y - 8, 0xffffff, 22, 190);
+    char msg[80]; snprintf(msg, sizeof msg, "¡%s!", megaDisplayName(k)); banner(msg, 2.4f);
+    sfxPlay(SFX_RARE);
+}
+static void powerWave(float radius, float k, u32 col) {
+    fxRing(P.x, P.y - 8, 12, radius, col, 0.6f, 5);
+    for (int i = 0; i < MAXE; i++) {
+        Enemy& e = gE[i]; if (!e.on || distf(e.x, e.y, P.x, P.y) > radius + e.r) continue;
+        damageEnemyRaw(e, (45 + P.level * 4) * P.atkMul * k);
+    }
+    shake(0.45f);
+}
+static void powerEnd() {
+    if (!P.powerOn || P.power <= 0) return;
+    if (P.power == 1) {
+        P.atkMul /= 1.4f;
+        P.maxHp = fmaxf(1, P.maxHp - P.powerHp);
+        P.hp = fminf(P.hp, P.maxHp);
+        P.powerHp = 0;
+    } else if (P.power == 2) powerWave(420, 3.2f, 0xffd23f);
+    P.powerOn = false; P.powerT = 0;
+    P.powerCd = P.power == 1 ? 80 : P.power == 2 ? 60 : 75;
+}
+static void powerStart() {
+    if (P.hp <= 0 || P.power < 0 || P.powerCd > 0 || P.powerOn) return;
+    if (P.power == 0) { megaStart(); return; }
+    P.powerOn = true;
+    P.powerT = P.power == 1 ? 12 : P.power == 2 ? 15 : 30;
+    P.powerTick = 0;
+    if (P.power == 1) {
+        P.powerHp = P.maxHp; P.maxHp += P.powerHp; P.hp += P.powerHp;
+        P.atkMul *= 1.4f;
+        banner(T("¡Dinamax!"), 2.5f);
+    } else if (P.power == 2) {
+        powerWave(220, 1.0f, 0xffd23f);
+        banner(T("¡Poder Z!"), 2.5f);
+    } else banner(T("¡Teracristalización!"), 2.5f);
+    sfxPlay(SFX_RARE);
+}
+static void powerStep(float dt) {
+    if (P.powerCd > 0) P.powerCd = fmaxf(0, P.powerCd - dt);
+    if (!P.powerOn || P.power <= 0) return;
+    P.powerT -= dt;
+    if (P.hp <= 0 || P.powerT <= 0) { powerEnd(); return; }
+    if (P.power == 1) {
+        P.powerTick -= dt;
+        if (P.powerTick <= 0) {
+            P.powerTick = 0.5f;
+            for (int i = 0; i < MAXE; i++) {
+                Enemy& e = gE[i]; if (!e.on || e.boss || e.legend || e.ecore || e.judge) continue;
+                if (distf(e.x, e.y, P.x, P.y) < e.r + 20) damageEnemyRaw(e, (45 + P.level * 4) * P.atkMul * 0.8f);
+            }
+        }
+    } else if (P.power == 2) {
+        P.powerTick -= dt;
+        if (P.powerTick <= 0) { P.powerTick = 1.2f; powerWave(145, 0.6f, 0xffd23f); }
+    }
+}
 static void itemOffer(int id) {
-    if (id < 0 || id >= 11) return;
+    if (id < 0 || id >= 13) return;
+    if (id >= 11 && megaIndex(DEX_NUM[P.di], id - 11) < 0) id = rnd() % 11;
     gSave.items[id] = 1;
     char b[64];
-    if (gItem == id) { snprintf(b, sizeof b, "Ya llevas %s", T(ITEMS[id].name)); banner(b, 2); return; }
+    if (gItem == id) { snprintf(b, sizeof b, "Ya llevas %s", itemName(id)); banner(b, 2); return; }
     if (gItem < 0) {
         gItem = id; itemApply(id, true);
-        snprintf(b, sizeof b, "¡Llevas %s!", T(ITEMS[id].name)); banner(b, 2.6f);
+        snprintf(b, sizeof b, "¡Llevas %s!", itemName(id)); banner(b, 2.6f);
         return;
     }
     gItemNew = id; if (gNP == 1) gPS = PS_ITEM;
 }
-int itemCount() { return 11; }
-const char* itemName(int i) { return T(ITEMS[i].name); }
+int itemCount() { return 13; }
+const char* itemName(int i) {
+    if (i >= 11 && i < 13) {
+        int k = megaIndex(DEX_NUM[P.di], i - 11);
+        if (k >= 0) return megaDisplayName(k);
+    }
+    return T(ITEMS[i].name);
+}
 const char* itemDesc(int i) { return T(ITEMS[i].desc); }
 int playItem() { return gItem; }
 int playItemNew() { return gItemNew; }
 void playItemChoose(bool takeNew) {
     if (takeNew && gItemNew >= 0) {
+        if (P.mega >= 0) megaEnd();
         itemApply(gItem, false); gItem = gItemNew; itemApply(gItem, true);
-        char b[64]; snprintf(b, sizeof b, "¡Llevas %s!", T(ITEMS[gItem].name)); banner(b, 2.6f);
+        char b[64]; snprintf(b, sizeof b, "¡Llevas %s!", itemName(gItem)); banner(b, 2.6f);
     }
     gItemNew = -1; if (gNP == 1) gPS = PS_RUN;
 }
@@ -1845,6 +2340,11 @@ static void updatePickups(float dt) {
 }
 
 static void updatePlayer(float dt, float jx, float jy) {
+    if (P.megaCd > 0) P.megaCd = fmaxf(0, P.megaCd - dt);
+    if (P.megaT > 0 && (P.megaT -= dt) <= 0) megaEnd();
+    powerStep(dt);
+    for (int c = 0; c < 2; c++) if (P.screenT[c] > 0) P.screenT[c] = fmaxf(0, P.screenT[c] - dt);
+    if (P.restT > 0) { P.restT = fmaxf(0, P.restT - dt); jx = jy = 0; }
     float spd = P.spd * P.spdMul * (P.buffSpdT > 0 ? 1 + P.buffSpd : 1) * wxSpeed(pdex().t1, pdex().t2);
     if (P.slowT > 0) { spd *= 0.5f; P.slowT = fmaxf(0, P.slowT - dt); }
     if (gJ && spd > 130) spd = 130 + (spd - 130) * 0.25f;
@@ -1911,8 +2411,8 @@ void playBondApply(const int* btns, int n) {
 }
 void playBondSkip() { gBondAskN = nMoves(); if (gNP == 1) gPS = PS_RUN; }
 int playWeather(float* left) { if (left) *left = gWx ? gWxDur - gWxT : 0; return wxLevel() > 0 ? gWx : 0; }
-const char* weatherName(int k) { return WX_NAMES[k]; }
-const char* weatherHint(int k) { return WX_HINT[k]; }
+const char* weatherName(int k) { return k >= 0 && k < 6 ? T(WX_NAMES[k]) : ""; }
+const char* weatherHint(int k) { return k >= 0 && k < 6 ? T(WX_HINT[k]) : ""; }
 u32 weatherColor(int k) { return WX_COL[k]; }
 float playCdFrac(int b) {
     if (gMoves[b].id < 0) return 0;
@@ -1921,6 +2421,7 @@ float playCdFrac(int b) {
 }
 
 static void updateMoves(float dt, u32 down) {
+    if (P.restT > 0) { gManualDown = 0; return; }
     gTarget = nearestEnemy(P.x, P.y, 520);
     if (gTarget >= 0) {
         float dx = gE[gTarget].x - P.x, dy = gE[gTarget].y - 8 - P.y + 8;
@@ -1951,11 +2452,16 @@ static void updateMoves(float dt, u32 down) {
         } else if (!needsTarget(MOVES[m.id].kind) && !pressed) {
             // los de zona / mejora no se gastan si no hay nadie cerca
             int k = MOVES[m.id].kind;
-            if (k != MK_TRAIL && k != MK_BUFF && gTarget < 0) { m.cd = 0.1f; continue; }
+            if (k != MK_TRAIL && k != MK_BUFF && k != MK_REST && gTarget < 0) { m.cd = 0.1f; continue; }
             if (k == MK_BUFF && (gTarget < 0 || distf(P.x, P.y, gE[gTarget].x, gE[gTarget].y) > 300)) { m.cd = 0.2f; continue; }
         }
         if (castMove(b)) {
-            m.cd = fmaxf(0.05f, m.v[K_CD] * P.cdMul);
+            m.cd = fmaxf(fmaxf(0.05f, m.v[K_MINCD]), m.v[K_CD] * P.cdMul);
+            if (m.v[K_BOOST] > 0 && frand() < m.v[K_BOOST]) {
+                P.buffAtk = fmaxf(P.buffAtk, 0.08f); P.buffSpd = fmaxf(P.buffSpd, 0.08f);
+                P.buffAtkT = fmaxf(P.buffAtkT, 6); P.buffSpdT = fmaxf(P.buffSpdT, 6);
+                fxText(P.x, P.y - 30, "¡Ataque y Velocidad suben!", 0xc9d6ff, 0.45f);
+            }
             { int ak = actKindOf(MOVES[m.id].kind);
               if (ak >= 0) { P.actK = ak + 1; P.actS = gTime; P.actD = clampf(m.cd * 0.9f, 0.25f, 0.55f);
                   float ax = cosf(P.aim), ay = sinf(P.aim); P.actDir = fabsf(ax) > fabsf(ay) ? (ax > 0 ? 1 : 3) : (ay > 0 ? 0 : 2); } }
@@ -2473,10 +2979,11 @@ static void fxStep(float dt) {
     if (gShake > 0) gShake -= dt * 2;
 }
 static void biomeStep() {
-    int setNow = ((int)(gTime / 300)) % 3;
+    if (gArena || gJ) return;
+    int setNow = ((int)(gTime / 240)) % (gHwRun ? 3 : 21);
     static int lastBiome = -1;
     if (setNow != lastBiome) {
-        if (lastBiome >= 0) { gSet = setNow + (gHwRun ? 21 : 0); tilesLoad(gSet); banner(TILESET_NAMES[gSet], 3.0f); }
+        if (lastBiome >= 0) { gSet = setNow + (gHwRun ? 21 : 0); tilesLoad(gSet); banner(T(TILESET_NAMES[gSet]), 3.0f); }
         lastBiome = setNow;
     }
     if (gTime < 0.05f) lastBiome = -1;
@@ -2485,6 +2992,10 @@ static void bossMusicStep() {
     bool boss = false; for (int i = 0; i < MAXE; i++) if (gE[i].on && gE[i].boss) boss = true;
     static bool wasBoss; if (wasBoss && !boss) musicPlay(MUS_BATTLE); wasBoss = boss;
 }
+static void retireEternatus() {
+    for (int i = 0; i < MAXE; i++)
+        if (gE[i].on && (gE[i].eterna || gE[i].ecore)) gE[i].on = false;
+}
 
 void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
     (void)held;
@@ -2492,6 +3003,7 @@ void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
     if (gPS != PS_RUN) return;
     gTime += dt;
     if (gTime >= WIN_TIME && !gJ && !gArena && gArenaEnd <= 0) {
+        retireEternatus();
         if (judgeStart()) return;
         gPS = PS_WIN; sfxPlay(SFX_LEVEL); return;
     }
@@ -2506,6 +3018,7 @@ void playUpdate(float dt, u32 down, u32 held, int jx, int jy) {
 
     biomeStep();
     if (gNP == 1) {
+        if (down & KEY_SELECT) { if (P.power >= 0 && P.power <= 3) powerStart(); else megaStart(); }
         if (down & KEY_R) orbUse(gOrbBind[1]);
         if (down & KEY_L) orbUse(gOrbBind[0]);
         if (gOrbFocusT > 0) gOrbFocusT -= dt;
@@ -2537,7 +3050,7 @@ void playCoopTick(float dt, const CoopIn* in) {
         u16 cmd = in[i].cmd;
         if (cmd & 0x8000) {
             Card c; memset(&c, 0, sizeof c); c.kind = (cmd >> 8) & 3; c.arg = cmd & 0xff;
-            if (gCur->pend > 0) playApplyCard(c);
+            if (gCur->pend > 0 || gCur->powerOffer) playApplyCard(c);
         } else if (cmd & 0x4000) {
             if (gItemNew >= 0) playItemChoose(cmd & 1);
         } else if ((cmd & 0x2000) && gCur->bondWait) {
@@ -2554,6 +3067,7 @@ void playCoopTick(float dt, const CoopIn* in) {
     gTime += dt;
     int lead0 = gC[0].dead ? 1 : 0;
     if (gTime >= WIN_TIME && !gJ && !gArena && gArenaEnd <= 0) {
+        retireEternatus();
         bool started; { Sc sc(lead0); started = judgeStart(); }
         if (started) return;
         gPS = PS_WIN; sfxPlay(SFX_LEVEL); return;
@@ -2570,6 +3084,7 @@ void playCoopTick(float dt, const CoopIn* in) {
     for (int i = 0; i < 2; i++) {
         Sc sc(i);
         if (gCur->dead) continue;
+        if (in[i].btn & 16) { if (P.power >= 0 && P.power <= 3) powerStart(); else megaStart(); }
         if (gCur->pend > 0 || gItemNew >= 0) P.invuln = fmaxf(P.invuln, 0.3f);
         gManualDown |= in[i].btn & 15;
         updatePlayer(dt, in[i].jx / 100.0f, in[i].jy / 100.0f);
@@ -2606,7 +3121,8 @@ u32 playCoopChecksum() {
     mix(n); mix(gKills); mix(gArena); mix(gJ); mix(gC[0].bondWait | gC[1].bondWait << 1);
     return h;
 }
-int playCoopPending() { return gC[gLoc].pend; }
+int playCoopPending() { return gC[gLoc].pend + (gC[gLoc].powerOffer ? 1 : 0); }
+bool playPowerOffer() { return gC[gLoc].powerOffer; }
 bool playCoopDead() { return gC[gLoc].dead; }
 void playCoopPartner(float* x, float* y, float* hpFrac, bool* dead) {
     const Ctx& o = gC[gLoc ^ 1];
@@ -2621,7 +3137,7 @@ static void resetWorld(int charIdx) {
     memset(gP, 0, sizeof gP); memset(gF, 0, sizeof gF); memset(gFx, 0, sizeof gFx);
     memset(gBigP, 0, sizeof gBigP); gNBroken = 0; gNTrapBroken = 0; pcInvalidate(); gTime = 0; gSpawnAcc = 0; gSurgeT = 32; gKills = 0; gBossesDown = 0; gCoins = 0; gT1 = gT10 = 0;
     memset(gKillsType, 0, sizeof gKillsType); gChests = gEvolves = gRifts = 0;
-    gNextBoss = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gTickN = 0;
+    gNextBoss = 0; gEternaSpawned = false; gEternaFightT = 0; gNextId = 0; gPS = PS_RUN; gShake = 0; gBannerT = 0; gTickN = 0;
     gArena = gArenaDead = gPortal = false; gThiefN = 0; gThiefT = frange(120, 240); gLost.on = false; gLostT = frange(150, 210); gRiftChk = 30; gRiftMiss = 0;
     gJ = 0; ARENA_H = 320; gJNs = 0; gJSecT = 0; gHazTru = false;
     gWx = 0; gWxChk = 60; gWxChip = 2;
@@ -2641,7 +3157,7 @@ static void ctxInit(int ci, int di, const u8* perm, const int* startMoves, int n
     P.atkMul = 1 + lv[PU_ATK] * 0.04f; P.spdMul = 1 + lv[PU_SPD] * 0.03f; P.cdMul = 1 - lv[PU_CD] * 0.03f;
     P.dmgReduce = lv[PU_DEF] * 0.02f; P.itemReduce = 0; P.regen = lv[PU_REGEN] * 0.2f; P.magnet = 78 * (1 + lv[PU_MAGNET] * 0.12f);
     P.xpMul = 1 + lv[PU_XP] * 0.05f; P.coinMul = 1 + lv[PU_COINS] * 0.08f; P.crit = lv[PU_CRIT] * 0.03f;
-    P.level = 1; P.xpNeed = xpFor(1); P.rerolls = 0; P.dir = 0; P.actK = 0;
+    P.level = 1; P.xpNeed = xpFor(1); P.rerolls = 0; P.dir = 0; P.actK = 0; P.mega = -1; P.power = -1;
     gRerollsLeft = 1 + lv[PU_REROLL];
     gCur->ms = monStats(di, nat); gCur->abil = abil;
     P.spd = gCur->ms.spd * 0.9f;
@@ -2668,7 +3184,7 @@ static void finishReset() {
     rollRun();
     tilesLoad(gSet);
     gTierNow = 0;
-    banner(TILESET_NAMES[gSet], 3.0f);
+    banner(T(TILESET_NAMES[gSet]), 3.0f);
 }
 void playReset(int charIdx, const int* startMoves, int nStart) {
     for (int i = 0; i < 4; i++) { gOrbT[i] = -1; gOrbN[i] = 0; } gOrbBind[0] = gOrbBind[1] = -1; gOrbFocusT = gOrbLightT = 0; gZoom = 1; gVW = TOP_W; gVH = TOP_H;
@@ -2722,12 +3238,31 @@ int playCharIdx() { return gChar; }
 int playRerolls() { return gRerollsLeft; }
 
 // ---------------------------------------------------------------- cartas de nivel
-static const char* STAT_NAME[9] = {"Vigor", "Potencia", "Carrera", "Reflejos", "Coraza", "Síntesis", "Imán", "Aprendizaje", "Baya Zidra"};
-static const char* STAT_DESC[9] = {"+20 de vida máxima (y la recupera).", "+10% de daño con todos los movimientos.", "+7% de velocidad.",
+static const char* STAT_NAME[10] = {"Vigor", "Potencia", "Carrera", "Reflejos", "Coraza", "Síntesis", "Imán", "Aprendizaje", "Baya Zidra", "Sabiduría"};
+static const char* STAT_DESC[10] = {"+20 de vida máxima (y la recupera).", "+10% de daño con todos los movimientos.", "+7% de velocidad.",
                                    "-8% de recarga en todos los movimientos.", "+6% de reducción de daño recibido.", "+0.9 de vida por segundo.",
-                                   "+30% de radio de recogida.", "+12% de experiencia ganada.", "Recupera el 45% de tu vida ahora."};
+                                   "+30% de radio de recogida.", "+12% de experiencia ganada.", "Recupera el 45% de tu vida ahora.", "+15% XP"};
 static u32 gUiRng = 88172645u;      // las cartas se sortean con su propio RNG para no desincronizar el cooperativo
 void playBuildCards(CardSet& cs) {
+    Sc local(gLoc);
+    if (gCur->powerOffer) {
+        cs.n = 0;
+        auto add = [&](int kind, const char* name, const char* desc, u32 col) {
+            Card& cd = cs.c[cs.n++]; memset(&cd, 0, sizeof cd);
+            cd.kind = 3; cd.arg = kind;
+            snprintf(cd.title, sizeof cd.title, "%s", T(name));
+            snprintf(cd.desc, sizeof cd.desc, "%s", T(desc)); cd.col = col;
+        };
+        int dex = DEX_NUM[P.di];
+        if (gItem >= 11 && gItem <= 12 && megaIndex(dex, gItem - 11) >= 0)
+            add(8, "Megaevolución +", "Mega +10 s, -5 s de recarga y +10% de daño.", 0xff8ad8);
+        else if (megaIndex(dex, 0) >= 0)
+            add(4, "Megaevolución", "Mega durante 40 s sin piedra. Recarga: 90 s.", 0xff8ad8);
+        add(5, "Dinamax", "12 s: doble vida, +40% daño y pisotón. Recarga: 80 s.", 0xff526e);
+        add(6, "Pulsera Z", "15 s de ondas Z; gran explosión final. Recarga: 60 s.", 0xffd23f);
+        add(7, "Teracristal", "30 s: +80% a ataques del mismo tipo. Recarga: 75 s.", 0x7fe8ff);
+        return;
+    }
     u32 svR = rngGet();
     if (gNP > 1) rngSet(gUiRng);
     struct Cand { int kind, arg, w; };
@@ -2740,25 +3275,36 @@ void playBuildCards(CardSet& cs) {
             for (int i = 0; i < r.n; i++) { int mid = POOL_ALL[r.off + i]; if (seen[mid] || ownsMove(mid) || moveBanned(P.di, mid)) continue; seen[mid] = true; if (n < 150) c[n++] = {0, mid, 6}; }
         };
         addPool(0); addPool(p.t1); if (p.t2 != 255) addPool(p.t2);
+        if (P.level >= 10) {
+            int dex = DEX_NUM[P.di];
+            for (int mid = 0; mid < NMOVES; mid++) {
+                if (!MOVE_ONLY[mid][0] || seen[mid] || ownsMove(mid) || moveBanned(P.di, mid)) continue;
+                for (int k = 0; k < 3; k++) if (MOVE_ONLY[mid][k] == dex) {
+                    seen[mid] = true;
+                    if (n < 150) c[n++] = {0, mid, 30};
+                    break;
+                }
+            }
+        }
         if (gNP == 1) {     // MT enseñadas (en cooperativo no: las dos consolas deben ver las mismas cartas)
             int tg[NTM], nt = monTaughtMoves(P.di, tg);
             for (int i = 0; i < nt; i++) { int mid = tg[i]; if (seen[mid] || ownsMove(mid) || moveBanned(P.di, mid)) continue; seen[mid] = true; if (n < 150) c[n++] = {0, mid, 6}; }
         }
     }
-    int waitStat[9] = {}; int forced[4], nf = 0;
+    int waitStat[10] = {}; int forced[4], nf = 0;
     for (int b = 0; b < 4; b++) if (gMoves[b].id >= 0 && gMoves[b].lvl < 5) c[n++] = {1, b, 9};
     for (int b = 0; b < 4; b++) {
         const MoveInst& m = gMoves[b];
         if (m.id < 0 || m.evo || m.lvl < 5 || EVO_NEED[m.id] < 0 || !EVO_MODS[MOVES[m.id].kind].n) continue;
         if (gStatTaken[EVO_NEED[m.id]] > 0) forced[nf++] = b; else waitStat[EVO_NEED[m.id]] = b + 1;
     }
-    for (int s = 0; s < 9; s++) {
-        if (s == 1 && gStatTaken[1] >= 40) continue; if (s == 2 && gStatTaken[2] >= 8) continue; if (s == 3 && gStatTaken[3] >= 10) continue;
-        if (s == 4 && gStatTaken[4] >= 12) continue; if (s == 6 && gStatTaken[6] >= 6) continue; if (s == 7 && gStatTaken[7] >= 8) continue;
-        c[n++] = {2, s, waitStat[s] ? 14 : nMoves() < 4 ? 2 : 4};
+    for (int s = 0; s < 10; s++) {
+        if (s == 7 && gStatTaken[7] >= 15) continue;
+        if (s == 9 && gStatTaken[9]) continue;
+        c[n++] = {2, s, s == 9 ? 1 : waitStat[s] ? 14 : nMoves() < 4 ? 2 : 4};
     }
     cs.n = 0;
-    for (int pick = 0; pick < 3 && (n > 0 || pick < nf); pick++) {
+    for (int pick = 0; pick < 4 && (n > 0 || pick < nf); pick++) {
         if (pick < nf) {
             Card& cd = cs.c[cs.n++]; memset(&cd, 0, sizeof cd);
             const MoveInst& m = gMoves[forced[pick]];
@@ -2787,12 +3333,20 @@ void playBuildCards(CardSet& cs) {
     if (gNP > 1) { gUiRng = rngGet(); rngSet(svR); }
 }
 bool playReroll(CardSet& cs) {
+    if (playPowerOffer()) return false;
     if (gRerollsLeft <= 0) return false;
     gRerollsLeft--; playBuildCards(cs); return true;
 }
 void playApplyCard(const Card& c) {
+    bool powerCard = c.kind == 3 && c.arg >= 4;
     if (c.kind == 0) slotPlace(c.arg);
     else if (c.kind == 1) { MoveInst& m = gMoves[c.arg]; if (m.lvl < 5) { m.lvl++; moveRecompute(m); } }
+    else if (c.kind == 3 && c.arg >= 4) {
+        if (!gCur->powerOffer) return;
+        P.power = c.arg == 8 ? 4 : c.arg - 4;
+        gCur->powerOffer = false;
+        banner(T("¡Poder elegido! Pulsa SELECT para usarlo."), 3.5f);
+    }
     else if (c.kind == 3) {
         MoveInst& m = gMoves[c.arg]; m.evo = true; moveRecompute(m); gEvolves++;
         fxRing(P.x, P.y - 8, 8, 120, 0xffd23f, 0.8f, 6); fxBurst(P.x, P.y - 14, 0xffe14d, 40, 240); sfxPlay(SFX_RARE);
@@ -2803,16 +3357,17 @@ void playApplyCard(const Card& c) {
             case 0: P.maxHp += 20; healPlayer(20); break;
             case 1: P.atkMul *= 1.10f; break;
             case 2: P.spdMul *= 1.07f; break;
-            case 3: P.cdMul *= 0.92f; break;
-            case 4: P.dmgReduce = fminf(0.7f, P.dmgReduce + 0.06f); break;
+            case 3: P.cdMul *= 1.0f - 0.08f / (1.0f + 0.08f * (gStatTaken[3] - 1)); break;
+            case 4: P.dmgReduce = fminf(0.8f, P.dmgReduce + 0.06f); break;
             case 5: P.regen += 0.9f; break;
             case 6: P.magnet *= 1.3f; break;
             case 7: P.xpMul *= 1.12f; break;
             case 8: healPlayer(P.maxHp * 0.45f); break;
+            case 9: P.xpMul *= 1.15f; break;
         }
     }
     if (gNP == 1) gPS = PS_RUN;
-    else if (gCur->pend > 0) gCur->pend--;
+    else if (!powerCard && gCur->pend > 0) gCur->pend--;
     P.invuln = fmaxf(P.invuln, 0.8f);
     levelUpCheck();
 }
@@ -2941,6 +3496,17 @@ static void drawFieldsGround(float cx, float cy) {
                 circle(x, y, f.r * p, rgbA(rgb, 90), 0.29f);
                 break;
             }
+            case FD_TREMOR:
+                ringDraw(x, y, f.r * clampf(f.t / f.life, 0, 1), 5, rgbA(rgb, 190), 0.3f);
+                break;
+            case FD_CROSS:
+                quadLine(x - f.r, y, x + f.r, y, f.a, rgbA(rgb, 90), 0.3f);
+                quadLine(x, y - f.r, x, y + f.r, f.a, rgbA(rgb, 90), 0.3f);
+                break;
+            case FD_DECOY:
+                circle(x, y - 8, 9, COL(230, 250, 255, 130), 0.42f);
+                ringDraw(x, y, 13, 2, COL(180, 220, 255, 170), 0.43f);
+                break;
         }
     }
     for (int i = 0; i < MAXH; i++) {
@@ -3155,7 +3721,7 @@ static void drawEvents(float cx, float cy) {
         const Enemy* ae = nullptr; for (int q = 0; q < MAXE; q++) if (gE[q].on && gE[q].arceus) ae = &gE[q];
         bool fl = ae && ae->flash > 0;
         if (fl) C2D_PlainImageTint(&at, COL(255, 255, 255, 255), 0.7f);
-        if (gHwRun) sprDraw(sprHas(1050) ? 1050 : 94, gJDir, gMs, gJMoving, ax, ay, gJ == 2 ? &at : nullptr, 2.4f);
+        if (gHwRun) sprDraw(sprHas(3900) ? 3900 : 94, gJDir, gMs, gJMoving, ax, ay, gJ == 2 ? &at : nullptr, 2.4f);
         else sprDraw(493, gJDir, gMs, gJMoving, ax, ay, gJ == 2 ? &at : nullptr, 1.5f);
         if (ae) {
             float yy = ay - 60;
@@ -3178,12 +3744,19 @@ static void drawEvents(float cx, float cy) {
     if (gArenaEnd <= 0) text(b, gVW - 40, 12, 0.5f, COL(220, 170, 255, 255));
 }
 
-void playDraw(u64 ms) {
+void playDraw(u64 ms, float eye) {
     gMs = ms;
-    float shx = gShake > 0 ? vfrange(-1, 1) * gShake * 6 : 0, shy = gShake > 0 ? vfrange(-1, 1) * gShake * 6 : 0;
+    // Reuse the same shake in both eyes so the two views stay in sync.
+    static u64 shakeMs = ~0ull;
+    static float shx, shy;
+    if (shakeMs != ms) {
+        shakeMs = ms;
+        shx = gShake > 0 ? vfrange(-1, 1) * gShake * 6 : 0;
+        shy = gShake > 0 ? vfrange(-1, 1) * gShake * 6 : 0;
+    }
     int camI = gNP > 1 && gC[gLoc].dead ? (gLoc ^ 1) : gLoc;
     const Player& CP = gC[camI].p;
-    float cx = floorf(CP.x - gVW / 2 + shx), cy = floorf(CP.y - 10 - gVH / 2 + shy);
+    float cx = floorf(CP.x - gVW / 2 + shx + eye), cy = floorf(CP.y - 10 - gVH / 2 + shy);
     gCamX = cx; gCamY = cy;
     if (gZoom < 0.999f) C2D_ViewScale(gZoom, gZoom);
     C2D_DrawRectSolid(0, 0, 0, gVW, gVH, rgbA(TILESET_FLOOR_RGBA[gSet] >> 8, 255));
@@ -3233,11 +3806,15 @@ void playDraw(u64 ms) {
                 for (int q = 0; q < 3; q++) { float a = gTime * 4 + q * 2.1f; C2D_DrawRectSolid(x + cosf(a) * (e.r + 6), y - 10 * sc + sinf(a) * (e.r + 2), 0.9f, 3, 3, COL(230, 255, 255, 255)); }
             }
             if (e.fury) ringDraw(x, y - 10 * sc, e.r + 6 + sinf(gTime * 8) * 2, 2, COL(255, 60, 40, 220), 0.39f);
-            sprDraw(DEX_NUM[e.di], e.dir, gMs, e.moving, x, y, tinted ? &tint : nullptr, sc, e.shiny);
+            if (e.ecore) {
+                circle(x, y - 12, e.r + 4, COL(80, 15, 30, 255), 0.5f);
+                circle(x, y - 12, e.r, COL(255, 80, 115, 255), 0.51f);
+                ringDraw(x, y - 12, e.r + 6, 2, COL(255, 150, 180, 220), 0.52f);
+            } else sprDraw(e.eterna && sprHas(3800) ? 3800 : DEX_NUM[e.di], e.dir, gMs, e.moving, x, y, tinted ? &tint : nullptr, e.eterna ? 0.85f : sc, e.shiny);
             if (e.shield > 0) ringDraw(x, y - 12 * sc, e.r + 6, 2, COL(120, 180, 255, 220), 0.7f);
             if (e.beh >= B_HEALER && e.beh <= B_SUMMONER && !e.boss) {}
             if (e.boss) {
-                const PokeSpr& s = POKE_SPR[DEX_NUM[e.di]]; float yy = y - s.h * sc - 10;
+                const PokeSpr& s = POKE_SPR[e.eterna && sprHas(3800) ? 3800 : DEX_NUM[e.di]]; float yy = y - s.h * (e.eterna ? 0.85f : sc) - 10;
                 C2D_DrawRectSolid(x - 26, yy, 0.8f, 52, 5, COL(0, 0, 0, 220));
                 C2D_DrawRectSolid(x - 25, yy + 1, 0.85f, 50 * clampf(e.hp / e.maxHp, 0, 1), 3, e.fury ? COL(255, 130, 40, 255) : COL(230, 60, 60, 255));
                 char hb[24]; snprintf(hb, sizeof hb, "%d", (int)ceilf(fmaxf(e.hp, 0))); text(hb, x, yy - 9, 0.4f, COL(255, 255, 255, 255), true);
@@ -3254,9 +3831,9 @@ void playDraw(u64 ms) {
                 C2D_ImageTint tint; bool t = false;
                 if (PP.flash > 0) { C2D_PlainImageTint(&tint, COL(255, 80, 80, 255), 0.7f); t = true; }
                 float at = PP.actK ? (gTime - PP.actS) / PP.actD : 2;
-                if (!(at >= 0 && at < 1 && (di.idx != gLoc || skinNum(PP.di) == DEX_NUM[PP.di]) && actDraw(DEX_NUM[PP.di], PP.actK - 1, PP.actDir, at, x, y, t ? &tint : nullptr, 1.0f, pc.shiny))) {
-                    int sn = di.idx == gLoc ? skinNum(PP.di) : DEX_NUM[PP.di];
-                    sprDraw(sn, PP.dir, gMs, PP.moving, x, y, t ? &tint : nullptr, 1.0f, sn == DEX_NUM[PP.di] && pc.shiny);
+                if (!(PP.mega < 0 && at >= 0 && at < 1 && (di.idx != gLoc || skinNum(PP.di) == DEX_NUM[PP.di]) && actDraw(DEX_NUM[PP.di], PP.actK - 1, PP.actDir, at, x, y, t ? &tint : nullptr, PP.powerOn && PP.power == 1 ? 1.8f : 1.0f, pc.shiny))) {
+                    int sn = PP.mega >= 0 && MEGAS[PP.mega].own ? MEGAS[PP.mega].sprite : di.idx == gLoc ? skinNum(PP.di) : DEX_NUM[PP.di];
+                    sprDraw(sn, PP.dir, gMs, PP.moving, x, y, t ? &tint : nullptr, PP.powerOn && PP.power == 1 ? 1.8f : 1.0f, sn == DEX_NUM[PP.di] && pc.shiny);
                 }
             }
             C2D_DrawRectSolid(x - 15, y - 4, 0.8f, 30, 4, COL(0, 0, 0, 200));
@@ -3318,14 +3895,29 @@ void playDraw(u64 ms) {
     }
     int sec = (int)gTime; snprintf(b, sizeof b, "%02d:%02d", sec / 60, sec % 60); text(b, bx, -2, 0.45f, COL(255, 255, 255, 255), true);
     snprintf(b, sizeof b, "KO %d", gKills); text(b, TOP_W - 52, -2, 0.45f, COL(255, 230, 120, 255));
+    const Player& localPower = gC[gLoc].p;
+    if (localPower.power >= 0) {
+        static const char* const names[5] = {"Megaevolución", "Dinamax", "Pulsera Z", "Teracristal", "Megaevolución +"};
+        char status[96];
+        if (localPower.power == 4) snprintf(status, sizeof status, "%s · %s", T(names[localPower.power]), T("SELECT"));
+        else if (localPower.powerOn) snprintf(status, sizeof status, "%s · %ds", T(names[localPower.power]), (int)ceilf(localPower.power == 0 ? localPower.megaT : localPower.powerT));
+        else if (localPower.powerCd > 0) snprintf(status, sizeof status, "%s · %ds", T(names[localPower.power]), (int)ceilf(localPower.powerCd));
+        else snprintf(status, sizeof status, "%s · %s", T(names[localPower.power]), T("SELECT"));
+        text(status, 5, TOP_H - 18, 0.38f, COL(245, 200, 255, 255));
+    }
     if (gHwRun) { snprintf(b, sizeof b, "%s %d", T("Caramelos"), gCandy); text(b, TOP_W - 96, TOP_H - 16, 0.42f, COL(255, 150, 50, 255)); }
     if (gBannerT > 0) text(gBanner, bx, 30, strlen(gBanner) > 30 ? 0.5f : 0.7f, COL(255, 240, 160, 255), true);
     if (gWx) {
-        C2D_DrawRectSolid(TOP_W - 96, 15, 0.8f, 92, 14, COL(0, 0, 0, 130));
         static const int WI[6] = {0, IC_WSUN, IC_WRAIN, IC_WSAND, IC_WSNOW, IC_WFOG};
-        icon(WI[gWx], TOP_W - 98, 8, 0.5f);
         int left = (int)fmaxf(0, gWxDur - gWxT);
-        snprintf(b, sizeof b, "%s %d:%02d", weatherName(gWx), left / 60, left % 60);
-        text(b, TOP_W - 82, 13, 0.4f, rgbA(weatherColor(gWx), 255));
+        char label[96];
+        snprintf(label, sizeof label, "%s %d:%02d", weatherName(gWx), left / 60, left % 60);
+        float scale = 0.4f;
+        while (scale > 0.32f && textW(label, scale) > 150) scale -= 0.02f;
+        float width = fmaxf(110, textW(label, scale) + 31);
+        float x = TOP_W - width - 5;
+        C2D_DrawRectSolid(x, 15, 0.8f, width, 19, COL(0, 0, 0, 170));
+        icon(WI[gWx], x + 3, 17, 0.5f);
+        text(label, x + 23, 17, scale, rgbA(weatherColor(gWx), 255));
     }
 }
