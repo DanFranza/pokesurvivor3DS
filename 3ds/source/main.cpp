@@ -796,9 +796,12 @@ static void drawOptions() {
             if (button(x, 62, 144, 40, k ? "Legibilidad mejorada" : "Normal", k ? COL(160, 100, 40, 255) : COL(60, 100, 160, 255), 0.4f) && !cur) { gSave.bigUI = (u8)k; saveWrite(); sfxPlay(SFX_UI); }
         }
         if (button(35, 119, 250, 48, "Música", COL(145, 75, 190, 255), 0.6f, IC_SOUND)) { gMusicPage = 0; gState = ST_MUSIC; sfxPlay(SFX_UI); }
-        if (button(35, 173, 250, 28, gSave.musicPad[0] ? "3D sin gafas: sí" : "3D sin gafas: no",
+        if (button(35, 173, 250, 28, gSave.musicPad[0] != 2 ? "3D sin gafas: sí" : "3D sin gafas: no",
                    COL(75, 135, 165, 255), 0.43f)) {
-            gSave.musicPad[0] ^= 1; saveWrite(); sfxPlay(SFX_UI);
+            // Existing saves contain 0 (old default) or 1 (enabled).
+            // Both now let the physical slider control stereoscopy directly.
+            gSave.musicPad[0] = gSave.musicPad[0] == 2 ? 1 : 2;
+            saveWrite(); sfxPlay(SFX_UI);
         }
     }
     if (arrowBtn(8, 207, 48, 28, false, gOptionsPage > 0)) { gOptionsPage = 0; sfxPlay(SFX_UI); }
@@ -1132,8 +1135,9 @@ static void drawLoadoutBottom() {
         snprintf(gTmp, sizeof gTmp, T("Recarga %.1f s · %s"), gMoves[gSelBtn].v[K_CD], T(d.cat == 0 ? "Físico" : d.cat == 1 ? "Especial" : "Estado"));
         text(gTmp, 160, 171, 0.42f, COL(170, 200, 255, 255), true);
     }
-    if (gAfterPause && button(8, 196, 98, 36, gSave.musicPad[0] ? "3D: sí" : "3D: no", COL(75, 135, 165, 255), 0.48f)) {
-        gSave.musicPad[0] ^= 1; saveWrite(); sfxPlay(SFX_UI);
+    if (gAfterPause && button(8, 196, 98, 36, gSave.musicPad[0] != 2 ? "3D: sí" : "3D: no", COL(75, 135, 165, 255), 0.48f)) {
+        gSave.musicPad[0] = gSave.musicPad[0] == 2 ? 1 : 2;
+        saveWrite(); sfxPlay(SFX_UI);
     }
     if (button(114, 196, 100, 36, gAfterPause ? "Seguir" : "¡Jugar!", COL(60, 170, 80, 255), 0.6f)) {
         if (gAfterPause) { gState = ST_PLAY; gAfterPause = false; }
@@ -2011,7 +2015,8 @@ int main() {
 
         kbdRun();
         onlinePoll();
-        bool stereo = gSave.musicPad[0] && osGet3DSliderState() > 0.01f && topRight;
+        // The slider is the default control. Only an explicit opt-out disables 3D.
+        bool stereo = gSave.musicPad[0] != 2 && osGet3DSliderState() > 0.01f && topRight;
         if (stereo != stereoActive) { gfxSet3D(stereo); stereoActive = stereo; }
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         textFrame();

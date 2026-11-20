@@ -24,6 +24,8 @@ make                           # produces pokesurvivor3ds.3dsx
 
 ## Features
 
+The console's 3D slider enables glasses-free stereoscopic 3D by default. The second **Options** page and pause menu can disable or re-enable it. The effect requires a compatible console.
+
 - All 18 types, weaknesses, and effectiveness messages from the web game.
 - 176 moves across 37 behavior types, each with four upgrades. This includes 73 newer moves supported by the 3DS engine; Pokémon-specific moves can appear as cards from level 10. A max-level move can evolve after its required upgrade has been selected, in solo or co-op.
 - 1,082 Pokédex entries, including regional forms, and 91 possible Mega Evolutions. A compatible Pokémon can find a Mega Stone in a chest and press SELECT during a run to transform temporarily. Some species have two forms, selected by the held stone.

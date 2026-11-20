@@ -34,7 +34,7 @@ Depuis le menu principal, ouvre **Options**, passe à la deuxième page et touch
 
 ## Contenu
 
-La seconde page des **Options** permet d’activer la 3D stéréoscopique sans lunettes ; le réglage est aussi accessible depuis la pause. L’effet dépend du curseur 3D et d’une console compatible.
+Le curseur 3D de la console active par défaut la 3D stéréoscopique sans lunettes. La seconde page des **Options** et le menu de pause permettent de la désactiver ou de la réactiver. L’effet requiert une console compatible.
 
 - Table des 18 types, faiblesses et messages d'efficacité du jeu web.
 - À chaque montée de niveau, quatre cartes sont proposées sur deux pages lisibles, en solo comme en coopération. Carte rare « Sagesse » : +15 % d’expérience pendant la partie, une seule fois.
